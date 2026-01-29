@@ -1,0 +1,45 @@
+{
+  "name": "@anysiteio/agent-skills",
+  "version": "1.0.0",
+  "description": "Official anysite agent skills for LinkedIn intelligence, social media analysis, and data extraction",
+  "keywords": [
+    "mcp",
+    "claude-code",
+    "linkedin",
+    "social-media",
+    "agent-skills",
+    "anysite",
+    "skills",
+    "ai-agents"
+  ],
+  "homepage": "https://github.com/anysiteio/agent-skills#readme",
+  "bugs": {
+    "url": "https://github.com/anysiteio/agent-skills/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anysiteio/agent-skills.git"
+  },
+  "license": "MIT",
+  "author": "Anysite.io",
+  "type": "module",
+  "bin": {
+    "anysite-skills": "./bin/install.js"
+  },
+  "files": [
+    "skills/",
+    ".claude-plugin/",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepublishOnly": "echo 'Publishing @anysiteio/agent-skills to npm'"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

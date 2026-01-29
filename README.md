@@ -22,6 +22,10 @@ Official anysite agent skills for LinkedIn intelligence, social media analysis, 
 
 ## Installation
 
+```bash
+npx @anysiteio/agent-skills
+```
+
 ### Step 1: Install anysite MCP Server
 
 First, install the anysite MCP server following the instructions at [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server).
@@ -36,6 +40,12 @@ First, install the anysite MCP server following the instructions at [docs.anysit
 
 # Install a skill
 /plugin install anysite-lead-generation@anysite-skills
+```
+
+Or use npx for quick installation:
+
+```bash
+npx @anysiteio/agent-skills
 ```
 
 #### Cursor / Windsurf
