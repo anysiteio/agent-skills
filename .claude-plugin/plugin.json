@@ -1,0 +1,45 @@
+{
+  "name": "anysite-skills",
+  "version": "1.1.0",
+  "description": "Professional skills for data extraction and analysis using anysite MCP server. Covers LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, and web scraping for lead generation, competitive intelligence, market research, social media analytics, person intelligence, VC analysis, and competitor research.",
+  "author": {
+    "name": "Anysite Skills Contributors",
+    "email": "support@anysite.io"
+  },
+  "homepage": "https://github.com/anysiteio/agent-skills",
+  "repository": "https://github.com/anysiteio/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "anysite",
+    "mcp",
+    "data-extraction",
+    "linkedin",
+    "instagram",
+    "twitter",
+    "reddit",
+    "youtube",
+    "market-research",
+    "lead-generation",
+    "competitor-analysis",
+    "social-media-analytics",
+    "web-scraping",
+    "y-combinator",
+    "sec-filings",
+    "person-intelligence",
+    "vc-analysis",
+    "investor-research"
+  ],
+  "skills": [
+    "./skills/anysite-lead-generation",
+    "./skills/anysite-competitor-intelligence",
+    "./skills/anysite-influencer-discovery",
+    "./skills/anysite-content-analytics",
+    "./skills/anysite-trend-analysis",
+    "./skills/anysite-market-research",
+    "./skills/anysite-audience-analysis",
+    "./skills/anysite-brand-reputation",
+    "./skills/anysite-person-analyzer",
+    "./skills/anysite-vc-analyst",
+    "./skills/anysite-competitor-analyzer"
+  ]
+}

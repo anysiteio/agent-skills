@@ -1,0 +1,113 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "anysite-skills-marketplace",
+  "version": "1.1.0",
+  "description": "Marketplace for anysite MCP-powered data extraction and analysis skills",
+  "owner": {
+    "name": "Anysite Skills Contributors",
+    "email": "support@anysite.io"
+  },
+  "plugins": [
+    {
+      "name": "anysite-skills",
+      "description": "Complete suite of 11 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, and competitor research using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity"
+    },
+    {
+      "name": "anysite-lead-generation",
+      "description": "Lead generation specialist using anysite MCP for LinkedIn prospect discovery, email finding, company research, and contact enrichment. Extract contacts from websites, find decision-makers, and build qualified prospect lists. Ideal for sales teams, recruiters, and business development professionals.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-lead-generation"]
+    },
+    {
+      "name": "anysite-competitor-intelligence",
+      "description": "Competitive intelligence gathering across LinkedIn, social media, Y Combinator, and the web. Track competitor activities, analyze hiring patterns, monitor content strategies, and benchmark market positioning. Perfect for product managers, strategists, and market analysts.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-competitor-intelligence"]
+    },
+    {
+      "name": "anysite-market-research",
+      "description": "Comprehensive market research using Y Combinator data, SEC filings, social media insights, and web scraping. Analyze market dynamics, discover emerging trends, research startup ecosystems, and understand competitive landscapes. Built for researchers, investors, and strategic planners.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "learning",
+      "skills": ["./skills/anysite-market-research"]
+    },
+    {
+      "name": "anysite-social-media-analytics",
+      "description": "Comprehensive social media analytics bundle combining audience analysis, content performance tracking, and influencer discovery. Monitor engagement metrics, identify trends, discover influencers, and analyze content strategies across Instagram, YouTube, LinkedIn, Twitter/X, and Reddit.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": [
+        "./skills/anysite-audience-analysis",
+        "./skills/anysite-content-analytics",
+        "./skills/anysite-influencer-discovery",
+        "./skills/anysite-trend-analysis",
+        "./skills/anysite-brand-reputation"
+      ]
+    },
+    {
+      "name": "anysite-person-analyzer",
+      "description": "Deep multi-platform intelligence analysis for people combining LinkedIn (profile, posts, activity), Twitter/X (tweets, engagement), Reddit (discussions), web presence (articles, GitHub, blogs), and company intelligence. Perfect for networking, sales, partnerships, recruitment, and investor relations. Produces comprehensive cross-platform reports with conversation strategies and strategic value assessment.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-person-analyzer"]
+    },
+    {
+      "name": "anysite-vc-analyst",
+      "description": "Universal startup investor research and outreach agent. Onboards project context (website, pitch deck, fundraising stage), verifies investor roles on LinkedIn, scores investors based on stage fit, thesis alignment, and portfolio relevance. Detects portfolio conflicts and generates personalized outreach messages. Ideal for founders raising capital, VCs doing due diligence, and accelerators.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-vc-analyst"]
+    },
+    {
+      "name": "anysite-competitor-analyzer",
+      "description": "Comprehensive competitive intelligence combining web scraping, LinkedIn analysis, social media monitoring, leadership profiling, GitHub review, and community sentiment tracking. Generates detailed competitor profiles with positioning, pricing, team composition, strategic analysis, and actionable recommendations. Perfect for product managers, strategists, and sales teams.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-competitor-analyzer"]
+    }
+  ]
+}
