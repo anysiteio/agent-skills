@@ -2,6 +2,14 @@
 
 Official anysite agent skills for LinkedIn intelligence, social media analysis, and data extraction. Works with Claude Code, Cursor, and other AI coding assistants that support MCP.
 
+## 💎 MCP Unlimited Plan
+
+Unlimited access to all 65+ Anysite MCP tools for just $30/month - perfect for AI agents and automation.
+
+Get unlimited requests through Remote MCP Server with no request limits. Ideal for Claude Desktop, Cursor, n8n, and any MCP-compatible client.
+
+📖 Learn more about MCP Unlimited https://docs.anysite.io/mcp-server/unlimited-plan
+
 ## Available Skills
 
 <!-- BEGIN_SKILLS_TABLE -->
