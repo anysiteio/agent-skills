@@ -22,30 +22,40 @@ Official anysite agent skills for LinkedIn intelligence, social media analysis, 
 
 ## Installation
 
+### Quick Start
+
 ```bash
 npx @anysiteio/agent-skills
 ```
+
+This will display installation instructions and list all available skills.
 
 ### Step 1: Install anysite MCP Server
 
 First, install the anysite MCP server following the instructions at [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server).
 
-### Step 2: Install Skills Marketplace
+### Step 2: Add Skills Marketplace
 
-#### Claude Code
+#### Option 1: Using npx (Recommended)
 
+```bash
+npx @anysiteio/agent-skills
+```
+
+Then in Claude Code, run:
+```bash
+/plugin marketplace add https://github.com/anysiteio/agent-skills
+```
+
+#### Option 2: Manual Installation
+
+In Claude Code:
 ```bash
 # Add the marketplace
 /plugin marketplace add https://github.com/anysiteio/agent-skills
 
 # Install a skill
 /plugin install anysite-lead-generation@anysite-skills
-```
-
-Or use npx for quick installation:
-
-```bash
-npx @anysiteio/agent-skills
 ```
 
 #### Cursor / Windsurf
