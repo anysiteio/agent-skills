@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 11 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, and competitor research using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
+      "description": "Complete suite of 12 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, competitor research, and security auditing using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
       "version": "1.1.0",
       "author": {
         "name": "Anysite Skills Contributors",
@@ -108,6 +108,18 @@
       "source": "./",
       "category": "productivity",
       "skills": ["./skills/anysite-competitor-analyzer"]
+    },
+    {
+      "name": "skill-audit",
+      "description": "Static security auditor for Claude Code skills, commands, and plugins. Detects dangerous patterns — excessive permissions, hooks, prompt injection, credential access, privilege escalation — before you enable a skill. Performs read-only analysis with no system modifications.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/skill-audit"]
     }
   ]
 }

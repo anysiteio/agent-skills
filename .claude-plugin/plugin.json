@@ -40,6 +40,7 @@
     "./skills/anysite-brand-reputation",
     "./skills/anysite-person-analyzer",
     "./skills/anysite-vc-analyst",
-    "./skills/anysite-competitor-analyzer"
+    "./skills/anysite-competitor-analyzer",
+    "./skills/skill-audit"
   ]
 }

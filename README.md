@@ -26,6 +26,7 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `anysite-person-analyzer` | Deep multi-platform intelligence analysis for people combining LinkedIn (profile, posts, activity), Twitter/X, Reddit, GitHub, and web presence. Perfect for networking, sales, partnerships, recruitment, and investor relations. | [SKILL.md](skills/anysite-person-analyzer/SKILL.md) |
 | `anysite-vc-analyst` | Universal startup investor research and outreach agent. Verify investor roles, score based on stage fit and thesis alignment, detect portfolio conflicts, and generate personalized outreach messages. | [SKILL.md](skills/anysite-vc-analyst/SKILL.md) |
 | `anysite-competitor-analyzer` | Comprehensive competitive intelligence combining web scraping, LinkedIn analysis, social media monitoring, leadership profiling, GitHub review, and community sentiment tracking. | [SKILL.md](skills/anysite-competitor-analyzer/SKILL.md) |
+| `skill-audit` | Static security auditor for Claude Code skills. Detects hooks, prompt injection, and dangerous permissions. | [SKILL.md](skills/skill-audit/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
 ## Installation
