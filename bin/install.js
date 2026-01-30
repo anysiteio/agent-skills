@@ -41,7 +41,8 @@ try {
   console.log('  • anysite-brand-reputation');
   console.log('  • anysite-person-analyzer');
   console.log('  • anysite-vc-analyst');
-  console.log('  • anysite-competitor-analyzer\n');
+  console.log('  • anysite-competitor-analyzer');
+  console.log('  • skill-audit\n');
 
   console.log('💡 To install a skill, run in Claude Code:');
   console.log('  /plugin install anysite-lead-generation@anysite-skills\n');
