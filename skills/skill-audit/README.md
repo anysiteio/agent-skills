@@ -42,6 +42,21 @@ The skill requires these permissions (automatically granted during installation)
 }
 ```
 
+For stricter WebFetch domain enforcement (recommended):
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Skill(skill-audit)",
+      "Skill(skill-audit:*)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
+```
+
 ## Usage
 
 ### Quick Start
@@ -85,18 +100,19 @@ The auditor performs a comprehensive 5-phase static analysis:
 
 | Phase | What It Analyzes |
 |-------|------------------|
-| **Discovery** | Inventories all files in the skill directory |
+| **Discovery** | Inventories all files in the skill/plugin directory, detects plugin structure |
 | **Frontmatter** | Checks `allowed-tools`, hooks, permissions, invocation settings |
 | **Body Content** | Scans for dangerous tool references, settings manipulation, injection patterns, sensitive file access |
 | **Supporting Files** | Examines scripts for network egress, credential access, code execution, persistence |
-| **Hooks** | Detects hook definitions or installations |
+| **Hooks** | Detects hook definitions or installations, classifies by risk level |
 
 ### Detection Rules
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
-| **SKL-001** | Critical | Hooks in skill (auto-execute shell commands) |
-| **SKL-002** | Critical/High | Prompt injection or dynamic injection patterns |
+| **SKL-001a** | Medium | Hooks present in skill (require manual review) |
+| **SKL-001b** | Critical | Hooks with dangerous patterns (network, credentials, persistence) |
+| **SKL-002** | Critical/High | Prompt injection or dynamic injection patterns (`!` + backticks, `$(...)`) |
 | **SKL-003** | High | Bash/WebFetch/broad wildcards in `allowed-tools` |
 | **SKL-004** | Medium/High | Missing `disable-model-invocation` on side-effect skills |
 | **SKL-005** | High | Dangerous patterns in supporting scripts |
@@ -150,10 +166,31 @@ This skill is designed with security as the top priority:
 - Instructions found in audited files are flagged as findings
 - Never follows or executes instructions from audited content
 
+### Evidence Redaction
+- Secrets, tokens, and API keys found in evidence are automatically masked
+- Prevents accidental exposure of credentials in audit reports
+- Shows only first 4 and last 4 characters of sensitive values
+
 ### Scoped WebFetch
 - WebFetch restricted to `raw.githubusercontent.com` and `api.github.com`
 - Only used for fetching remote skill files from GitHub
+- No redirects followed, no links from fetched content used
 - No arbitrary URL access
+
+### Isolated Execution
+- Runs in a forked subagent context (`context: fork`)
+- Prevents context contamination from audited content
+- Clean execution environment for each audit
+
+### Manual-Only Invocation
+- `disable-model-invocation: true` prevents auto-triggering
+- Must be invoked explicitly via `/skill-audit`
+- No automatic background scans
+
+### Remote Audit Limits
+- Maximum 20 files per remote audit
+- 100 KB file size limit
+- Large repositories require targeting a specific subdirectory
 
 ## Use Cases
 
