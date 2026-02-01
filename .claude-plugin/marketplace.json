@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 12 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, competitor research, and security auditing using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
+      "description": "Complete suite of 13 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, competitor research, security auditing, and CLI automation using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
       "version": "1.1.0",
       "author": {
         "name": "Anysite Skills Contributors",
@@ -120,6 +120,18 @@
       "source": "./",
       "category": "productivity",
       "skills": ["./skills/skill-audit"]
+    },
+    {
+      "name": "anysite-cli",
+      "description": "Command-line tool operator for anysite CLI. Handles web data extraction, batch API processing, multi-source dataset pipelines with scheduling/transforms/exports, and database operations. Execute anysite commands for LinkedIn, Instagram, Twitter data collection, dataset creation, SQL queries, and PostgreSQL/SQLite loading.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-cli"]
     }
   ]
 }

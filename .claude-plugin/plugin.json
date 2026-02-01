@@ -41,6 +41,7 @@
     "./skills/anysite-person-analyzer",
     "./skills/anysite-vc-analyst",
     "./skills/anysite-competitor-analyzer",
-    "./skills/skill-audit"
+    "./skills/skill-audit",
+    "./skills/anysite-cli"
   ]
 }

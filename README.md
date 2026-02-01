@@ -27,6 +27,7 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `anysite-vc-analyst` | Universal startup investor research and outreach agent. Verify investor roles, score based on stage fit and thesis alignment, detect portfolio conflicts, and generate personalized outreach messages. | [SKILL.md](skills/anysite-vc-analyst/SKILL.md) |
 | `anysite-competitor-analyzer` | Comprehensive competitive intelligence combining web scraping, LinkedIn analysis, social media monitoring, leadership profiling, GitHub review, and community sentiment tracking. | [SKILL.md](skills/anysite-competitor-analyzer/SKILL.md) |
 | `skill-audit` | Static security auditor for Claude Code skills. Detects hooks, prompt injection, and dangerous permissions. | [SKILL.md](skills/skill-audit/SKILL.md) |
+| `anysite-cli` | Command-line tool operator for anysite CLI. Execute data extraction, batch processing, dataset pipelines, scheduling, and database operations. | [SKILL.md](skills/anysite-cli/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
 ## Installation

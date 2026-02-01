@@ -1,6 +1,6 @@
 {
   "name": "@anysiteio/agent-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Official anysite agent skills for LinkedIn intelligence, social media analysis, data extraction, and security auditing",
   "keywords": [
     "mcp",
