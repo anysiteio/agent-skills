@@ -101,6 +101,12 @@ Sources are topologically sorted — parents always run before children. Multi-l
 companies → employees → profiles → posts → comments
 ```
 
+**Common dependency fields:**
+- `/api/linkedin/company/employees` returns: `name`, `headline`, `url`, `image`, `location`, `internal_id`, `urn` — use `urn.value` (not `alias`) to chain into `/api/linkedin/user`
+- `/api/linkedin/user` accepts both human-readable aliases (`satyanadella`) and URN values as the `user` parameter
+
+Always run `anysite describe <endpoint>` to verify available fields before setting up dependencies.
+
 ### input_template
 
 Transforms extracted values before passing to the API. Use `{value}` placeholder:
@@ -265,7 +271,8 @@ Result in database:
 
 ### Connection Management
 ```bash
-anysite db add <name>              # Interactive add
+anysite db add <name> --type postgres --host localhost --database mydb --user app --password secret
+anysite db add <name> --type postgres --host localhost --database mydb --user app --password-env DB_PASS
 anysite db list                    # List all connections
 anysite db test <name>             # Test connectivity
 anysite db info <name>             # Show connection details

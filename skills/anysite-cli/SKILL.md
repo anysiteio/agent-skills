@@ -10,8 +10,14 @@ Command-line tool for web data extraction, dataset pipelines, and database opera
 ## Prerequisites
 
 ```bash
-# Ensure CLI is installed
+# Ensure CLI is installed (activate venv if installed from source)
+source .venv/bin/activate  # if using a virtual environment
 anysite --version
+
+# Install extras for dataset pipelines and database support
+pip install "anysite-cli[data]"       # DuckDB + PyArrow for dataset commands
+pip install "anysite-cli[postgres]"   # PostgreSQL adapter
+pip install "anysite-cli[all]"        # All optional dependencies
 
 # Configure API key (one-time)
 anysite config set api_key sk-xxxxx
@@ -29,6 +35,9 @@ anysite api /api/linkedin/user user=satyanadella
 # With output options
 anysite api /api/linkedin/company company=anthropic --format table
 anysite api /api/linkedin/search/users title=CTO count=50 --format csv --output ctos.csv
+
+# Search with specific parameters (always check with `anysite describe` first)
+anysite api /api/linkedin/search/users first_name=Andrew last_name=Kulikov company_keywords=Anysite count=5
 
 # Field selection
 anysite api /api/linkedin/user user=satyanadella --fields "name,headline,follower_count"
@@ -203,7 +212,9 @@ Optional `db_load` config per source controls which fields go to DB:
 
 ```bash
 # Add connection
-anysite db add pg    # Interactive prompts for type, host, port, etc.
+anysite db add pg --type postgres --host localhost --port 5432 --database mydb --user myuser --password mypass
+# Or use env var reference (password not stored in config):
+anysite db add pg --type postgres --host localhost --database mydb --user myuser --password-env PGPASS
 
 # Test and inspect
 anysite db test pg
