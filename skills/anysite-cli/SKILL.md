@@ -133,6 +133,7 @@ sources:
       count: 5
     parallel: 3
     on_error: skip
+    refresh: always             # Re-collect every run even with --incremental
 
 storage:
   format: parquet
@@ -235,7 +236,17 @@ anysite api /api/linkedin/user user=satyanadella -q --format jsonl \
   | anysite db insert pg --table profiles --stdin --auto-create
 ```
 
-### Step 6: History, Scheduling, and Notifications
+### Step 6: Compare Snapshots
+```bash
+# Diff two most recent snapshots
+anysite dataset diff dataset.yaml --source employees --key _input_value
+
+# Diff specific dates, compare only certain fields
+anysite dataset diff dataset.yaml --source employees --key _input_value \
+  --from 2026-01-30 --to 2026-02-01 --fields "name,headline"
+```
+
+### Step 7: History, Scheduling, and Notifications
 ```bash
 # View run history
 anysite dataset history my-dataset

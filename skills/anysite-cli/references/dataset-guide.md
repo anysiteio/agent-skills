@@ -24,6 +24,7 @@ sources:
     parallel: 3                # Concurrent requests
     rate_limit: "10/s"         # Rate limiting
     on_error: skip             # stop or skip
+    refresh: always            # auto (default) or always — re-collect every run
     transform:                 # Post-collection transform (for exports only)
       filter: '.count > 10'   # Safe filter expression
       fields: [name, url]     # Field selection with aliases
@@ -168,6 +169,25 @@ With `--incremental`:
 1. Independent sources: skipped if already collected today
 2. Dependent/from_file sources: skips individual input values already in `metadata.json`
 3. New values are still collected and tracked
+
+### Refresh Mode
+
+Per-source `refresh` field controls behavior with `--incremental`:
+
+```yaml
+- id: posts
+  endpoint: /api/linkedin/user/posts
+  dependency: { from_source: profiles, field: urn.value }
+  input_key: user
+  refresh: always    # Re-collect every run even with --incremental
+```
+
+| Setting | `--incremental` | No flag |
+|---------|----------------|---------|
+| `refresh: auto` (default) | Skip collected inputs | Collect all |
+| `refresh: always` | Collect all (ignore cache) | Collect all |
+
+Use `refresh: always` for sources with frequently changing data (e.g., posts, activity feeds) where you want fresh snapshots each run while still caching stable parent data.
 
 ### Storage Layout
 
@@ -425,6 +445,39 @@ notifications:
 ```
 
 Payload: `{event: "complete"|"failure", dataset, timestamp, record_count, source_count, duration, error}`.
+
+---
+
+## Comparing Snapshots (Diff)
+
+Compare two collection snapshots to find added, removed, and changed records.
+
+```bash
+# Compare two most recent snapshots (auto-detect dates)
+anysite dataset diff dataset.yaml --source profiles --key _input_value
+
+# Compare specific dates
+anysite dataset diff dataset.yaml --source profiles --key urn --from 2026-01-30 --to 2026-02-01
+
+# Only compare specific fields
+anysite dataset diff dataset.yaml --source profiles --key urn --fields "name,headline,follower_count"
+
+# Output as JSON/CSV
+anysite dataset diff dataset.yaml --source profiles --key urn --format json --output diff.json
+```
+
+**Options:**
+- `--source, -s` (required) — source to compare
+- `--key, -k` (required) — field to match records by (e.g., `_input_value`, `urn`)
+- `--from` / `--to` — snapshot dates (default: two most recent)
+- `--fields, -f` — only compare these fields
+- `--format` — output format (table, json, jsonl, csv)
+- `--output, -o` — write to file
+
+**Output** shows summary counts and a table of changes:
+- **added** — records in the new snapshot but not the old
+- **removed** — records in the old snapshot but not the new
+- **changed** — records with the same key but different values (shows `old → new`)
 
 ---
 
