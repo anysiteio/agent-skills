@@ -39,6 +39,7 @@ sources:
         headers: {X-Token: abc}
     db_load:                   # Database loading config
       table: custom_name       # Override table name
+      key: urn.value           # Unique key for diff-based incremental sync
       fields: [name, url]      # Fields to include
       exclude: [_input_value]  # Fields to exclude
 
@@ -244,6 +245,7 @@ anysite dataset load-db dataset.yaml -c <connection_name> [OPTIONS]
 --connection, -c TEXT    Database connection name (required)
 --source, -s TEXT        Load specific source + dependencies
 --drop-existing          Drop tables before creating
+--snapshot TEXT           Load a specific snapshot date (YYYY-MM-DD)
 --dry-run                Show plan without executing
 --quiet, -q              Suppress output
 ```
@@ -256,6 +258,25 @@ anysite dataset load-db dataset.yaml -c <connection_name> [OPTIONS]
 4. Inserts rows, tracking which `_input_value` maps to which `id`
 5. For child sources: adds `{parent_source}_id` FK column using provenance
 
+### Incremental Sync with `db_load.key`
+
+When `db_load.key` is set and the table already exists with >=2 snapshots, `load-db` uses diff-based incremental sync instead of full re-insertion:
+
+1. Compares the two most recent Parquet snapshots using `DatasetDiffer`
+2. **Added** records → INSERT into DB
+3. **Removed** records → DELETE from DB (by key)
+4. **Changed** records → UPDATE modified fields (by key)
+
+This keeps the database in sync without duplicates.
+
+| Scenario | Behavior |
+|----------|----------|
+| First load (table doesn't exist) | Full INSERT of latest snapshot |
+| Table exists + `db_load.key` + >=2 snapshots | Diff-based sync (INSERT/DELETE/UPDATE delta) |
+| `--drop-existing` | Drop table, full INSERT of latest snapshot |
+| `--snapshot 2026-01-15` | Full INSERT of that specific snapshot |
+| No `db_load.key` set | Full INSERT of latest snapshot (no diff) |
+
 ### db_load Config
 
 Control which fields go to the database per source:
@@ -263,6 +284,7 @@ Control which fields go to the database per source:
 ```yaml
 db_load:
   table: people                    # Custom table name (default: source ID)
+  key: urn.value                   # Unique key for diff-based incremental sync
   fields:                          # Explicit field list
     - name
     - url
@@ -456,8 +478,11 @@ Compare two collection snapshots to find added, removed, and changed records.
 # Compare two most recent snapshots (auto-detect dates)
 anysite dataset diff dataset.yaml --source profiles --key _input_value
 
+# Compare with dot-notation key (JSON fields)
+anysite dataset diff dataset.yaml --source profiles --key urn.value
+
 # Compare specific dates
-anysite dataset diff dataset.yaml --source profiles --key urn --from 2026-01-30 --to 2026-02-01
+anysite dataset diff dataset.yaml --source profiles --key urn.value --from 2026-01-30 --to 2026-02-01
 
 # Only compare specific fields
 anysite dataset diff dataset.yaml --source profiles --key urn --fields "name,headline,follower_count"
@@ -468,9 +493,9 @@ anysite dataset diff dataset.yaml --source profiles --key urn --format json --ou
 
 **Options:**
 - `--source, -s` (required) — source to compare
-- `--key, -k` (required) — field to match records by (e.g., `_input_value`, `urn`)
+- `--key, -k` (required) — field to match records by. Supports dot-notation for JSON fields (e.g., `urn.value`)
 - `--from` / `--to` — snapshot dates (default: two most recent)
-- `--fields, -f` — only compare these fields
+- `--fields, -f` — restrict both comparison and output to these fields
 - `--format` — output format (table, json, jsonl, csv)
 - `--output, -o` — write to file
 

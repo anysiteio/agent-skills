@@ -117,6 +117,7 @@ sources:
         path: ./output/companies-{{date}}.csv
         format: csv
     db_load:
+      key: _input_value                   # Unique key for diff-based incremental sync
       fields: [name, url, employee_count]
 
   - id: employees
@@ -189,11 +190,19 @@ anysite dataset profile dataset.yaml
 # Load all sources with FK linking
 anysite dataset load-db dataset.yaml -c pg --drop-existing
 
+# Incremental sync (uses diff when db_load.key is set)
+anysite dataset load-db dataset.yaml -c pg
+
+# Load a specific snapshot date
+anysite dataset load-db dataset.yaml -c pg --snapshot 2026-01-15
+
 # Dry run
 anysite dataset load-db dataset.yaml -c pg --dry-run
 ```
 
 `load-db` auto-creates tables with inferred schema, adds `id` primary key, and links child tables to parents via `{parent}_id` FK columns using provenance data.
+
+**Incremental sync**: When `db_load.key` is set and the table already exists with >=2 snapshots, `load-db` diffs the two most recent snapshots and applies only the delta (INSERT added, DELETE removed, UPDATE changed). Without `db_load.key`, it does a full INSERT of the latest snapshot.
 
 Optional `db_load` config per source controls which fields go to DB:
 ```yaml
@@ -201,6 +210,7 @@ Optional `db_load` config per source controls which fields go to DB:
     endpoint: /api/linkedin/user
     db_load:
       table: people              # Custom table name
+      key: urn.value             # Unique key for diff-based incremental sync
       fields:                    # Select specific fields
         - name
         - urn.value AS urn_id    # Dot-notation extraction
@@ -241,10 +251,15 @@ anysite api /api/linkedin/user user=satyanadella -q --format jsonl \
 # Diff two most recent snapshots
 anysite dataset diff dataset.yaml --source employees --key _input_value
 
-# Diff specific dates, compare only certain fields
+# Diff with dot-notation key (for JSON fields like urn)
+anysite dataset diff dataset.yaml --source profiles --key urn.value
+
+# Diff specific dates, compare and output only certain fields
 anysite dataset diff dataset.yaml --source employees --key _input_value \
   --from 2026-01-30 --to 2026-02-01 --fields "name,headline"
 ```
+
+`--key` supports dot-notation for JSON fields (e.g., `urn.value`). `--fields` restricts both comparison and output columns.
 
 ### Step 7: History, Scheduling, and Notifications
 ```bash
