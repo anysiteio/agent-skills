@@ -118,6 +118,7 @@ sources:
         format: csv
     db_load:
       key: _input_value                   # Unique key for diff-based incremental sync
+      sync: full                          # full (INSERT/DELETE/UPDATE) or append (no DELETE)
       fields: [name, url, employee_count]
 
   - id: employees
@@ -204,6 +205,10 @@ anysite dataset load-db dataset.yaml -c pg --dry-run
 
 **Incremental sync**: When `db_load.key` is set and the table already exists with >=2 snapshots, `load-db` diffs the two most recent snapshots and applies only the delta (INSERT added, DELETE removed, UPDATE changed). Without `db_load.key`, it does a full INSERT of the latest snapshot.
 
+**Sync modes** (`db_load.sync`):
+- `full` (default) — applies INSERT, DELETE, and UPDATE from diff
+- `append` — applies INSERT and UPDATE only, skips DELETE (keeps records that disappeared from the API). Use for sources where the API returns only the latest N items (e.g., posts, activity feeds).
+
 Optional `db_load` config per source controls which fields go to DB:
 ```yaml
   - id: profiles
@@ -211,6 +216,7 @@ Optional `db_load` config per source controls which fields go to DB:
     db_load:
       table: people              # Custom table name
       key: urn.value             # Unique key for diff-based incremental sync
+      sync: append               # Keep old records (no DELETE on diff)
       fields:                    # Select specific fields
         - name
         - urn.value AS urn_id    # Dot-notation extraction

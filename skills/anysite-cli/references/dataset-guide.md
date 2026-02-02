@@ -40,6 +40,7 @@ sources:
     db_load:                   # Database loading config
       table: custom_name       # Override table name
       key: urn.value           # Unique key for diff-based incremental sync
+      sync: full               # full (INSERT/DELETE/UPDATE) or append (no DELETE)
       fields: [name, url]      # Fields to include
       exclude: [_input_value]  # Fields to exclude
 
@@ -264,10 +265,14 @@ When `db_load.key` is set and the table already exists with >=2 snapshots, `load
 
 1. Compares the two most recent Parquet snapshots using `DatasetDiffer`
 2. **Added** records → INSERT into DB
-3. **Removed** records → DELETE from DB (by key)
+3. **Removed** records → DELETE from DB (by key) — only in `sync: full` mode
 4. **Changed** records → UPDATE modified fields (by key)
 
 This keeps the database in sync without duplicates.
+
+**Sync modes** (`db_load.sync`):
+- `full` (default) — applies INSERT, DELETE, and UPDATE from diff
+- `append` — applies INSERT and UPDATE only, skips DELETE. Use for sources where the API returns only the latest N items (e.g., posts, comments) and you want to accumulate records over time.
 
 | Scenario | Behavior |
 |----------|----------|
@@ -285,6 +290,7 @@ Control which fields go to the database per source:
 db_load:
   table: people                    # Custom table name (default: source ID)
   key: urn.value                   # Unique key for diff-based incremental sync
+  sync: append                     # full (default) or append (no DELETE on diff)
   fields:                          # Explicit field list
     - name
     - url
