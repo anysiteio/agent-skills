@@ -37,11 +37,27 @@ sources:
       - type: webhook
         url: https://example.com/hook
         headers: {X-Token: abc}
+    llm:                       # LLM enrichment (after collection, before Parquet)
+      - type: enrich           # enrich, classify, summarize, generate
+        add:                   # Field specs for enrich type
+          - "sentiment:positive/negative/neutral"
+          - "language:string"
+        fields: [name, headline]  # Record fields to include in LLM prompt
+      - type: classify
+        categories: "dev,recruiter,exec"  # Omit for auto-detect
+        output_column: role    # Default: "category"
+      - type: summarize
+        max_length: 50
+        output_column: bio     # Default: "summary"
+      - type: generate
+        prompt: "Pitch for {name}"  # Required for generate
+        output_column: pitch   # Default: "text"
+        temperature: 0.7       # Per-step overrides
     db_load:                   # Database loading config
       table: custom_name       # Override table name
       key: urn.value           # Unique key for diff-based incremental sync
       sync: full               # full (INSERT/DELETE/UPDATE) or append (no DELETE)
-      fields: [name, url]      # Fields to include
+      fields: [name, url, sentiment, language, role, bio, pitch]
       exclude: [_input_value]  # Fields to exclude
 
 storage:
@@ -392,6 +408,81 @@ Safe expression parser (no `eval()`). Supported operators: `==`, `!=`, `>`, `<`,
 .count > 5 and .count < 100
 .status == "active" or .status == "pending"
 ```
+
+---
+
+## LLM Enrichment
+
+Optional `llm` list per source. Steps run **after collection, before Parquet write**, so enriched fields are stored in Parquet and flow to DB via `db_load.fields`.
+
+### Step Types
+
+| Type | Purpose | Required | Output |
+|------|---------|----------|--------|
+| `enrich` | Extract structured attributes | `add` specs | One column per spec |
+| `classify` | Categorize records | `categories` (optional — auto-detects if omitted) | `category` + `category_confidence` |
+| `summarize` | Concise text summary | — | `summary` |
+| `generate` | Custom text from prompt template | `prompt` | `text` |
+
+### Config Example
+
+```yaml
+sources:
+  - id: profiles
+    endpoint: /api/linkedin/user
+    llm:
+      - type: enrich
+        add:
+          - "sentiment:positive/negative/neutral"
+          - "language:string"
+          - "quality_score:1-10"
+        fields: [headline, summary]     # Fields sent to LLM (empty = all)
+      - type: classify
+        categories: "developer,recruiter,executive"
+        output_column: role_type        # Default: "category"
+        fields: [headline]
+      - type: summarize
+        max_length: 50
+        output_column: bio              # Default: "summary"
+      - type: generate
+        prompt: "Write a pitch for {name} who works as {headline}"
+        output_column: pitch            # Default: "text"
+        temperature: 0.7                # Higher for creative generation
+    db_load:
+      fields: [name, headline, sentiment, language, quality_score, role_type, bio, pitch]
+```
+
+### Enrich Field Spec Formats
+
+| Format | Example | JSON Schema Type |
+|--------|---------|-----------------|
+| Enum | `sentiment:positive/negative/neutral` | `string` with `enum` |
+| String | `language:string` | `string` |
+| Integer | `count:integer` | `integer` |
+| Range | `score:1-10` | `integer` |
+| Number | `weight:number` | `number` |
+| Boolean | `active:boolean` | `boolean` |
+
+### Per-Step Overrides
+
+Each step supports: `provider`, `model`, `temperature`, `max_tokens`, `fields`, `output_column`.
+
+### Collect Flags
+
+```bash
+# Collect with LLM enrichment (default when llm: is configured)
+anysite dataset collect dataset.yaml
+
+# Skip LLM steps
+anysite dataset collect dataset.yaml --no-llm
+
+# Dry run shows LLM step count per source
+anysite dataset collect dataset.yaml --dry-run
+```
+
+### Incremental Behavior
+
+`--incremental` skips already-collected inputs at collection stage — only new records reach LLM enrichment. LLM response cache provides additional savings for repeated content.
 
 ---
 

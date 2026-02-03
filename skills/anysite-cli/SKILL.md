@@ -1,11 +1,111 @@
 ---
 name: anysite-cli
-description: Operate the anysite command-line tool for web data extraction, batch API processing, multi-source dataset pipelines with scheduling/transforms/exports, and database operations. Use when users ask to collect data from LinkedIn, Instagram, Twitter, or any web source via CLI; create or run dataset pipelines; schedule automated collection; batch-process API calls; query collected data with SQL; load data into PostgreSQL or SQLite; or work with anysite commands. Triggers on anysite CLI usage, data collection, dataset creation, scraping, API batch calls, scheduling, or database loading tasks.
+description: Operate the anysite command-line tool for web data extraction, batch API processing, multi-source dataset pipelines with scheduling/transforms/exports, database operations, and LLM-powered data analysis. Use when users ask to collect data from LinkedIn, Instagram, Twitter, or any web source via CLI; create or run dataset pipelines; schedule automated collection; batch-process API calls; query collected data with SQL; load data into PostgreSQL or SQLite; analyze data with LLM (summarize, classify, enrich, match, deduplicate); or work with anysite commands. Triggers on anysite CLI usage, data collection, dataset creation, scraping, API batch calls, scheduling, database loading, or LLM analysis tasks.
 ---
 
 # Anysite CLI
 
 Command-line tool for web data extraction, dataset pipelines, and database operations. All commands use `anysite` prefix and execute via Bash.
+
+## Agent Workflow
+
+Step-by-step guide for AI agents working with anysite CLI.
+
+### Quick Start Checklist
+
+Before executing any data collection task, verify these in order:
+
+1. **Check CLI is available**
+   ```bash
+   anysite --version
+   ```
+   If not found: activate venv (`source .venv/bin/activate`) or install (`pip install anysite-cli`).
+
+2. **Update schema cache** (required for endpoint discovery)
+   ```bash
+   anysite schema update
+   ```
+   Run this if `anysite describe` returns empty or outdated results.
+
+3. **Verify API key is configured**
+   ```bash
+   anysite config get api_key
+   ```
+   If not set: get key at https://app.anysite.io, then `anysite config set api_key sk-xxxxx`
+
+### Endpoint Discovery
+
+**ALWAYS discover endpoints before writing API calls or dataset configs.**
+
+```bash
+# List all available endpoints
+anysite describe
+
+# Search by keyword
+anysite describe --search "company"
+anysite describe --search "linkedin"
+anysite describe --search "posts"
+
+# Get full details: input parameters + output fields
+anysite describe /api/linkedin/company
+anysite describe /api/linkedin/user
+```
+
+Use `describe` output to:
+- Find the correct `endpoint` path for dataset.yaml
+- Identify required vs optional input parameters
+- Know which output fields are available for `--fields` selection
+
+### Database Setup
+
+**Database connections MUST be configured before using `--load-db` or `anysite db` commands.**
+
+```bash
+# List existing connections
+anysite db list
+
+# Add PostgreSQL connection
+anysite db add pg --type postgres --host localhost --port 5432 \
+  --database mydb --user myuser --password-env PGPASS
+
+# Add SQLite connection
+anysite db add local --type sqlite --path ./data.db
+
+# Test connection
+anysite db test pg
+```
+
+Connection names (e.g., `pg`, `local`) are then used in:
+- `anysite dataset collect --load-db pg`
+- `anysite dataset load-db dataset.yaml -c pg`
+- `anysite db query pg --sql "..."`
+
+### LLM Setup
+
+**For LLM analysis commands, configure provider first:**
+
+```bash
+anysite llm setup
+# Interactive: choose provider (openai/anthropic), set API key env var, test connection
+```
+
+### Common Gotchas
+
+1. **Schema not updated** → `anysite describe` returns nothing
+   - Fix: `anysite schema update`
+
+2. **Wrong endpoint path** → API returns 404 or unexpected data
+   - Fix: Use `anysite describe --search "keyword"` to find correct path
+
+3. **Missing input parameter** → API returns validation error
+   - Fix: Check `anysite describe /api/endpoint` for required params (marked with `*`)
+
+4. **DB connection not found** → `Error: Connection 'pg' not found`
+   - Fix: Run `anysite db add pg ...` first
+
+5. **LinkedIn identifier wrong** → Returns wrong company/person
+   - Fix: Use URL slug (e.g., `anthropicresearch` not `anthropic` for Anthropic AI)
+   - Verify with: `anysite api /api/linkedin/company company=anthropicresearch --fields "name,url"`
 
 ## Prerequisites
 
@@ -19,7 +119,7 @@ pip install "anysite-cli[data]"       # DuckDB + PyArrow for dataset commands
 pip install "anysite-cli[postgres]"   # PostgreSQL adapter
 pip install "anysite-cli[all]"        # All optional dependencies
 
-# Configure API key (one-time)
+# Configure API key (one-time) — get yours at https://app.anysite.io
 anysite config set api_key sk-xxxxx
 
 # Update schema cache (required for endpoint discovery and type inference)
@@ -136,6 +236,14 @@ sources:
     parallel: 3
     on_error: skip
     refresh: always             # Re-collect every run even with --incremental
+    llm:                          # LLM enrichment (after collection, before Parquet)
+      - type: enrich
+        add: ["sentiment:positive/negative/neutral", "language:string"]
+        fields: [headline]
+      - type: classify
+        categories: "developer,recruiter,executive"
+        output_column: role_type
+        fields: [headline]
 
 storage:
   format: parquet
@@ -167,6 +275,9 @@ anysite dataset collect dataset.yaml --incremental --load-db pg
 
 # Single source and its dependencies
 anysite dataset collect dataset.yaml --source employees
+
+# Skip LLM enrichment steps
+anysite dataset collect dataset.yaml --no-llm
 ```
 
 ### Step 4: Query with DuckDB
@@ -285,6 +396,71 @@ anysite dataset schedule dataset.yaml --systemd --incremental --load-db pg
 anysite dataset reset-cursor dataset.yaml
 anysite dataset reset-cursor dataset.yaml --source profiles
 ```
+
+## Workflow 5: LLM Analysis
+
+Analyze collected dataset records using LLM providers (OpenAI or Anthropic). Requires `pip install "anysite-cli[llm]"`.
+
+### Setup
+```bash
+anysite llm setup
+# Configures provider, API key env var, default model, tests connection
+```
+
+### Summarize
+```bash
+anysite llm summarize dataset.yaml --source profiles --fields "name,headline" --max-length 50 --format table
+```
+
+### Classify
+```bash
+# With explicit categories
+anysite llm classify dataset.yaml --source posts --categories "positive,negative,neutral" --format table
+
+# Auto-detect categories from data
+anysite llm classify dataset.yaml --source posts --format table
+```
+
+### Enrich
+```bash
+anysite llm enrich dataset.yaml --source profiles \
+  --add "sentiment:positive/negative/neutral" \
+  --add "language:string" \
+  --add "quality_score:1-10"
+```
+
+### Generate
+```bash
+anysite llm generate dataset.yaml --source profiles \
+  --prompt "Write a LinkedIn intro for {name} who works as {headline}" \
+  --temperature 0.7 --output intros.json
+```
+
+### Match (cross-source)
+```bash
+anysite llm match dataset.yaml --source-a profiles --source-b companies \
+  --fields-a "name,headline" --fields-b "name,industry" --top-k 3
+```
+
+### Deduplicate
+```bash
+anysite llm deduplicate dataset.yaml --source profiles --key name --threshold 0.8
+```
+
+### Cache
+```bash
+anysite llm cache-stats
+anysite llm cache-clear
+```
+
+**Common options:** `--provider`, `--model`, `--fields`, `--format`, `--output`, `--parallel`, `--rate-limit`, `--temperature`, `--dry-run`, `--no-cache`, `--prompt`, `--prompt-file`, `--quiet`.
+
+**Key patterns:**
+- All commands read from Parquet snapshots (latest by default)
+- `--fields` controls which record fields are included in the LLM prompt
+- `--dry-run` shows the prompt without calling the LLM
+- Responses are cached in SQLite (`~/.anysite/llm_cache.db`) — use `--no-cache` to bypass
+- Structured output via JSON Schema (OpenAI) or system-prompt (Anthropic)
 
 ## Key Patterns
 
