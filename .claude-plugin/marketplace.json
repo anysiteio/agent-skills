@@ -124,7 +124,7 @@
     {
       "name": "anysite-cli",
       "description": "Command-line tool operator for anysite CLI. Handles web data extraction, batch API processing, multi-source dataset pipelines with scheduling/transforms/exports, and database operations. Execute anysite commands for LinkedIn, Instagram, Twitter data collection, dataset creation, SQL queries, and PostgreSQL/SQLite loading.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Anysite Skills Contributors",
         "email": "support@anysite.io"

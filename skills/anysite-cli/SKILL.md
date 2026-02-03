@@ -323,6 +323,41 @@ anysite dataset collect dataset.yaml --source employees # Single source + depend
 anysite dataset collect dataset.yaml --no-llm           # Skip LLM enrichment steps
 ```
 
+### Incremental Collection (Resume Where You Left Off)
+
+For `from_file` and `dependency` sources, anysite tracks collected input values in `metadata.json`. This enables resuming collection without re-fetching existing data.
+
+**Workflow:**
+```bash
+# First run — collects all inputs
+anysite dataset collect dataset.yaml
+
+# Later: add new items to input file, run with --incremental
+anysite dataset collect dataset.yaml --incremental
+# → Only new items are collected, existing ones skipped
+
+# Force full re-collection
+anysite dataset reset-cursor dataset.yaml
+anysite dataset collect dataset.yaml
+```
+
+**Per-source `refresh` option:**
+```yaml
+sources:
+  - id: profiles
+    refresh: auto      # (default) respects --incremental
+
+  - id: posts
+    refresh: always    # always re-collects, ignores --incremental
+                       # use for time-sensitive data (feeds, activity)
+```
+
+**Reset cursor:**
+```bash
+anysite dataset reset-cursor dataset.yaml                  # all sources
+anysite dataset reset-cursor dataset.yaml --source posts   # specific source
+```
+
 ### Query with DuckDB
 
 ```bash
