@@ -5,507 +5,406 @@ description: Operate the anysite command-line tool for web data extraction, batc
 
 # Anysite CLI
 
-Command-line tool for web data extraction, dataset pipelines, and database operations. All commands use `anysite` prefix and execute via Bash.
+Command-line tool for web data extraction, dataset pipelines, and database operations.
 
-## Agent Workflow
+## Agent Planning Workflow
 
-Step-by-step guide for AI agents working with anysite CLI.
+**BEFORE planning any data collection task, follow this sequence:**
 
-### Quick Start Checklist
-
-Before executing any data collection task, verify these in order:
-
-1. **Check CLI is available**
+1. **Discover available endpoints**
    ```bash
-   anysite --version
+   anysite describe --search "<keyword>"   # Search by domain (linkedin, company, user, etc.)
    ```
-   If not found: activate venv (`source .venv/bin/activate`) or install (`pip install anysite-cli`).
 
-2. **Update schema cache** (required for endpoint discovery)
+2. **Select endpoints needed for the task** — identify which endpoints will provide the required data
+
+3. **Inspect each selected endpoint**
    ```bash
-   anysite schema update
+   anysite describe /api/linkedin/company  # View input params and output fields
    ```
-   Run this if `anysite describe` returns empty or outdated results.
 
-3. **Verify API key is configured**
-   ```bash
-   anysite config get api_key
-   ```
-   If not set: get key at https://app.anysite.io, then `anysite config set api_key sk-xxxxx`
+4. **Only then plan** — now you know the exact parameters, field names, and data structure to build your config or API calls
 
-### Endpoint Discovery
+This prevents errors from wrong endpoint paths, missing required parameters, or incorrect field names in dependencies.
 
-**ALWAYS discover endpoints before writing API calls or dataset configs.**
+## Best Practices
+
+1. **Use dataset pipelines for multi-step tasks**
+   - If a task requires sequential API calls, LLM enrichment, or chained data processing — create a `dataset.yaml` config instead of running multiple ad-hoc commands
+   - Dataset pipelines handle dependencies, incremental collection, and error recovery automatically
+   - Even for "simple" tasks that grow in scope, a dataset config is easier to maintain
+   - Benefits: run history, incremental sync, scheduling, notifications, DB loading
+
+2. **Save data in Parquet format by default** — unless user requests another format or CSV/JSON fits better
+
+3. **Prefer datasets over ad-hoc scripts** — one dataset.yaml replaces dozens of shell commands
+
+## Quick Start Checklist
+
+Before any data collection task:
 
 ```bash
-# List all available endpoints
-anysite describe
+# 1. Check CLI is available
+anysite --version
+# If not found: source .venv/bin/activate or pip install anysite-cli
 
-# Search by keyword
-anysite describe --search "company"
-anysite describe --search "linkedin"
-anysite describe --search "posts"
+# 2. Update schema cache (required for endpoint discovery)
+anysite schema update
 
-# Get full details: input parameters + output fields
-anysite describe /api/linkedin/company
-anysite describe /api/linkedin/user
+# 3. Verify API key
+anysite config get api_key
+# If not set: anysite config set api_key sk-xxxxx
 ```
 
-Use `describe` output to:
-- Find the correct `endpoint` path for dataset.yaml
-- Identify required vs optional input parameters
-- Know which output fields are available for `--fields` selection
+## Endpoint Discovery
 
-### Database Setup
-
-**Database connections MUST be configured before using `--load-db` or `anysite db` commands.**
+**ALWAYS discover endpoints before writing API calls or dataset configs:**
 
 ```bash
-# List existing connections
-anysite db list
-
-# Add PostgreSQL connection
-anysite db add pg --type postgres --host localhost --port 5432 \
-  --database mydb --user myuser --password-env PGPASS
-
-# Add SQLite connection
-anysite db add local --type sqlite --path ./data.db
-
-# Test connection
-anysite db test pg
+anysite describe                          # List all endpoints
+anysite describe --search "company"       # Search by keyword
+anysite describe /api/linkedin/company    # Full details: input params + output fields
 ```
-
-Connection names (e.g., `pg`, `local`) are then used in:
-- `anysite dataset collect --load-db pg`
-- `anysite dataset load-db dataset.yaml -c pg`
-- `anysite db query pg --sql "..."`
-
-### LLM Setup
-
-**For LLM analysis commands, configure provider first:**
-
-```bash
-anysite llm setup
-# Interactive: choose provider (openai/anthropic), set API key env var, test connection
-```
-
-### Common Gotchas
-
-1. **Schema not updated** → `anysite describe` returns nothing
-   - Fix: `anysite schema update`
-
-2. **Wrong endpoint path** → API returns 404 or unexpected data
-   - Fix: Use `anysite describe --search "keyword"` to find correct path
-
-3. **Missing input parameter** → API returns validation error
-   - Fix: Check `anysite describe /api/endpoint` for required params (marked with `*`)
-
-4. **DB connection not found** → `Error: Connection 'pg' not found`
-   - Fix: Run `anysite db add pg ...` first
-
-5. **LinkedIn identifier wrong** → Returns wrong company/person
-   - Fix: Use URL slug (e.g., `anthropicresearch` not `anthropic` for Anthropic AI)
-   - Verify with: `anysite api /api/linkedin/company company=anthropicresearch --fields "name,url"`
 
 ## Prerequisites
 
 ```bash
-# Ensure CLI is installed (activate venv if installed from source)
-source .venv/bin/activate  # if using a virtual environment
-anysite --version
-
-# Install extras for dataset pipelines and database support
 pip install "anysite-cli[data]"       # DuckDB + PyArrow for dataset commands
+pip install "anysite-cli[llm]"        # LLM analysis (openai/anthropic)
 pip install "anysite-cli[postgres]"   # PostgreSQL adapter
-pip install "anysite-cli[all]"        # All optional dependencies
 
-# Configure API key (one-time) — get yours at https://app.anysite.io
-anysite config set api_key sk-xxxxx
-
-# Update schema cache (required for endpoint discovery and type inference)
-anysite schema update
+anysite config set api_key sk-xxxxx   # Configure API key
+anysite schema update                  # Update schema cache
+anysite llm setup                      # Configure LLM provider (interactive)
+anysite db add pg --type postgres --host localhost --database mydb --user app --password-env PGPASS
 ```
 
-## Workflow 1: Single API Call
+## Single API Call
 
 ```bash
-# Basic call — parameters as key=value pairs
 anysite api /api/linkedin/user user=satyanadella
-
-# With output options
 anysite api /api/linkedin/company company=anthropic --format table
-anysite api /api/linkedin/search/users title=CTO count=50 --format csv --output ctos.csv
-
-# Search with specific parameters (always check with `anysite describe` first)
-anysite api /api/linkedin/search/users first_name=Andrew last_name=Kulikov company_keywords=Anysite count=5
-
-# Field selection
-anysite api /api/linkedin/user user=satyanadella --fields "name,headline,follower_count"
-anysite api /api/linkedin/user user=satyanadella --exclude "certifications,patents"
-
-# Quiet mode for piping
-anysite api /api/linkedin/user user=satyanadella -q | jq '.follower_count'
+anysite api /api/linkedin/search/users keywords="CTO" count=50 --format csv --output ctos.csv
+anysite api /api/linkedin/user user=satyanadella --fields "name,headline,urn.value" -q | jq
 ```
 
-**Discover endpoints first:**
+### URN/Name Parameter Formats
+
+Parameters like `location`, `current_companies`, `industry` accept two formats:
+
 ```bash
-anysite describe                          # List all endpoints
-anysite describe /api/linkedin/company    # Show input params + output fields
-anysite describe --search "company"       # Search by keyword
+# Single name (text search) — resolves to URNs automatically
+location="London"
+current_companies="Microsoft"
+
+# Multiple URNs (direct) — use JSON array in single quotes
+'location=["urn:li:geo:101165590", "urn:li:geo:101282230"]'
+'current_companies=["urn:li:company:1035", "urn:li:company:1441"]'
 ```
 
-See [api-reference.md](references/api-reference.md) for complete option reference.
+**Note:** List of names `["Microsoft", "Google"]` is NOT supported — use either one name OR multiple URNs.
 
-## Workflow 2: Batch Processing
-
-Process multiple inputs from file or stdin with parallel execution and rate limiting.
+## Batch Processing
 
 ```bash
-# From text file (one value per line)
-anysite api /api/linkedin/user --from-file users.txt --input-key user --parallel 5
-
-# From JSONL
-anysite api /api/linkedin/user --from-file users.jsonl --parallel 3 --on-error skip
-
-# With rate limiting and progress
 anysite api /api/linkedin/user --from-file users.txt --input-key user \
-  --rate-limit "10/s" --on-error skip --progress --stats
-
-# Pipe from stdin
-cat companies.txt | anysite api /api/linkedin/company --stdin --input-key company \
-  --format csv --output results.csv
+  --parallel 5 --rate-limit "10/s" --on-error skip --progress --stats
 ```
 
-**Key options:** `--parallel N`, `--rate-limit "10/s"`, `--on-error stop|skip|retry`, `--progress`, `--stats`
+## Dataset Pipeline (Multi-Source Collection)
 
-## Workflow 3: Dataset Pipeline (Multi-Source Collection)
+For complex data collection with dependencies, LLM enrichment, scheduling — use dataset pipelines.
 
-For complex data collection with dependencies between sources. Full guide: [dataset-guide.md](references/dataset-guide.md).
+### Initialize
 
-### Step 1: Initialize
 ```bash
 anysite dataset init my-dataset
 # Creates my-dataset/dataset.yaml with template config
 ```
 
-### Step 2: Configure dataset.yaml
+### Five Source Types
 
-Three source types:
-- **Independent** — single API call with static `params`
-- **from_file** — batch calls iterating over input file values
-- **Dependent** — batch calls using values extracted from a parent source
+1. **Independent** — single API call with static `params`
+2. **from_file** — batch calls iterating over input file values
+3. **Dependent** — batch calls using values extracted from a parent source
+4. **Union (type: union)** — combine records from multiple parent sources into one
+5. **LLM (type: llm)** — process parent data through LLM without API calls
 
-Per-source optional blocks: `transform` (filter/fields/add_columns for exports), `export` (file/webhook), `db_load` (fields for DB loading).
-
-Top-level optional blocks: `schedule` (cron), `notifications` (webhooks on complete/failure).
+### Comprehensive Dataset YAML Reference
 
 ```yaml
-name: my-dataset
+name: my-dataset                    # Dataset name (required)
+description: Optional description   # Human-readable description
+
 sources:
+  # === TYPE 1: Independent source (single API call) ===
+  - id: search_results              # Unique identifier (required)
+    endpoint: /api/linkedin/search/users  # API endpoint (required for type: api)
+    params:                         # Static API parameters
+      keywords: "software engineer"
+      count: 50
+    parallel: 1                     # Concurrent requests: 1-10 (default: 1)
+    rate_limit: "10/s"              # Rate limit: "N/s", "N/m", "N/h"
+    on_error: stop                  # Error handling: stop | skip (default: stop)
+
+  - id: search_extra                # Another search (can be combined with union)
+    endpoint: /api/linkedin/search/users
+    params: { keywords: "data engineer", count: 50 }
+
+  # === TYPE 2: from_file source (batch from file) ===
   - id: companies
     endpoint: /api/linkedin/company
-    from_file: companies.txt
-    input_key: company
+    from_file: companies.txt        # Input file: .txt (line per value), .csv, .jsonl
+    file_field: company_slug        # CSV column name (for CSV files only)
+    input_key: company              # API parameter to fill with each value
     parallel: 3
-    transform:                        # Applied to exports only (Parquet keeps all fields)
-      filter: '.employee_count > 10'
-      fields: [name, url, employee_count]
-      add_columns:
-        batch: "q1-2026"
-    export:                           # Export after Parquet write
-      - type: file
-        path: ./output/companies-{{date}}.csv
-        format: csv
-    db_load:
-      key: _input_value                   # Unique key for diff-based incremental sync
-      sync: full                          # full (INSERT/DELETE/UPDATE) or append (no DELETE)
-      fields: [name, url, employee_count]
 
+  # === TYPE 3: Dependent source (values from parent) ===
   - id: employees
     endpoint: /api/linkedin/company/employees
     dependency:
-      from_source: companies
-      field: urn.value          # Dot-notation for nested JSON fields
-      dedupe: true
-    input_key: companies
-    input_template:             # Transform extracted values
+      from_source: companies        # Parent source ID (required)
+      field: urn.value              # Dot-notation path to extract from parent records
+      match_by: name                # Alternative: fuzzy match instead of exact field
+      dedupe: true                  # Remove duplicate values (default: false)
+    input_key: companies            # API parameter for extracted values
+    input_template:                 # Transform values before API call
       companies:
         - type: company
-          value: "{value}"
+          value: "{value}"          # {value} = extracted value placeholder
       count: 5
-    parallel: 3
-    on_error: skip
-    refresh: always             # Re-collect every run even with --incremental
-    llm:                          # LLM enrichment (after collection, before Parquet)
+    refresh: auto                   # Incremental behavior: auto (default) | always
+
+  # === TYPE 4: Union source (combine multiple sources) ===
+  - id: all_search_results
+    type: union                     # Source type: api (default) | union | llm
+    sources: [search_results, search_extra]  # Parent source IDs to combine (required)
+    dedupe_by: urn.value            # Optional: field path for deduplication (dot-notation)
+    # NOTE: type: union cannot have endpoint, dependency, from_file, input_key, params
+    # NOTE: all sources in the list must have the same endpoint (same data structure)
+    # Records are annotated with _union_source = parent source ID
+
+  # === TYPE 5: LLM source (process parent data without API) ===
+  - id: employees_analyzed
+    type: llm                       # Source type: api (default) | union | llm
+    dependency:
+      from_source: employees
+      field: name                   # Required by schema (not used for LLM sources)
+    llm:                            # LLM enrichment steps (required for type: llm)
+      - type: classify              # Step types: classify | enrich | summarize | generate
+        categories: "developer,recruiter,executive"  # Comma-separated (omit for auto-detect)
+        output_column: role_type    # Output column name (default: category)
+        fields: [headline]          # Record fields to include in LLM prompt
       - type: enrich
-        add: ["sentiment:positive/negative/neutral", "language:string"]
-        fields: [headline]
-      - type: classify
-        categories: "developer,recruiter,executive"
-        output_column: role_type
-        fields: [headline]
+        add:                        # Field specs (required for enrich)
+          - "sentiment:positive/negative/neutral"   # Enum: value1/value2/value3
+          - "language:string"                       # Types: string | number | integer | boolean
+          - "quality_score:1-10"                    # Range: min-max
+        fields: [headline, summary]
+        temperature: 0.0            # LLM temperature: 0.0-1.0 (default: 0.0)
+        provider: openai            # Provider override: openai | anthropic
+        model: gpt-4o-mini          # Model override
+      - type: summarize
+        max_length: 50              # Max words (default: 100)
+        output_column: bio
+      - type: generate
+        prompt: "Write pitch for {name}"  # Template with {field} placeholders (required)
+        output_column: pitch
+        temperature: 0.7            # Higher for creative text
+    export:                         # Export destinations (runs after Parquet write)
+      - type: file
+        path: ./output/{{source}}-{{date}}.csv  # Templates: {{date}}, {{source}}, {{dataset}}
+        format: csv                 # Format: json | jsonl | csv
+    # NOTE: type: llm cannot have endpoint, from_file, input_key, params
+
+  # === OPTIONAL BLOCKS (any source type) ===
+  - id: profiles
+    endpoint: /api/linkedin/user
+    dependency: { from_source: employees, field: internal_id.value }
+    input_key: user
+    transform:                      # Transform for exports only (Parquet keeps all)
+      filter: '.follower_count > 100 and .location != ""'  # Safe expression
+      fields:                       # Field selection with dot-notation aliases
+        - name
+        - urn.value AS urn_id
+        - headline
+      add_columns:                  # Static columns to inject
+        batch: "q1-2026"
+    export:
+      - type: file
+        path: ./output/profiles.csv
+        format: csv
+      - type: webhook
+        url: https://example.com/hook
+        headers: { X-Token: abc }
+    db_load:                        # Database loading config
+      table: people                 # Custom table name (default: source ID)
+      key: urn.value                # Unique key for diff-based incremental sync
+      sync: full                    # Sync mode: full (default) | append (no DELETE)
+      fields:                       # Fields to load (default: all except _input_value)
+        - name
+        - urn.value AS urn_id
+        - headline
+      exclude: [_input_value, raw_html]  # Fields to skip
 
 storage:
-  format: parquet
-  path: ./data/
+  format: parquet                   # Storage format (only parquet supported)
+  path: ./data/                     # Storage directory (relative to dataset.yaml)
 
 schedule:
-  cron: "0 9 * * *"              # Daily at 9 AM
+  cron: "0 9 * * *"                 # Cron expression for scheduling
 
 notifications:
   on_complete:
     - url: "https://hooks.slack.com/xxx"
+      headers: { Authorization: "Bearer token" }
   on_failure:
     - url: "https://alerts.example.com/fail"
 ```
 
-### Step 3: Collect
-```bash
-# Preview plan
-anysite dataset collect dataset.yaml --dry-run
+### type: union Source Details
 
-# Run collection
-anysite dataset collect dataset.yaml
+The `type: union` source combines records from multiple parent sources:
 
-# Collect and auto-load into database
-anysite dataset collect dataset.yaml --load-db pg
+- **Requires**: non-empty `sources` list (parent source IDs)
+- **Optional**: `dedupe_by` field path for removing duplicates (supports dot-notation)
+- **Cannot have**: `endpoint`, `dependency`, `from_file`, `input_key`, `params`
+- **Validation**: all parent sources must have the same endpoint (same data structure)
+- **Use case**: merge multiple search results before a single dependent source processes them
 
-# Incremental (skip already-collected inputs)
-anysite dataset collect dataset.yaml --incremental --load-db pg
+```yaml
+sources:
+  - id: search_cto
+    endpoint: /api/linkedin/search/users
+    params: { keywords: "CTO fintech", count: 50 }
 
-# Single source and its dependencies
-anysite dataset collect dataset.yaml --source employees
+  - id: search_vp
+    endpoint: /api/linkedin/search/users
+    params: { keywords: "VP Engineering", count: 50 }
 
-# Skip LLM enrichment steps
-anysite dataset collect dataset.yaml --no-llm
+  # Union combines all search results
+  - id: all_candidates
+    type: union
+    sources: [search_cto, search_vp]
+    dedupe_by: urn.value              # Remove duplicates by URN
+
+  # Single dependent source processes all candidates
+  - id: profiles
+    endpoint: /api/linkedin/user
+    dependency:
+      from_source: all_candidates
+      field: urn.value
+    input_key: user
 ```
 
-### Step 4: Query with DuckDB
+Records from union sources are annotated with `_union_source` (the parent source ID they came from).
+
+### type: llm Source Details
+
+The `type: llm` source processes existing parent data without making API calls:
+
+- **Requires**: `dependency` (parent source) and non-empty `llm` list
+- **Cannot have**: `endpoint`, `from_file`, `input_key`, `params`
+- **Use case**: Run LLM enrichment on already-collected data, re-analyze with different prompts
+
 ```bash
-# SQL query
+# Collect only the LLM source (reads parent Parquet, applies LLM steps)
+anysite dataset collect dataset.yaml --source employees_analyzed
+```
+
+### Collect Commands
+
+```bash
+anysite dataset collect dataset.yaml --dry-run          # Preview plan
+anysite dataset collect dataset.yaml                     # Run collection
+anysite dataset collect dataset.yaml --load-db pg       # Collect + auto-load to DB
+anysite dataset collect dataset.yaml --incremental      # Skip already-collected inputs
+anysite dataset collect dataset.yaml --source employees # Single source + dependencies
+anysite dataset collect dataset.yaml --no-llm           # Skip LLM enrichment steps
+```
+
+### Query with DuckDB
+
+```bash
 anysite dataset query dataset.yaml --sql "SELECT * FROM companies LIMIT 10"
-
-# Shorthand with dot-notation field extraction
-anysite dataset query dataset.yaml --source profiles \
-  --fields "name, urn.value AS urn_id, headline"
-
-# Interactive SQL shell
-anysite dataset query dataset.yaml --interactive
-
-# Stats and profiling
+anysite dataset query dataset.yaml --source profiles --fields "name, urn.value AS id"
+anysite dataset query dataset.yaml --interactive        # SQL shell
 anysite dataset stats dataset.yaml --source companies
 anysite dataset profile dataset.yaml
 ```
 
-### Step 5: Load into Database
+### Load into Database
+
 ```bash
-# Load all sources with FK linking
-anysite dataset load-db dataset.yaml -c pg --drop-existing
-
-# Incremental sync (uses diff when db_load.key is set)
-anysite dataset load-db dataset.yaml -c pg
-
-# Load a specific snapshot date
+anysite dataset load-db dataset.yaml -c pg --drop-existing  # Full load
+anysite dataset load-db dataset.yaml -c pg                   # Incremental sync (when db_load.key set)
 anysite dataset load-db dataset.yaml -c pg --snapshot 2026-01-15
-
-# Dry run
-anysite dataset load-db dataset.yaml -c pg --dry-run
 ```
 
-`load-db` auto-creates tables with inferred schema, adds `id` primary key, and links child tables to parents via `{parent}_id` FK columns using provenance data.
-
-**Incremental sync**: When `db_load.key` is set and the table already exists with >=2 snapshots, `load-db` diffs the two most recent snapshots and applies only the delta (INSERT added, DELETE removed, UPDATE changed). Without `db_load.key`, it does a full INSERT of the latest snapshot.
-
-**Sync modes** (`db_load.sync`):
-- `full` (default) — applies INSERT, DELETE, and UPDATE from diff
-- `append` — applies INSERT and UPDATE only, skips DELETE (keeps records that disappeared from the API). Use for sources where the API returns only the latest N items (e.g., posts, activity feeds).
-
-Optional `db_load` config per source controls which fields go to DB:
-```yaml
-  - id: profiles
-    endpoint: /api/linkedin/user
-    db_load:
-      table: people              # Custom table name
-      key: urn.value             # Unique key for diff-based incremental sync
-      sync: append               # Keep old records (no DELETE on diff)
-      fields:                    # Select specific fields
-        - name
-        - urn.value AS urn_id    # Dot-notation extraction
-        - headline
-        - experience
-      exclude: [_input_value]    # Fields to skip
-```
-
-## Workflow 4: Database Operations
+### Compare Snapshots
 
 ```bash
-# Add connection
-anysite db add pg --type postgres --host localhost --port 5432 --database mydb --user myuser --password mypass
-# Or use env var reference (password not stored in config):
-anysite db add pg --type postgres --host localhost --database mydb --user myuser --password-env PGPASS
+anysite dataset diff dataset.yaml --source profiles --key urn.value
+anysite dataset diff dataset.yaml --source profiles --key urn.value --from 2026-01-30 --to 2026-02-01
+```
 
-# Test and inspect
-anysite db test pg
+### Scheduling & History
+
+```bash
+anysite dataset schedule dataset.yaml --incremental --load-db pg  # Generate cron entry
+anysite dataset history my-dataset
+anysite dataset logs my-dataset --run 42
+anysite dataset reset-cursor dataset.yaml                         # Clear incremental state
+```
+
+## Database Operations
+
+```bash
+# Connection management
+anysite db add pg --type postgres --host localhost --database mydb --user app --password-env PGPASS
+anysite db add local --type sqlite --path ./data.db
 anysite db list
-anysite db schema pg --table users
+anysite db test pg
 
-# Insert data (auto-create table from schema inference)
+# Data operations
 cat data.jsonl | anysite db insert pg --table users --stdin --auto-create
-
-# Upsert
-cat updates.jsonl | anysite db upsert pg --table users --conflict-columns id --stdin
-
-# Query
 anysite db query pg --sql "SELECT * FROM users" --format table
 
-# Pipe API output directly to database
+# Pipe API output to database
 anysite api /api/linkedin/user user=satyanadella -q --format jsonl \
   | anysite db insert pg --table profiles --stdin --auto-create
 ```
 
-### Step 6: Compare Snapshots
+## LLM Analysis Commands
+
+Analyze collected dataset records using LLM. Requires `anysite llm setup` first.
+
 ```bash
-# Diff two most recent snapshots
-anysite dataset diff dataset.yaml --source employees --key _input_value
-
-# Diff with dot-notation key (for JSON fields like urn)
-anysite dataset diff dataset.yaml --source profiles --key urn.value
-
-# Diff specific dates, compare and output only certain fields
-anysite dataset diff dataset.yaml --source employees --key _input_value \
-  --from 2026-01-30 --to 2026-02-01 --fields "name,headline"
-```
-
-`--key` supports dot-notation for JSON fields (e.g., `urn.value`). `--fields` restricts both comparison and output columns.
-
-### Step 7: History, Scheduling, and Notifications
-```bash
-# View run history
-anysite dataset history my-dataset
-
-# View logs for a specific run
-anysite dataset logs my-dataset --run 42
-
-# Generate cron entry (with auto-load to DB)
-anysite dataset schedule dataset.yaml --incremental --load-db pg
-
-# Generate systemd timer units
-anysite dataset schedule dataset.yaml --systemd --incremental --load-db pg
-
-# Reset incremental state (re-collect everything)
-anysite dataset reset-cursor dataset.yaml
-anysite dataset reset-cursor dataset.yaml --source profiles
-```
-
-## Workflow 5: LLM Analysis
-
-Analyze collected dataset records using LLM providers (OpenAI or Anthropic). Requires `pip install "anysite-cli[llm]"`.
-
-### Setup
-```bash
-anysite llm setup
-# Configures provider, API key env var, default model, tests connection
-```
-
-### Summarize
-```bash
-anysite llm summarize dataset.yaml --source profiles --fields "name,headline" --max-length 50 --format table
-```
-
-### Classify
-```bash
-# With explicit categories
-anysite llm classify dataset.yaml --source posts --categories "positive,negative,neutral" --format table
-
-# Auto-detect categories from data
-anysite llm classify dataset.yaml --source posts --format table
-```
-
-### Enrich
-```bash
+anysite llm summarize dataset.yaml --source profiles --fields "name,headline" --format table
+anysite llm classify dataset.yaml --source posts --categories "positive,negative,neutral"
 anysite llm enrich dataset.yaml --source profiles \
-  --add "sentiment:positive/negative/neutral" \
-  --add "language:string" \
-  --add "quality_score:1-10"
-```
-
-### Generate
-```bash
+  --add "seniority:junior/mid/senior" --add "is_technical:boolean"
 anysite llm generate dataset.yaml --source profiles \
-  --prompt "Write a LinkedIn intro for {name} who works as {headline}" \
-  --temperature 0.7 --output intros.json
-```
-
-### Match (cross-source)
-```bash
-anysite llm match dataset.yaml --source-a profiles --source-b companies \
-  --fields-a "name,headline" --fields-b "name,industry" --top-k 3
-```
-
-### Deduplicate
-```bash
+  --prompt "Write intro for {name} who works as {headline}" --temperature 0.7
+anysite llm match dataset.yaml --source-a profiles --source-b companies --top-k 3
 anysite llm deduplicate dataset.yaml --source profiles --key name --threshold 0.8
-```
-
-### Cache
-```bash
 anysite llm cache-stats
 anysite llm cache-clear
 ```
 
-**Common options:** `--provider`, `--model`, `--fields`, `--format`, `--output`, `--parallel`, `--rate-limit`, `--temperature`, `--dry-run`, `--no-cache`, `--prompt`, `--prompt-file`, `--quiet`.
 
-**Key patterns:**
-- All commands read from Parquet snapshots (latest by default)
-- `--fields` controls which record fields are included in the LLM prompt
-- `--dry-run` shows the prompt without calling the LLM
-- Responses are cached in SQLite (`~/.anysite/llm_cache.db`) — use `--no-cache` to bypass
-- Structured output via JSON Schema (OpenAI) or system-prompt (Anthropic)
+Use `anysite describe --search <keyword>` for more endpoints.
 
 ## Key Patterns
 
-### Output Formats
-`--format json` (default) | `jsonl` | `csv` | `table`
+- **Output formats**: `--format json|jsonl|csv|table`
+- **Field selection**: `--fields "name,headline,urn.value"` (dot-notation for nested)
+- **Error handling**: `--on-error stop|skip|retry`
+- **Config priority**: CLI args > ENV vars > `~/.anysite/config.yaml` > defaults
 
-### Field Selection
-- Include: `--fields "name,headline,urn.value"`
-- Exclude: `--exclude "certifications,patents"`
-- Presets: `--fields-preset minimal|contact|recruiting`
-- Dot-notation for nested: `experience.company`, `urn.value`
+## References
 
-### Error Handling
-- `--on-error stop` — halt on first error (default)
-- `--on-error skip` — continue processing, skip failures
-- `--on-error retry` — auto-retry with backoff
-
-### Config Priority
-CLI args > Environment vars (`ANYSITE_API_KEY`) > `~/.anysite/config.yaml` > defaults
-
-## Common Recipes
-
-### Collect company intel and store in Postgres
-```bash
-anysite dataset init company-intel
-# Edit dataset.yaml with sources, transform, schedule, notifications...
-anysite dataset collect company-intel/dataset.yaml --load-db pg
-anysite db query pg --sql "SELECT c.name, COUNT(e.id) FROM companies c JOIN employees e ON e.companies_id = c.id GROUP BY c.name" --format table
-
-# Set up daily schedule
-anysite dataset schedule company-intel/dataset.yaml --incremental --load-db pg
-# Add output to crontab
-```
-
-### Batch lookup and save to CSV
-```bash
-anysite api /api/linkedin/user --from-file people.txt --input-key user \
-  --parallel 5 --rate-limit "10/s" --on-error skip \
-  --fields "name,headline,location,follower_count" \
-  --format csv --output people.csv --stats
-```
-
-### Quick endpoint exploration
-```bash
-anysite describe --search "linkedin"
-anysite describe /api/linkedin/company
-anysite api /api/linkedin/company company=anthropic --format table
-```
+For detailed option tables and advanced configuration:
+- [api-reference.md](references/api-reference.md) — all CLI options
+- [llm-reference.md](references/llm-reference.md) — LLM provider config, cache, prompts
+- [dataset-guide.md](references/dataset-guide.md) — full YAML schema, advanced features

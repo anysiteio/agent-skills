@@ -76,7 +76,7 @@ notifications:                 # Webhook notifications
     - url: "https://alerts.example.com/fail"
 ```
 
-### Three Source Types
+### Four Source Types
 
 **Independent** — single API call with static params:
 ```yaml
@@ -111,6 +111,38 @@ notifications:                 # Webhook notifications
         value: "{value}"         # {value} is replaced with extracted value
     count: 5
 ```
+
+**LLM Source (type: llm)** — process parent data through LLM without API calls:
+```yaml
+- id: profiles_analyzed
+  type: llm                       # Source type: api (default) | llm
+  dependency:
+    from_source: profiles         # Parent source (required)
+    field: name                   # Required by schema but not used for LLM sources
+  llm:                            # LLM enrichment steps (required for type: llm)
+    - type: classify
+      categories: "strong_fit,moderate_fit,weak_fit"
+      output_column: fit_category
+      fields: [headline, experience]
+    - type: enrich
+      add:
+        - "fit_score:1-10"
+        - "key_strengths:string"
+        - "concerns:string"
+      fields: [name, headline, experience, skills]
+  export:
+    - type: file
+      path: ./output/analyzed-{{date}}.csv
+      format: csv
+```
+
+**type: llm source rules:**
+- **Requires**: `dependency` (parent source) and non-empty `llm` list
+- **Cannot have**: `endpoint`, `from_file`, `input_key`, `params`
+- **Use case**: Run LLM enrichment on already-collected data without re-calling the API
+- **Run with**: `anysite dataset collect dataset.yaml --source profiles_analyzed`
+
+The LLM source reads the parent's Parquet data directly, applies LLM steps, and writes enriched records to its own Parquet file. This allows re-analyzing data with different prompts or categories without re-collecting from the API.
 
 ### Dependency Chains
 
