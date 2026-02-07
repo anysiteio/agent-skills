@@ -76,7 +76,7 @@ notifications:                 # Webhook notifications
     - url: "https://alerts.example.com/fail"
 ```
 
-### Four Source Types
+### Five Source Types
 
 **Independent** — single API call with static params:
 ```yaml
@@ -111,6 +111,15 @@ notifications:                 # Webhook notifications
         value: "{value}"         # {value} is replaced with extracted value
     count: 5
 ```
+
+**Union** — combine multiple sources into one:
+```yaml
+- id: all_results
+  type: union
+  sources: [search_cto, search_vp]    # Parent source IDs to combine
+  dedupe_by: urn.value                 # Optional: remove duplicates by field
+```
+All parent sources must have the same endpoint. Records are annotated with `_union_source` (parent source ID). Cannot have `endpoint`, `dependency`, `from_file`, `input_key`, or `params`.
 
 **LLM Source (type: llm)** — process parent data through LLM without API calls:
 ```yaml

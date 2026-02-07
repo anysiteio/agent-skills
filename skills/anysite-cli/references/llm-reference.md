@@ -167,6 +167,7 @@ Show LLM cache statistics (entry count, total input/output tokens).
 
 ```bash
 anysite llm cache-stats
+anysite llm cache-stats --json    # Machine-readable JSON output
 ```
 
 ### `anysite llm cache-clear`
@@ -175,6 +176,7 @@ Clear all cached LLM responses.
 
 ```bash
 anysite llm cache-clear
+anysite llm cache-clear --json    # Machine-readable JSON output
 ```
 
 ## Common Options

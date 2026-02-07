@@ -75,8 +75,9 @@ pip install "anysite-cli[postgres]"   # PostgreSQL adapter
 
 anysite config set api_key sk-xxxxx   # Configure API key
 anysite schema update                  # Update schema cache
-anysite llm setup                      # Configure LLM provider (interactive)
-anysite db add pg --type postgres --host localhost --database mydb --user app --password-env PGPASS
+anysite llm setup                      # Configure LLM provider (paste key directly or use env var)
+anysite db add pg --type postgres --host localhost --database mydb --user app --password secret
+# Or via env var: anysite db add pg ... --password-env PGPASS
 ```
 
 ## Single API Call
@@ -396,8 +397,10 @@ anysite dataset reset-cursor dataset.yaml                         # Clear increm
 
 ```bash
 # Connection management
+anysite db add pg --type postgres --host localhost --database mydb --user app --password secret
 anysite db add pg --type postgres --host localhost --database mydb --user app --password-env PGPASS
 anysite db add local --type sqlite --path ./data.db
+anysite db add replica --type postgres --host replica.example.com --read-only
 anysite db list
 anysite db test pg
 
@@ -408,7 +411,21 @@ anysite db query pg --sql "SELECT * FROM users" --format table
 # Pipe API output to database
 anysite api /api/linkedin/user user=satyanadella -q --format jsonl \
   | anysite db insert pg --table profiles --stdin --auto-create
+
+# Database discovery (schema introspection, sample data, LLM descriptions)
+anysite db discover mydb                              # Discover schema
+anysite db discover mydb --with-llm                   # Add LLM table/column descriptions
+anysite db discover mydb --tables users,posts         # Filter tables
+anysite db discover mydb --exclude-tables _migrations
+
+# View saved catalogs
+anysite db catalog                       # List all catalogs
+anysite db catalog mydb                  # Show full catalog
+anysite db catalog mydb --table users    # Show specific table
+anysite db catalog mydb --json           # JSON output for agents
 ```
+
+Credentials: `--password` saves directly in `~/.anysite/connections.yaml`, `--password-env` references an env var. Direct value takes priority. LLM API keys follow the same pattern via `anysite llm setup`.
 
 ## LLM Analysis Commands
 
