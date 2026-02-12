@@ -69,15 +69,17 @@ anysite describe /api/linkedin/company    # Full details: input params + output 
 ## Prerequisites
 
 ```bash
-pip install "anysite-cli[data]"       # DuckDB + PyArrow for dataset commands
-pip install "anysite-cli[llm]"        # LLM analysis (openai/anthropic)
-pip install "anysite-cli[postgres]"   # PostgreSQL adapter
+pip install "anysite-cli[data]"        # DuckDB + PyArrow for dataset commands
+pip install "anysite-cli[llm]"         # LLM analysis (openai/anthropic)
+pip install "anysite-cli[postgres]"    # PostgreSQL adapter
+pip install "anysite-cli[clickhouse]"  # ClickHouse adapter
 
 anysite config set api_key sk-xxxxx   # Configure API key
 anysite schema update                  # Update schema cache
 anysite llm setup                      # Configure LLM provider (paste key directly or use env var)
 anysite db add pg --type postgres --host localhost --database mydb --user app --password secret
 # Or via env var: anysite db add pg ... --password-env PGPASS
+anysite db add ch --type clickhouse --host ch.example.com --port 8443 --database analytics --user app --password secret --ssl
 ```
 
 ## Single API Call
@@ -399,6 +401,7 @@ anysite dataset reset-cursor dataset.yaml                         # Clear increm
 # Connection management
 anysite db add pg --type postgres --host localhost --database mydb --user app --password secret
 anysite db add pg --type postgres --host localhost --database mydb --user app --password-env PGPASS
+anysite db add ch --type clickhouse --host ch.example.com --port 8443 --database analytics --user app --password secret --ssl
 anysite db add local --type sqlite --path ./data.db
 anysite db add replica --type postgres --host replica.example.com --read-only
 anysite db list
@@ -426,6 +429,8 @@ anysite db catalog mydb --json           # JSON output for agents
 ```
 
 Credentials: `--password` saves directly in `~/.anysite/connections.yaml`, `--password-env` references an env var. Direct value takes priority. LLM API keys follow the same pattern via `anysite llm setup`.
+
+Supported databases: SQLite, PostgreSQL, ClickHouse. ClickHouse uses `clickhouse-connect` driver (HTTP protocol, port 8123 default, 8443 for HTTPS/SSL).
 
 ## LLM Analysis Commands
 
