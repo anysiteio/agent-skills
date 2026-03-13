@@ -10,12 +10,12 @@ anysite api <endpoint> [key=value ...] [OPTIONS]
 
 ### Output Options
 ```
---format, -f TEXT        json|jsonl|csv|table (default: json)
+--format, -f TEXT        json|jsonl|csv|table|parquet (default: json)
 --fields TEXT            Comma-separated fields to include (dot-notation supported)
 --exclude TEXT           Comma-separated fields to exclude
 --fields-preset TEXT     Built-in preset: minimal|contact|recruiting
 --compact                Compact JSON (no indentation)
---output, -o PATH        Save to file
+--output, -o PATH        Save to file (supports {{date}}/{{datetime}} templates)
 --append                 Append to existing output file
 --quiet, -q              Suppress non-data output (use for piping)
 ```
@@ -53,6 +53,10 @@ anysite api /api/linkedin/company company=anthropic -q | jq '.employee_count'
 # Pipe to database
 anysite api /api/linkedin/user user=satyanadella -q --format jsonl \
   | anysite db insert mydb --table profiles --stdin --auto-create
+
+# Array/set parameters accept comma-separated values
+anysite api /api/linkedin/google/company keywords=fuzzy.so        # auto-wrapped to ["fuzzy.so"]
+anysite api /api/linkedin/google/company keywords=saas,fintech    # becomes ["saas","fintech"]
 ```
 
 ---
