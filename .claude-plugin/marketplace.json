@@ -132,6 +132,18 @@
       "source": "./",
       "category": "productivity",
       "skills": ["./skills/anysite-cli"]
+    },
+    {
+      "name": "anysite-mcp-migration",
+      "description": "Migration assistant for updating anysite MCP skills, prompts, and agent instructions from v1 (individual tools) to v2 (universal meta-tools: execute, discover, get_page, query_cache, export_data). Automatically rewrites tool references, adds pagination/filtering/export capabilities, and validates migrated output.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-mcp-migration"]
     }
   ]
 }
