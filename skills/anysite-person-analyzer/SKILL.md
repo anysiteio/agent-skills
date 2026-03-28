@@ -7,6 +7,22 @@ description: Deep multi-platform intelligence analysis combining LinkedIn (profi
 
 Comprehensive multi-platform intelligence analysis combining LinkedIn, Twitter/X, Reddit, GitHub, and web presence data to create actionable intelligence reports with cross-platform personality insights.
 
+## v2 Tool Interface
+
+All data fetching uses the unified v2 MCP tools:
+
+- **`execute(source, category, endpoint, params)`** - Fetch data. Returns first page + `cache_key`.
+- **`get_page(cache_key, offset, limit)`** - Load more items from a previous execute (when `next_offset` is returned).
+- **`query_cache(cache_key, conditions?, sort_by?, aggregate?, group_by?)`** - Filter, sort, or aggregate cached data without new API calls.
+- **`export_data(cache_key, format)`** - Export full dataset as CSV, JSON, or JSONL. Returns download URL.
+
+### v2 Error Handling
+
+All `execute()` calls may return structured errors with `llm_hint` fields. When an error occurs:
+- **412 errors**: Resource not found (e.g., user alias incorrect). Follow the `llm_hint` to resolve (typically: search first, then use the returned alias/URN).
+- **422 errors**: Wrong parameter format (e.g., passed alias instead of URN). Check `llm_hint` for the correct format.
+- **Rate limits**: Continue with data from other sources. Note limitations in report.
+
 ## Analysis Workflow
 
 Execute phases sequentially, adapting depth based on available data and user requirements.
@@ -14,17 +30,17 @@ Execute phases sequentially, adapting depth based on available data and user req
 ### Phase 1: Initial Data Collection
 
 **Starting with LinkedIn Profile URL:**
-1. Use `get_linkedin_profile` with full parameters (education, experience, skills)
-2. Extract and save the **full URN** (format: `urn:li:fsd_profile:ACoAAABCDEF`) - this is critical for all subsequent API calls
+1. Use `execute("linkedin", "user", "user", {"user": "<profile_url_or_alias>", "with_experience": true, "with_education": true, "with_skills": true})` with full parameters
+2. Extract and save the **full URN** (format: `urn:li:fsd_profile:ACoAAABCDEF`) from the response - this is critical for all subsequent API calls
 3. Also extract: company URN, current role, location, connections count
 4. Record profile completeness for confidence scoring
+5. Save the `cache_key` from the response for later use with `query_cache()` or `export_data()`
 
-**IMPORTANT - URN Format:** 
-Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the profile response for all subsequent calls to `get_linkedin_user_posts`, `get_linkedin_user_comments`, and `get_linkedin_user_reactions`. Do not use shortened versions or profile URLs.
+**IMPORTANT - URN Format:**
+Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the profile response for all subsequent calls to `execute("linkedin", "user", "user_posts", ...)`, `execute("linkedin", "user", "user_comments", ...)`, and `execute("linkedin", "user", "user_reactions", ...)`. Do not use shortened versions or profile URLs.
 
 **Starting with Name + Context:**
-1. Use `search_linkedin_users` with all available filters:
-   - Name, title, company keywords, location, school
+1. Use `execute("linkedin", "search", "search_users", {"query": "<name>", "title": "<title>", "company": "<company>", "location": "<location>"})` with all available filters
 2. If multiple matches: present top 3-5 candidates with distinguishing details
 3. After user confirmation, proceed with confirmed profile
 
@@ -39,28 +55,28 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 ### Phase 2: Activity & Engagement Analysis
 
 **Content Analysis (Posts):**
-1. Use `get_linkedin_user_posts` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
+1. Use `execute("linkedin", "user", "user_posts", {"urn": "<full_fsd_profile_URN>", "count": 20, "posted_after": <unix_timestamp>})` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
    - Count: 20-50 depending on activity level
-   - Posted after filter: last 90 days for active users, 180 days if low activity
-2. Analyze for:
+   - posted_after: Unix timestamp for last 90 days for active users, 180 days if low activity
+2. If response includes `next_offset`, use `get_page(cache_key, offset, limit)` to load additional posts
+3. Analyze for:
    - Topics and themes (use clustering: technical, leadership, industry trends, personal)
    - Engagement metrics (likes, comments per post - calculate averages)
    - Posting frequency (calculate posts per week/month)
    - Content style (thought leadership, sharing, personal stories, company updates)
    - Language and tone
+4. Use `query_cache(cache_key, sort_by={"field": "reactions", "order": "desc"})` to find their most engaging posts
 
 **Engagement Analysis (Comments & Reactions):**
-1. Use `get_linkedin_user_comments` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
-   - Count: 30
-2. Use `get_linkedin_user_reactions` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
-   - Count: 50
+1. Use `execute("linkedin", "user", "user_comments", {"urn": "<full_fsd_profile_URN>", "count": 30})` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
+2. Use `execute("linkedin", "user", "user_reactions", {"urn": "<full_fsd_profile_URN>", "count": 50})` with the full URN (format: `urn:li:fsd_profile:ACoAAABCDEF`)
 3. Analyze for:
    - Who they engage with (seniority levels, industries)
    - Topics that spark their engagement
    - Engagement style (supportive, challenging, informational)
    - Response patterns (quick reactions vs thoughtful comments)
 
-**CRITICAL:** All three tools (`get_linkedin_user_posts`, `get_linkedin_user_comments`, `get_linkedin_user_reactions`) require the complete URN in the format `urn:li:fsd_profile:ACoAAABCDEF` obtained from Phase 1. Using LinkedIn profile URLs or partial URNs will result in errors.
+**CRITICAL:** All three tools (`execute("linkedin", "user", "user_posts", ...)`, `execute("linkedin", "user", "user_comments", ...)`, `execute("linkedin", "user", "user_reactions", ...)`) require the complete URN in the format `urn:li:fsd_profile:ACoAAABCDEF` obtained from Phase 1. Using LinkedIn profile URLs or partial URNs will result in 422 errors (check `llm_hint` in error response for guidance).
 
 **Output: Engagement Profile**
 - Primary content themes (ranked by frequency)
@@ -71,19 +87,21 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 ### Phase 3: Company Intelligence
 
 **Current Company Deep Dive:**
-1. Use `get_linkedin_company` with company URN from profile
+1. Use `execute("linkedin", "company", "company", {"company": "<company_alias_or_url>"})` with company alias/URL from profile
 2. Extract:
    - Company size, industry, specialties
    - Growth indicators (employee count trends if available)
    - Company description and mission
    - Recent updates/news
+   - Save `cache_key` for later filtering with `query_cache()`
 
-3. Use `get_linkedin_company_posts` (count: 20)
+3. Use `execute("linkedin", "company", "company_posts", {"urn": "<company_URN_with_company_prefix>", "count": 20})` (count: 20)
+   - Note: Company sub-endpoints require `company:{id}` prefix, NOT `fsd_company`. Convert: `urn:li:fsd_company:1441` -> use `company:1441`
    - Analyze company communication themes
    - Identify strategic priorities
    - Note any mentions of funding, hiring, expansion
 
-4. Use `duckduckgo_search` for recent news:
+4. Use `execute("duckduckgo", "search", "search", {"query": "<search_terms>"})` for recent news:
    - "[Company name] funding news"
    - "[Company name] expansion launch product"
    - Prioritize results from last 6 months
@@ -91,22 +109,23 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 **Company Social Media Presence:**
 
 5. **Company Twitter/X Analysis:**
-   - Use `search_twitter_users` to find official company account: "[Company Name] official"
-   - If found, use `get_twitter_user` for profile stats
-   - Use `get_twitter_user_posts` (count: 20-30) to analyze:
+   - Use `execute("twitter", "search", "search_users", {"query": "[Company Name] official", "count": 5})` to find official company account
+   - If found, use `execute("twitter", "user", "user", {"user": "<username>"})` for profile stats
+   - Use `execute("twitter", "user", "user_posts", {"user": "<username>", "count": 20})` (count: 20-30) to analyze:
      - Product announcements and launches
      - Company culture and values
      - Engagement with customers and community
      - Hiring announcements (growth signals)
      - Technical content (if tech company)
-   - Use `search_twitter_posts` for company mentions: "[Company Name]"
+   - Use `execute("twitter", "search", "search_posts", {"query": "[Company Name]", "count": 20})` for company mentions:
      - Customer sentiment (complaints vs praise)
      - Industry discussion about the company
      - Competitor comparisons
      - Notable tweets from employees
+   - Use `query_cache(cache_key, sort_by={"field": "favorite_count", "order": "desc"})` to surface most-engaged tweets
 
 6. **Company Reddit Presence:**
-   - Use `search_reddit_posts` for company mentions: "[Company Name]"
+   - Use `execute("reddit", "search", "search_posts", {"query": "[Company Name]", "count": 20})` for company mentions
    - Look for:
      - r/startups discussions about the company
      - Industry-specific subreddit mentions (r/SaaS, r/artificial, etc.)
@@ -114,6 +133,7 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
      - Technical discussions about their product/platform
      - Hiring experiences (Glassdoor-like insights)
      - Founder/team AMAs or discussions
+   - Use `query_cache(cache_key, aggregate={"field": "subreddit", "function": "count"}, group_by="subreddit")` to see which subreddits discuss the company most
    - Sentiment analysis: positive/negative/neutral community perception
    - Pain points mentioned by users/customers
 
@@ -134,16 +154,17 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 
 1. **Find Twitter Handle:**
    - Check LinkedIn profile bio/description for @username
-   - Use `search_twitter_users` with name if not found: "[First Name] [Last Name] [Company]"
+   - Use `execute("twitter", "search", "search_users", {"query": "[First Name] [Last Name] [Company]", "count": 5})` with name if not found
    - Verify match by checking bio, profile description
 
 2. **Profile Analysis:**
-   - Use `get_twitter_user` with username
+   - Use `execute("twitter", "user", "user", {"user": "<username>"})` with username
    - Extract: follower count, following count, tweet count, bio, location
    - Note: verification status, profile creation date
 
 3. **Content Analysis:**
-   - Use `get_twitter_user_posts` (count: 50-100 recent tweets)
+   - Use `execute("twitter", "user", "user_posts", {"user": "<username>", "count": 50})` (count: 50-100 recent tweets)
+   - If response includes `next_offset`, use `get_page(cache_key, offset, limit)` to load more tweets up to 100
    - Analyze for:
      - Technical expertise signals (code snippets, tech discussions)
      - Industry opinions and hot takes
@@ -151,9 +172,10 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
      - Engagement with other thought leaders
      - Retweets vs original content ratio
    - Calculate: tweets per day, avg engagement rate
+   - Use `query_cache(cache_key, aggregate={"field": "favorite_count", "function": "avg"})` to compute average engagement
 
 4. **Topic Discovery:**
-   - Use `search_twitter_posts` with person's key interests: "[topic] from:@username"
+   - Use `execute("twitter", "search", "search_posts", {"query": "[topic] from:@username", "count": 20})` with person's key interests
    - Identify recurring themes and expertise areas
    - Note controversial or strongly-held opinions
 
@@ -161,19 +183,20 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 
 1. **Find Reddit Presence:**
    - Search for username from other platforms
-   - Use `search_reddit_posts` with name/company mentions
+   - Use `execute("reddit", "search", "search_posts", {"query": "<name_or_company>", "count": 20})` with name/company mentions
    - Look for: "AMA" posts, technical discussions, community contributions
 
 2. **Content Analysis:**
-   - Use `search_reddit_posts` with username if known: "author:[username]"
+   - Use `execute("reddit", "search", "search_posts", {"query": "author:[username]", "count": 20})` with username if known
    - Analyze for:
      - Subreddit preferences (which communities they're active in)
      - Technical depth of contributions
      - Helping behavior vs self-promotion ratio
      - Community reputation indicators
+   - Use `query_cache(cache_key, aggregate={"field": "subreddit", "function": "count"}, group_by="subreddit")` to identify most active subreddits
 
 3. **Topic Expertise:**
-   - Use `search_reddit_posts` for specific topics: "[topic] [username or company]"
+   - Use `execute("reddit", "search", "search_posts", {"query": "[topic] [username or company]", "count": 20})` for specific topics
    - Identify where they're seen as expert/helpful
    - Note any popular posts or discussions they started
 
@@ -181,36 +204,37 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 
 1. **Profile Discovery:**
    - Check if mentioned in LinkedIn or Twitter
-   - Use `search_instagram_posts` with hashtags: "#[name] #[company]"
-   - Use `get_instagram_user` if handle known
+   - Use `execute("instagram", "search", "search_posts", {"query": "#[name] #[company]", "count": 10})` with hashtags
+   - Use `execute("instagram", "user", "user", {"user": "<handle>"})` if handle known
 
 2. **Content Style:**
-   - Use `get_instagram_user_posts` (count: 20-30)
+   - Use `execute("instagram", "user", "user_posts", {"user": "<handle>", "count": 20})` (count: 20-30)
+   - If more posts needed, use `get_page(cache_key, offset, limit)` to continue
    - Analyze for: personal brand vs professional content
    - Note: visual style, posting frequency, engagement rate
 
 **D. Web Intelligence & Media Presence:**
 
 1. **Professional Presence:**
-   - `duckduckgo_search`: "[Name] [Company] speaker conference"
-   - `duckduckgo_search`: "[Name] interview podcast"
-   - `duckduckgo_search`: "[Name] article blog post"
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] [Company] speaker conference"})`
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] interview podcast"})`
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] article blog post"})`
 
 2. **Expertise & Thought Leadership:**
-   - `duckduckgo_search`: "[Name] expertise [primary topic from posts]"
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] expertise [primary topic from posts]"})`
    - Check for: publications, talks, media mentions
-   - `duckduckgo_search`: "[Name] [key topic] site:medium.com OR site:dev.to OR site:substack.com"
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] [key topic] site:medium.com OR site:dev.to OR site:substack.com"})`
 
 3. **Company-Specific Context:**
-   - `duckduckgo_search`: "[Name] [Company] announcement"
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] [Company] announcement"})`
    - Look for: press releases, product launches, executive quotes
 
 4. **GitHub/Tech Presence (if technical role):**
-   - `duckduckgo_search`: "[Name] site:github.com"
+   - `execute("duckduckgo", "search", "search", {"query": "[Name] site:github.com"})`
    - Look for: open source contributions, personal projects
 
 **E. Parse Key Pages:**
-- Use `parse_webpage` for high-value sources:
+- Use `execute("webparser", "parse", "parse", {"url": "<page_url>"})` for high-value sources:
   - Personal blog/website (if mentioned in any profile)
   - Recent interviews or podcast appearances
   - Conference speaker profiles
@@ -234,6 +258,11 @@ Always use the complete URN format `urn:li:fsd_profile:ACoAAABCDEF` from the pro
 - Synthesize consistent interests vs platform-specific behavior
 
 ### Phase 5: Cross-Platform Strategic Analysis & Report Generation
+
+**Data Export (optional):**
+- Use `export_data(cache_key, "csv")` or `export_data(cache_key, "json")` to save collected datasets for the user
+- Useful for: LinkedIn posts dataset, Twitter tweets dataset, Reddit mentions dataset
+- Returns download URL the user can share or archive
 
 **Connection Strategy:**
 1. **Conversation Topics** (ranked by relevance, synthesized across all platforms):
@@ -335,7 +364,7 @@ Generate comprehensive markdown report with sections:
 
 2. **[Theme 2]** (30% of posts)
    - Key topics: [list]
-   
+
 3. **[Theme 3]** (20% of posts)
 
 #### Engagement Patterns
@@ -523,12 +552,13 @@ Generate comprehensive markdown report with sections:
 
 ## Analysis Metadata
 - **Platforms Analyzed:**
-  - LinkedIn: [✓ Profile, Posts, Comments, Reactions]
-  - Twitter/X: [✓ Found and analyzed / ✗ Not found / - Not searched]
-  - Reddit: [✓ Activity found / ✗ No activity / - Not searched]
-  - GitHub: [✓ Projects found / ✗ Not found / - Not applicable]
-  - Web: [✓ Articles/interviews found]
-- **Data Sources:** [List specific tools used]
+  - LinkedIn: [Profile, Posts, Comments, Reactions]
+  - Twitter/X: [Found and analyzed / Not found / Not searched]
+  - Reddit: [Activity found / No activity / Not searched]
+  - GitHub: [Projects found / Not found / Not applicable]
+  - Web: [Articles/interviews found]
+- **Data Sources:** [List specific execute() calls made]
+- **Cache Keys:** [List cache_key values for re-query or export]
 - **Data Freshness:**
   - LinkedIn posts: [date range analyzed]
   - Twitter: [date range if analyzed]
@@ -553,8 +583,11 @@ Generate comprehensive markdown report with sections:
 - Always confirm with user before proceeding with deep analysis
 - Present distinguishing factors clearly
 
-**Rate Limiting / API Errors:**
-- Continue with available data from other sources
+**v2 Error Handling:**
+- Check `llm_hint` field in error responses for resolution guidance
+- **412 errors**: Resource not found -- search first to find correct alias/URN
+- **422 errors**: Wrong parameter format -- typically alias passed where URN required
+- Continue with available data from other sources on error
 - Note limitations in report
 - Suggest manual verification steps
 
@@ -596,9 +629,9 @@ Users may request analysis depth adjustment:
 
 **Platform-Specific Focus:**
 Users can also request focus on specific platforms:
-- "Focus on Twitter presence" → Deep Twitter analysis for person AND company, standard LinkedIn
-- "Technical profile only" → LinkedIn + GitHub + Reddit + Stack Overflow (person focused)
-- "Business profile" → LinkedIn + web presence + media, skip Reddit/GitHub
-- **"Company deep dive" → Extended company social analysis across all platforms** (NEW)
+- "Focus on Twitter presence" -> Deep Twitter analysis for person AND company, standard LinkedIn
+- "Technical profile only" -> LinkedIn + GitHub + Reddit + Stack Overflow (person focused)
+- "Business profile" -> LinkedIn + web presence + media, skip Reddit/GitHub
+- **"Company deep dive" -> Extended company social analysis across all platforms** (NEW)
 
 Default to **Standard Analysis** unless specified.

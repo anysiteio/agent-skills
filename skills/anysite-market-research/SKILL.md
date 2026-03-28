@@ -26,31 +26,53 @@ Comprehensive market research using Y Combinator, SEC, social media, and web dat
 - ✅ **Twitter/X**: Market pulse, news, influencer opinions
 - ✅ **Web Scraping**: Company websites, industry reports, market data
 
+## v2 MCP Tool Interface
+
+All data fetching uses the universal `execute()` meta-tool. Always call `discover(source, category)` first if you need to verify endpoint names or parameters.
+
+**Core workflow**:
+1. `execute(source, category, endpoint, params)` -- fetch data (returns first page + `cache_key`)
+2. `get_page(cache_key, offset, limit)` -- paginate through remaining results
+3. `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` -- filter/sort/aggregate cached data without new API calls
+4. `export_data(cache_key, format)` -- export to CSV, JSON, or JSONL for deliverables
+
+**Error handling**: check response for `llm_hint` field -- it contains actionable guidance when calls fail or return partial data.
+
 ## Quick Start
 
 **Step 1: Define Research Scope**
 
 Choose focus:
-- Startup ecosystem: `search_yc_companies`
-- Public companies: `sec_search_companies`
-- Industry sentiment: `search_reddit_posts`, `search_twitter_posts`
-- Company intelligence: `search_linkedin_companies`
+- Startup ecosystem: `execute("yc", "search", "search", {"query": ...})`
+- Public companies: `execute("sec", "search", "search", {"query": ...})`
+- Industry sentiment: `execute("reddit", "search", "search", {"query": ...})`, `execute("twitter", "search", "search_users", {"query": ...})`
+- Company intelligence: `execute("linkedin", "search", "search_companies", {...})`
 
 **Step 2: Gather Data**
 
 Execute searches:
 ```
 # Startup research
-search_yc_companies(industries=["fintech"], batches=["W24", "S23"])
+execute("yc", "search", "search", {"query": "fintech", "batch": "W24,S23"})
 
 # Public company research
-sec_search_companies(entity_name="tech company", forms=["10-K"])
+execute("sec", "search", "search", {"query": "tech company"})
 
 # Market sentiment
-search_reddit_posts(query="fintech trends", count=100)
+execute("reddit", "search", "search", {"query": "fintech trends"})
+→ use get_page(cache_key, offset, limit) to collect up to 100 results
 ```
 
 **Step 3: Analyze Results**
+
+Use `query_cache()` to slice data without re-fetching:
+```
+# Count startups by category
+query_cache(cache_key, aggregate={"field": "category", "function": "count"})
+
+# Filter high-engagement posts
+query_cache(cache_key, conditions=[{"field": "score", "operator": ">", "value": 50}], sort_by={"field": "score", "order": "desc"})
+```
 
 Extract insights:
 - Market size indicators
@@ -61,7 +83,7 @@ Extract insights:
 
 **Step 4: Synthesize Findings**
 
-Deliver:
+Use `export_data(cache_key, "csv")` or `export_data(cache_key, "json")` to deliver:
 - Market opportunity assessment
 - Competitive analysis
 - Trend identification
@@ -77,17 +99,17 @@ Deliver:
 
 1. **Find Startups**
 ```
-search_yc_companies(
-  industries=["fintech"],
-  batches=["W24", "S23", "W23", "S22"],
-  count=100
-)
+execute("yc", "search", "search", {
+  "query": "fintech",
+  "batch": "W24,S23,W23,S22"
+})
+→ use get_page(cache_key, offset, limit) to paginate through all results
 ```
 
 2. **Categorize by Focus**
 ```
 For each startup:
-  get_yc_company(company)
+  execute("yc", "company", "get", {"slug": company_slug})
 
 Group by:
 - Payments
@@ -96,6 +118,9 @@ Group by:
 - Banking
 - Insurance
 - B2B fintech tools
+
+Or use query_cache to group:
+  query_cache(cache_key, group_by="category")
 ```
 
 3. **Analyze Patterns**
@@ -105,18 +130,21 @@ Identify:
 - Team size distribution
 - Geographic concentration
 - Common tech stacks (from job postings)
+
+Use query_cache for aggregation:
+  query_cache(cache_key, aggregate={"field": "team_size", "function": "avg"})
 ```
 
 4. **Research Traction**
 ```
 For promising startups:
-  search_linkedin_companies(keywords=startup_name)
+  execute("linkedin", "search", "search_companies", {"keywords": startup_name})
   → Check employee growth
 
-  search_twitter_posts(query=startup_name)
+  execute("twitter", "search", "search_users", {"query": startup_name})
   → Check social presence and buzz
 
-  parse_webpage(startup_website)
+  execute("webparser", "parse", "parse", {"url": startup_website})
   → Check positioning and features
 ```
 
@@ -136,6 +164,8 @@ Compare:
 - Market gaps identified
 - Competitive intensity by segment
 
+Use `export_data(cache_key, "csv")` to deliver the startup list as a spreadsheet.
+
 ### Workflow 2: Public Company Competitive Analysis
 
 **Scenario**: Research public competitors in cloud infrastructure
@@ -144,17 +174,16 @@ Compare:
 
 1. **Find Companies**
 ```
-sec_search_companies(
-  entity_name="cloud",
-  forms=["10-K", "10-Q"],
-  count=50
-)
+execute("sec", "search", "search", {
+  "query": "cloud"
+})
+→ use get_page(cache_key, offset, limit) to collect up to 50 results
 ```
 
 2. **Get Financial Data**
 ```
 For each company:
-  sec_document(document_url)
+  execute("sec", "document", "get", {"url": document_url})
 
 Extract:
 - Revenue and growth
@@ -185,14 +214,17 @@ Compare year-over-year:
 
 5. **Supplement with Social Intel**
 ```
-search_linkedin_companies(keywords=company_name)
+execute("linkedin", "search", "search_companies", {"keywords": company_name})
 → Employee count, hiring patterns
 
-get_linkedin_company_posts(urn)
-→ Strategic messaging
+execute("linkedin", "company", "get", {"company": company_urn})
+→ Company details and strategic messaging
 
-search_reddit_posts(query=company_name)
+execute("reddit", "search", "search", {"query": company_name})
 → Customer sentiment
+
+Use query_cache to filter sentiment:
+  query_cache(cache_key, conditions=[{"field": "text", "operator": "contains", "value": "review"}])
 ```
 
 **Expected Output**:
@@ -202,6 +234,8 @@ search_reddit_posts(query=company_name)
 - Growth trajectories
 - Market opportunities
 
+Use `export_data(cache_key, "json")` for structured competitive data.
+
 ### Workflow 3: Industry Trend Analysis
 
 **Scenario**: Understand AI/ML market evolution
@@ -210,23 +244,25 @@ search_reddit_posts(query=company_name)
 
 1. **YC Startup Trends**
 ```
-search_yc_companies(
-  query="AI OR machine learning OR artificial intelligence",
-  count=200
-)
+execute("yc", "search", "search", {
+  "query": "AI OR machine learning OR artificial intelligence"
+})
+→ use get_page(cache_key, offset, limit) to collect up to 200 results
 
 Group by batch to see:
 - Trend over time
 - Focus area shifts
 - Team size changes
+
+query_cache(cache_key, group_by="batch", aggregate={"field": "id", "function": "count"})
 ```
 
 2. **Public Market Signals**
 ```
-sec_search_companies(
-  entity_name="artificial intelligence",
-  count=50
-)
+execute("sec", "search", "search", {
+  "query": "artificial intelligence"
+})
+→ use get_page(cache_key, offset, limit) to collect up to 50 results
 
 Check 10-K mentions of:
 - "AI" or "machine learning" frequency
@@ -236,24 +272,25 @@ Check 10-K mentions of:
 
 3. **Community Sentiment**
 ```
-search_reddit_posts(
-  query="AI trends 2026",
-  count=100
-)
+execute("reddit", "search", "search", {
+  "query": "AI trends 2026"
+})
+→ use get_page(cache_key, offset, limit) to collect up to 100 results
 
 Analyze for:
 - Excitement vs. concern
 - Adoption barriers
 - Use case validation
 - Technology maturity
+
+query_cache(cache_key, sort_by={"field": "score", "order": "desc"})
 ```
 
 4. **Professional Discussion**
 ```
-search_linkedin_posts(
-  keywords="artificial intelligence",
-  count=50
-)
+execute("linkedin", "post", "search_posts", {
+  "keywords": "artificial intelligence"
+})
 
 Check:
 - Industry adoption
@@ -265,11 +302,8 @@ Check:
 5. **Web Intelligence**
 ```
 For key AI companies:
-  parse_webpage(website + "/blog")
-→ Technology updates, product launches
-
-get_sitemap(website)
-→ Content focus areas
+  execute("webparser", "parse", "parse", {"url": website + "/blog"})
+  → Technology updates, product launches
 ```
 
 **Expected Output**:
@@ -279,42 +313,57 @@ get_sitemap(website)
 - Opportunity identification
 - Risk assessment
 
-## MCP Tools Reference
+Use `export_data(cache_key, "csv")` for trend data tables.
+
+## MCP Tools Reference (v2)
+
+### Data Fetching
+- `execute(source, category, endpoint, params)` -- Universal data fetcher; always returns `cache_key`
+
+### Pagination
+- `get_page(cache_key, offset, limit)` -- Load additional pages from a previous execute()
+
+### Analysis
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` -- Filter, sort, and aggregate cached data
+
+### Export
+- `export_data(cache_key, format)` -- Export to CSV, JSON, or JSONL; returns download URL
 
 ### Y Combinator Research
-- `search_yc_companies` - Find startups by industry, batch, filters
-- `get_yc_company` - Get detailed company profile
-- `search_yc_founders` - Research founders
+- `execute("yc", "search", "search", {"query": ...})` -- Find startups by industry, batch, filters
+- `execute("yc", "company", "get", {"slug": ...})` -- Get detailed company profile
 
 ### SEC Research
-- `sec_search_companies` - Find public companies and filings
-- `sec_document` - Get full document content
+- `execute("sec", "search", "search", {"query": ...})` -- Find public companies and filings
+- `execute("sec", "document", "get", {"url": ...})` -- Get full document content
 
 ### Social Intelligence
-- `search_reddit_posts` - Community insights and sentiment
-- `search_twitter_posts` - Real-time market pulse
-- `search_linkedin_posts` - Professional trends
+- `execute("reddit", "search", "search", {"query": ...})` -- Community insights and sentiment
+- `execute("twitter", "search", "search_users", {"query": ...})` -- Real-time market pulse
+- `execute("linkedin", "post", "search_posts", {"keywords": ...})` -- Professional trends
 
 ### Company Intelligence
-- `search_linkedin_companies` - Find companies
-- `get_linkedin_company` - Company details
-- `parse_webpage` - Extract website data
+- `execute("linkedin", "search", "search_companies", {"keywords": ...})` -- Find companies
+- `execute("linkedin", "company", "get", {"company": ...})` -- Company details
+- `execute("webparser", "parse", "parse", {"url": ...})` -- Extract website data
 
 ### Market Discovery
-- `duckduckgo_search` - General web research
-- `get_sitemap` - Comprehensive website analysis
+- Use `discover(source, category)` to explore available endpoints for any source
+- `execute("webparser", "parse", "parse", {"url": ...})` -- Scrape any URL for market data
+
+**Note**: Crunchbase endpoints are disabled in v2. Use LinkedIn company search and Y Combinator data as alternatives for company research.
 
 ## Market Analysis Frameworks
 
 **TAM/SAM/SOM Analysis**:
 ```
 Total Addressable Market (TAM):
-- Count YC companies in category × avg market size
+- Count YC companies in category x avg market size
 - SEC filing market size mentions
-- Industry reports (web scraping)
+- Industry reports via execute("webparser", "parse", "parse", {"url": report_url})
 
 Serviceable Addressable Market (SAM):
-- Filter by geography, segment
+- Filter by geography, segment using query_cache()
 - LinkedIn company search by ICP
 - YC companies by batch/stage
 
@@ -326,7 +375,7 @@ Serviceable Obtainable Market (SOM):
 
 **Porter's Five Forces**:
 ```
-Using anysite data:
+Using anysite v2 data:
 
 1. Competitive Rivalry:
    - YC startups in space
@@ -360,12 +409,12 @@ Using anysite data:
 - Opportunity identification
 - Strategic recommendations
 
-**CSV Export**:
+**CSV Export** (via `export_data(cache_key, "csv")`):
 - Company list with metrics
 - Market segmentation data
 - Trend indicators
 
-**JSON Export**:
+**JSON Export** (via `export_data(cache_key, "json")`):
 - Complete research data
 - Time-series analysis
 - Cross-platform correlations

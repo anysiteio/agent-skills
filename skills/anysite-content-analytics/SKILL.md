@@ -1,6 +1,6 @@
 ---
 name: anysite-content-analytics
-description: Track and analyze content performance across Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using anysite MCP server. Measure engagement metrics, analyze post effectiveness, benchmark content strategy, identify top-performing content, and optimize posting strategies. Supports post performance tracking, engagement analysis, content type comparison, and competitive benchmarking. Use when users need to measure content ROI, optimize social strategy, identify viral content patterns, or analyze content engagement across platforms.
+description: Track and analyze content performance across Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using anysite MCP server. Measure engagement metrics, analyze post effectiveness, benchmark content strategy, identify top-performing content, and optimize posting strategies. Use when users need to measure content ROI, optimize social strategy, identify viral content patterns, or analyze content engagement across platforms.
 ---
 
 # anysite Content Analytics
@@ -25,17 +25,38 @@ Measure and optimize content performance across social platforms using anysite M
 - ✅ **Twitter/X**: Tweets, retweets, likes, replies
 - ✅ **Reddit**: Posts, upvotes, comments, awards
 
+## v2 Tool Interface
+
+All data fetching uses the anysite MCP v2 universal meta-tools:
+
+- **`execute(source, category, endpoint, params)`** - Fetch data from any source. Returns first page + `cache_key`.
+- **`get_page(cache_key, offset, limit)`** - Load more items from a previous execute() when `next_offset` is returned.
+- **`query_cache(cache_key, conditions?, sort_by?, aggregate?, group_by?)`** - Filter, sort, and aggregate cached data without new API calls.
+- **`export_data(cache_key, format)`** - Export full dataset as CSV, JSON, or JSONL. Returns a download URL.
+
+### Error Handling
+
+v2 responses may include `llm_hint` fields with guidance on how to resolve errors. Common patterns:
+- **412**: Entity not found - verify the identifier (username, URN, URL).
+- **422**: Invalid parameter format - check URN prefix format or param types.
+- Always check `llm_hint` in error responses for specific resolution steps.
+
 ## Quick Start
 
 **Step 1: Collect Content Data**
 
 Platform-specific:
-- Instagram: `get_instagram_user_posts(username, count=50)`
-- LinkedIn: `get_linkedin_user_posts(urn, count=50)`
-- Twitter: `get_twitter_user_posts(user, count=100)`
-- YouTube: `get_youtube_channel_videos(channel, count=30)`
+- Instagram: `execute("instagram", "user", "user_posts", {"user": "username", "count": 50})`
+- LinkedIn: `execute("linkedin", "user", "user_posts", {"urn": "fsd_profile:ACoAAA...", "count": 50})`
+- Twitter: `execute("twitter", "user", "user_posts", {"user": "username", "count": 100})`
+- YouTube: `execute("youtube", "channel", "channel_videos", {"channel": "channel_id", "count": 30})`
 
 **Step 2: Analyze Engagement**
+
+Use `query_cache()` on the returned `cache_key` to analyze without re-fetching:
+```
+query_cache(cache_key, sort_by="likes desc", aggregate="avg:likes,comments")
+```
 
 Calculate metrics:
 - Engagement rate: (likes + comments + shares) / followers
@@ -59,6 +80,14 @@ Based on findings:
 - Replicate successful topics
 - Adjust content mix
 
+**Step 5: Export Results**
+
+```
+export_data(cache_key, "csv")
+```
+
+Returns a download URL for the full dataset.
+
 ## Common Workflows
 
 ### Workflow 1: Instagram Content Audit
@@ -67,7 +96,13 @@ Based on findings:
 
 1. **Get All Posts**
 ```
-get_instagram_user_posts(username, count=100)
+execute("instagram", "user", "user_posts", {"user": "username", "count": 100})
+→ returns cache_key + first page of results
+```
+
+If more posts exist (response includes `next_offset`):
+```
+get_page(cache_key, offset=next_offset, limit=50)
 ```
 
 2. **Calculate Metrics**
@@ -78,9 +113,15 @@ For each post:
 - Content type (Reel, carousel, single image, video)
 ```
 
+Use `query_cache` to sort and filter:
+```
+query_cache(cache_key, sort_by="likes desc", aggregate="avg:likes,comments")
+```
+
 3. **Identify Top Performers**
 ```
-Sort by engagement rate
+query_cache(cache_key, sort_by="likes desc")
+
 Top 10%: Analyze for common patterns
 - Topics/themes
 - Visual style
@@ -90,7 +131,9 @@ Top 10%: Analyze for common patterns
 
 4. **Analyze Content Mix**
 ```
-Count by type:
+query_cache(cache_key, group_by="type", aggregate="count:id,avg:likes,avg:comments")
+
+Results show:
 - Reels: X% of posts, Y% of engagement
 - Carousels: X% of posts, Y% of engagement
 - Single images: X% of posts, Y% of engagement
@@ -99,12 +142,17 @@ Count by type:
 5. **Benchmark Against Competitors**
 ```
 For each competitor:
-  get_instagram_user_posts(competitor, count=50)
+  execute("instagram", "user", "user_posts", {"user": "competitor", "count": 50})
 Compare:
 - Posting frequency
 - Engagement rates
 - Content types
 - Top themes
+```
+
+6. **Export Results**
+```
+export_data(cache_key, "csv")
 ```
 
 **Expected Output**:
@@ -120,8 +168,16 @@ Compare:
 
 1. **Collect Post History**
 ```
-get_linkedin_user_posts(urn, count=100)
+execute("linkedin", "user", "user_posts", {"urn": "fsd_profile:ACoAAA...", "count": 100})
+→ returns cache_key + first page
 ```
+
+For company page posts:
+```
+execute("linkedin", "company", "company_posts", {"urn": {"type": "company", "value": "1441"}, "count": 100})
+```
+
+Use `get_page(cache_key, offset, limit)` if more posts exist.
 
 2. **Categorize Content**
 ```
@@ -136,6 +192,8 @@ Group by type:
 
 3. **Analyze Engagement by Type**
 ```
+query_cache(cache_key, aggregate="avg:comment_count,avg:share_count", group_by="type")
+
 For each content type:
 - Average reactions
 - Average comments
@@ -173,13 +231,16 @@ Calculate average engagement for each group
 
 1. **Get Channel Videos**
 ```
-get_youtube_channel_videos(channel, count=50)
+execute("youtube", "channel", "channel_videos", {"channel": "channel_id", "count": 50})
+→ returns cache_key + first page
 ```
+
+Use `get_page(cache_key, offset, limit)` for additional videos.
 
 2. **Analyze Each Video**
 ```
 For each video:
-  get_youtube_video(video_id)
+  execute("youtube", "video", "video", {"video": "video_id"})
 
 Metrics:
 - Views
@@ -190,6 +251,8 @@ Metrics:
 
 3. **Identify Patterns**
 ```
+query_cache(cache_key, sort_by="views desc")
+
 Analyze top 20% by views:
 - Video length
 - Titles (keywords, style)
@@ -201,7 +264,7 @@ Analyze top 20% by views:
 4. **Engagement Analysis**
 ```
 Check comments:
-  get_youtube_video_comments(video_id, count=100)
+  execute("youtube", "video", "video_comments", {"video": "video_id", "count": 100})
 
 Analyze:
 - Comment quality
@@ -225,44 +288,49 @@ Compare:
 - Title and thumbnail insights
 - Upload strategy recommendations
 
-## MCP Tools Reference
+## MCP Tools Reference (v2)
 
 ### Instagram
-- `get_instagram_user_posts(user, count)` - Get posts with engagement
-- `get_instagram_post(post_id)` - Get detailed post metrics
-- `get_instagram_post_likes(post, count)` - Analyze likers
-- `get_instagram_post_comments(post, count)` - Get comments
+- `execute("instagram", "user", "user_posts", {"user": username, "count": N})` - Get posts with engagement
+- `execute("instagram", "post", "post", {"post": post_id})` - Get detailed post metrics
+- `execute("instagram", "post", "post_likes", {"post": post_id, "count": N})` - Analyze likers
+- `execute("instagram", "post", "post_comments", {"post": post_id, "count": N})` - Get comments
 
 ### LinkedIn
-- `get_linkedin_user_posts(urn, count)` - Get post history
-- `get_linkedin_company_posts(urn, count)` - Company page posts
+- `execute("linkedin", "user", "user_posts", {"urn": "fsd_profile:ACoAAA...", "count": N})` - Get user post history
+- `execute("linkedin", "company", "company_posts", {"urn": {"type": "company", "value": "ID"}, "count": N})` - Company page posts
 
 ### Twitter/X
-- `get_twitter_user_posts(user, count)` - Get tweets
-- `search_twitter_posts(query, count)` - Find trending tweets
+- `execute("twitter", "user", "user_posts", {"user": username, "count": N})` - Get tweets
+- `execute("twitter", "search", "search_posts", {"query": query, "count": N})` - Find trending tweets
 
 ### YouTube
-- `get_youtube_channel_videos(channel, count)` - All videos
-- `get_youtube_video(video)` - Video details and metrics
-- `get_youtube_video_comments(video, count)` - Comments
+- `execute("youtube", "channel", "channel_videos", {"channel": channel, "count": N})` - All videos
+- `execute("youtube", "video", "video", {"video": video_id})` - Video details and metrics
+- `execute("youtube", "video", "video_comments", {"video": video_id, "count": N})` - Comments
 
 ### Reddit
-- `reddit_user_posts(username, count)` - User's posts
-- `search_reddit_posts(query, count)` - Find popular posts
+- `execute("reddit", "user", "user_posts", {"username": username, "count": N})` - User's posts
+- `execute("reddit", "search", "search_posts", {"query": query, "count": N})` - Find popular posts
+
+### Pagination & Analysis
+- `get_page(cache_key, offset, limit)` - Fetch next page of results from any execute() call
+- `query_cache(cache_key, conditions?, sort_by?, aggregate?, group_by?)` - Filter/sort/aggregate cached results
+- `export_data(cache_key, "csv"|"json"|"jsonl")` - Export dataset as downloadable file
 
 ## Key Metrics
 
 **Engagement Rate**:
-- Formula: (Likes + Comments + Shares) / Followers × 100
+- Formula: (Likes + Comments + Shares) / Followers x 100
 - Instagram benchmark: 3-6%
 - LinkedIn benchmark: 2-5% of connections
 - Twitter benchmark: 0.5-1%
 
 **Content Performance Score**:
 ```
-Score = (Engagement Rate × 40) +
-        (Comments/Likes Ratio × 30) +
-        (Share Rate × 30)
+Score = (Engagement Rate x 40) +
+        (Comments/Likes Ratio x 30) +
+        (Share Rate x 30)
 ```
 
 **Viral Potential Indicators**:
@@ -278,13 +346,13 @@ Score = (Engagement Rate × 40) +
 - Key insights and patterns
 - Recommendations for optimization
 
-**CSV Export**:
+**CSV Export** (via `export_data(cache_key, "csv")`):
 - Post URL, date, type
 - Likes, comments, shares
 - Engagement rate
 - Performance rank
 
-**JSON Export**:
+**JSON Export** (via `export_data(cache_key, "json")`):
 - Full post data with metadata
 - Time-series engagement data
 - Historical trends

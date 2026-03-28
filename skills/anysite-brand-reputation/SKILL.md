@@ -17,13 +17,28 @@ Monitor and protect your brand reputation across social media platforms. Track m
 
 **Coverage**: 65% - Pivoted from review platforms to social media monitoring; strong for Twitter, Reddit, Instagram, YouTube, LinkedIn
 
+## v2 Tool Interface
+
+All data fetching uses the anysite MCP v2 universal meta-tools:
+
+- **`execute(source, category, endpoint, params)`** — fetch data from any source. Returns first page + `cache_key`.
+- **`get_page(cache_key, offset, limit)`** — paginate through results when `next_offset` is returned.
+- **`query_cache(cache_key, conditions, sort_by, aggregate, group_by)`** — filter, sort, or aggregate cached data without new API calls.
+- **`export_data(cache_key, format)`** — export full dataset as CSV, JSON, or JSONL for reports.
+
+Always call `discover(source, category)` first if unsure about endpoint names or params.
+
+### Error Handling
+
+v2 responses may include `llm_hint` fields with guidance on how to fix errors (e.g., wrong URN format, missing params). Always check `llm_hint` in error responses before retrying.
+
 ## Supported Platforms
 
-- ✅ **Twitter/X**: Real-time mentions, sentiment, viral content
-- ✅ **Reddit**: Community discussions, detailed feedback, sentiment
-- ✅ **Instagram**: Visual brand mentions, hashtag tracking, influencer posts
-- ✅ **YouTube**: Video mentions, comment sentiment, brand coverage
-- ✅ **LinkedIn**: Professional mentions, company updates, B2B sentiment
+- **Twitter/X**: Real-time mentions, sentiment, viral content
+- **Reddit**: Community discussions, detailed feedback, sentiment
+- **Instagram**: Visual brand mentions, hashtag tracking, influencer posts
+- **YouTube**: Video mentions, comment sentiment, brand coverage
+- **LinkedIn**: Professional mentions, company updates, B2B sentiment
 
 ## Quick Start
 
@@ -39,11 +54,13 @@ Define:
 
 Platform searches:
 ```
-Twitter: search_twitter_posts(query="brand name", count=100)
-Reddit: search_reddit_posts(query="brand name", count=100)
-Instagram: search_instagram_posts(query="#brandname", count=100)
-LinkedIn: search_linkedin_posts(keywords="brand name", count=50)
+Twitter:    execute("twitter", "search", "search_posts", {"query": "brand name", "count": 100})
+Reddit:     execute("reddit", "search", "search_posts", {"query": "brand name", "count": 100})
+Instagram:  execute("instagram", "search", "search_posts", {"query": "#brandname", "count": 100})
+LinkedIn:   execute("linkedin", "post", "search_posts", {"keywords": "brand name", "count": 50})
 ```
+
+Each call returns a `cache_key` — use it for pagination, filtering, and export.
 
 **Step 3: Analyze Sentiment**
 
@@ -51,6 +68,8 @@ For each mention:
 - Classify: Positive, negative, neutral
 - Categorize: Complaint, praise, question, general
 - Prioritize: Urgency, reach, influence
+
+Use `query_cache(cache_key, conditions=[...], sort_by=...)` to filter high-engagement or negative mentions without re-fetching.
 
 **Step 4: Take Action**
 
@@ -71,25 +90,39 @@ Based on findings:
 1. **Search All Platforms**
 ```
 # Twitter (real-time pulse)
-search_twitter_posts(query="brand name OR @brandhandle", count=100)
-Filter: Last 24 hours
+execute("twitter", "search", "search_posts", {"query": "brand name OR @brandhandle", "count": 100})
+→ Returns cache_key_twitter; filter last 24h with from_date param (timestamp)
 
 # Reddit (detailed discussions)
-search_reddit_posts(query="brand name", count=50)
-Filter: Last 24 hours
+execute("reddit", "search", "search_posts", {"query": "brand name", "count": 50, "time_filter": "day"})
+→ Returns cache_key_reddit
 
 # Instagram (visual mentions)
-search_instagram_posts(query="#brandname OR brand name", count=50)
+execute("instagram", "search", "search_posts", {"query": "#brandname OR brand name", "count": 50})
+→ Returns cache_key_instagram
 
 # LinkedIn (professional mentions)
-search_linkedin_posts(keywords="brand name", count=20)
+execute("linkedin", "post", "search_posts", {"keywords": "brand name", "count": 20})
+→ Returns cache_key_linkedin
 
 # YouTube (video coverage)
-search_youtube_videos(query="brand name review OR brand name unboxing", count=20)
+execute("youtube", "search", "search_videos", {"query": "brand name review OR brand name unboxing", "count": 20})
+→ Returns cache_key_youtube
+```
+
+If any result includes `next_offset`, fetch more with:
+```
+get_page(cache_key, offset=next_offset, limit=50)
 ```
 
 2. **Classify Mentions**
+
+Use `query_cache` to sort and filter cached results:
 ```
+# Find high-engagement mentions across platforms
+query_cache(cache_key_twitter, sort_by=[{"field": "favorite_count", "order": "desc"}])
+query_cache(cache_key_reddit, sort_by=[{"field": "vote_count", "order": "desc"}])
+
 For each mention:
 
 Sentiment:
@@ -126,7 +159,13 @@ Low Priority:
 ```
 
 4. **Generate Daily Report**
+
+Export data for reporting:
 ```
+export_data(cache_key_twitter, "csv")
+export_data(cache_key_reddit, "csv")
+→ Returns download URLs for each dataset
+
 Summary:
 - Total mentions (by platform)
 - Sentiment breakdown (% positive/negative/neutral)
@@ -164,16 +203,21 @@ Alert triggers:
 ```
 When alert triggered:
 
-search_twitter_posts(query="brand name", count=500)
-→ Identify what's driving spike
+execute("twitter", "search", "search_posts", {"query": "brand name", "count": 500})
+→ Identify what's driving spike; use get_page() to load all results
 
-search_reddit_posts(query="brand name", count=200)
+execute("reddit", "search", "search_posts", {"query": "brand name", "count": 200})
 → Check community discussions
 
 For viral posts:
-  get_twitter_post(post_id) or get_reddit_post(url)
-  → Analyze reach and engagement
-  → Read comments for context
+  # Get specific Reddit post details and comments
+  execute("reddit", "posts", "posts", {"post_url": "<reddit_post_url>"})
+  execute("reddit", "posts", "posts_comments", {"post_url": "<reddit_post_url>"})
+  → Analyze reach and engagement, read comments for context
+
+  # For viral tweets, scrape the tweet URL directly
+  execute("webparser", "parse", "parse", {"url": "<tweet_url>"})
+  → Get tweet details and engagement metrics
 ```
 
 3. **Assess Crisis Severity**
@@ -184,6 +228,10 @@ Severity factors:
 - Reach (influencer involvement, media coverage)
 - Sentiment (how negative)
 - Validity (legitimate issue vs. misunderstanding)
+
+Use query_cache to analyze cached data:
+query_cache(cache_key, aggregate=[{"function": "count"}])
+→ Total mention count without re-fetching
 ```
 
 4. **Track Crisis Evolution**
@@ -225,14 +273,23 @@ List 3-5 main competitors
 2. **Gather Mentions for All**
 ```
 For brand + each competitor:
-  search_twitter_posts(query=brand, count=200)
-  search_reddit_posts(query=brand, count=100)
-  search_linkedin_posts(keywords=brand, count=50)
+  execute("twitter", "search", "search_posts", {"query": "<brand>", "count": 200})
+  execute("reddit", "search", "search_posts", {"query": "<brand>", "count": 100})
+  execute("linkedin", "post", "search_posts", {"keywords": "<brand>", "count": 50})
+
+Each returns a cache_key — use get_page() if next_offset indicates more data.
 ```
 
 3. **Calculate Brand Health Scores**
 ```
 For each brand:
+
+Use query_cache to aggregate metrics from cached results:
+  query_cache(cache_key, aggregate=[{"function": "count"}])
+  → Total mention volume
+
+  query_cache(cache_key, aggregate=[{"function": "avg", "field": "favorite_count"}])
+  → Average engagement per mention
 
 Mention Volume: Total mentions
 Sentiment Score: (Positive - Negative) / Total
@@ -264,31 +321,36 @@ Look for:
 - Strength/weakness analysis
 - Strategic opportunities
 
-## MCP Tools Reference
+## MCP Tools Reference (v2)
 
 ### Twitter/X
-- `search_twitter_posts(query, count)` - Find brand mentions
-- `get_twitter_user(user)` - Check brand profile stats
-- `get_twitter_user_posts(user, count)` - Monitor brand account
+- `execute("twitter", "search", "search_posts", {"query": ..., "count": N})` — Find brand mentions. Supports `from_date`, `to_date`, `min_likes`, `min_retweets`, `language` filters.
+- `execute("twitter", "user", "user", {"user": ...})` — Check brand profile stats
+- `execute("twitter", "user", "user_posts", {"user": ..., "count": N})` — Monitor brand account posts
 
 ### Reddit
-- `search_reddit_posts(query, subreddit, count)` - Find discussions
-- `get_reddit_post(url)` - Get post details and sentiment
-- `get_reddit_post_comments(url)` - Deep dive on discussions
+- `execute("reddit", "search", "search_posts", {"query": ..., "count": N})` — Find discussions. Supports `sort` (relevance/hot/top/new) and `time_filter` (day/week/month/year).
+- `execute("reddit", "posts", "posts", {"post_url": ...})` — Get post details and sentiment
+- `execute("reddit", "posts", "posts_comments", {"post_url": ...})` — Deep dive on discussions
 
 ### Instagram
-- `search_instagram_posts(query, count)` - Find visual mentions
-- `get_instagram_post(post_id)` - Analyze mention engagement
-- `get_instagram_post_comments(post, count)` - Read feedback
+- `execute("instagram", "search", "search_posts", {"query": ..., "count": N})` — Find visual mentions
+- `execute("instagram", "post", "post", {"post": ...})` — Analyze mention engagement
+- `execute("instagram", "post", "post_comments", {"post": ..., "count": N})` — Read feedback
 
 ### YouTube
-- `search_youtube_videos(query, count)` - Find video mentions
-- `get_youtube_video(video)` - Get video details
-- `get_youtube_video_comments(video, count)` - Analyze sentiment
+- `execute("youtube", "search", "search_videos", {"query": ..., "count": N})` — Find video mentions
+- `execute("youtube", "video", "video", {"video": ...})` — Get video details
+- `execute("youtube", "video", "video_comments", {"video": ..., "count": N})` — Analyze sentiment
 
 ### LinkedIn
-- `search_linkedin_posts(keywords, count)` - Professional mentions
-- `get_linkedin_company_posts(urn, count)` - Monitor own posts
+- `execute("linkedin", "post", "search_posts", {"keywords": ..., "count": N})` — Professional mentions
+- `execute("linkedin", "company", "company_posts", {"urn": {"type": "company", "value": "<id>"}, "count": N})` — Monitor own company posts. Requires company URN from `execute("linkedin", "company", "company", {"company": "<alias>"})`.
+
+### Pagination, Caching & Export
+- `get_page(cache_key, offset, limit)` — Load next page of results from any execute() call
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` — Filter/sort/aggregate cached data without new API calls
+- `export_data(cache_key, "csv"|"json"|"jsonl")` — Export full dataset as downloadable file
 
 ## Sentiment Analysis Framework
 
@@ -314,7 +376,7 @@ Look for:
 
 **Sentiment Score**:
 ```
-Score = (Positive mentions - Negative mentions) / Total mentions × 100
+Score = (Positive mentions - Negative mentions) / Total mentions x 100
 
 +50 to +100: Excellent
 +20 to +49: Good
@@ -354,12 +416,12 @@ Score = (Positive mentions - Negative mentions) / Total mentions × 100
 - Top issues identified
 - Recommended actions
 
-**CSV Export**:
+**CSV Export** (via `export_data(cache_key, "csv")`):
 - Mention list with sentiment
 - Platform, date, reach
 - Issue categorization
 
-**JSON Export**:
+**JSON Export** (via `export_data(cache_key, "json")`):
 - Complete mention data
 - Time-series sentiment
 - Engagement metrics

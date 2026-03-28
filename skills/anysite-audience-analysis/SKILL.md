@@ -28,9 +28,9 @@ Understand your audience through demographic analysis, engagement patterns, and 
 **Step 1: Identify Audience Source**
 
 Choose platform:
-- Instagram: `get_instagram_user` + `get_instagram_user_friendships`
-- YouTube: `get_youtube_channel_videos` + comment analysis
-- LinkedIn: `get_linkedin_user_posts` + engagement analysis
+- Instagram: `execute("instagram", "user", "user", {"user": "..."})` + `execute("instagram", "user", "user_friendships", {"user": "...", "count": 100, "type": "followers"})`
+- YouTube: `execute("youtube", "channel", "channel_videos", {"channel": "...", "count": 50})` + comment analysis
+- LinkedIn: `execute("linkedin", "post", "get_user_posts", {"user": "...", "count": 50})` + engagement analysis
 
 **Step 2: Collect Audience Data**
 
@@ -48,6 +48,8 @@ Look for:
 - Content preferences
 - Peak activity times
 
+Use `query_cache()` to filter and aggregate cached data without re-fetching.
+
 **Step 4: Generate Insights**
 
 Deliver:
@@ -55,6 +57,8 @@ Deliver:
 - Engagement patterns
 - Content recommendations
 - Targeting suggestions
+
+Use `export_data()` to provide downloadable CSV/JSON files.
 
 ## Common Workflows
 
@@ -64,37 +68,48 @@ Deliver:
 
 1. **Get Profile Overview**
 ```
-get_instagram_user(username)
-→ Follower count, post count, bio
+execute("instagram", "user", "user", {"user": "username"})
+→ Follower count (follower_count), post count (media_count), bio (description)
+→ Fields: id, alias, name, url, image, follower_count, following_count, description, media_count, is_private, is_verified, is_business, category, external_url, email, location
 ```
 
 2. **Analyze Followers** (sample)
 ```
-get_instagram_user_friendships(
-  user=username,
-  type="followers",
-  count=100
-)
+execute("instagram", "user", "user_friendships", {
+  "user": "username",
+  "count": 100,
+  "type": "followers"
+})
+→ Fields: id, name, alias, url, image, is_verified, is_private
 
 For each follower (sample):
 - Profile type (personal, business, creator)
 - Bio indicators (interests, location)
 - Follower count (influence level)
+
+Use get_page(cache_key, offset=10, limit=10) to load more followers.
 ```
 
 3. **Engagement Pattern Analysis**
 ```
-get_instagram_user_posts(username, count=50)
+execute("instagram", "user", "user_posts", {"user": "username", "count": 50})
+→ Fields: id, code, url, image, text, created_at, like_count, comment_count, reshare_count, view_count, type, is_paid_partnership
 
 For each post:
-  get_instagram_post_likes(post_id, count=100)
-  get_instagram_post_comments(post_id, count=50)
+  execute("instagram", "post", "post_likes", {"post": "{id}", "count": 100})
+  → Fields: id, name, alias, url, image, is_verified, is_private
+
+  execute("instagram", "post", "post_comments", {"post": "{id}", "count": 50})
+  → Fields: id, comment_index, created_at, text, like_count, reply_count, parent_id, user
 
 Analyze:
 - Who engages most (power users)
-- When engagement happens (timing)
+- When engagement happens (timing via created_at)
 - What content drives engagement
 - Comment quality and topics
+
+Use query_cache(cache_key, sort_by={"field": "like_count", "order": "desc"})
+to find top-performing posts without re-fetching.
 ```
 
 4. **Audience Segmentation**
@@ -104,6 +119,9 @@ Group followers by:
 - Interests (from bios)
 - Location (from profiles)
 - Influence (follower counts)
+
+Use query_cache(cache_key, conditions=[{"field": "is_verified", "op": "eq", "value": true}])
+to filter verified followers.
 ```
 
 **Expected Output**:
@@ -112,28 +130,37 @@ Group followers by:
 - Top engaged followers
 - Content preferences
 
+Use `export_data(cache_key, "csv")` to provide a downloadable follower/engagement report.
+
 ### Workflow 2: YouTube Audience Insights
 
 **Steps**:
 
 1. **Channel Overview**
 ```
-get_youtube_channel_videos(channel, count=50)
+execute("youtube", "channel", "channel_videos", {"channel": "@channel_alias", "count": 50})
+→ Fields: id, title, url, author, duration_seconds, view_count, published_at, image
 
 Aggregate:
-- Total views
-- Subscriber milestones
-- Content mix
+- Total views (sum view_count)
+- Content mix (by duration, topic)
+- Publishing frequency (by published_at)
+
+Use query_cache(cache_key, aggregate={"field": "view_count", "op": "sum"})
+to get total views.
 ```
 
 2. **Viewer Engagement Analysis**
 ```
 For recent videos:
-  get_youtube_video(video_id)
-  → Views, likes, comments
+  execute("youtube", "video", "video", {"video": "{video_id}"})
+  → Fields: id, url, title, description, author, duration_seconds, view_count, subtitles
 
-  get_youtube_video_comments(video_id, count=200)
+  execute("youtube", "video", "video_comments", {"video": "{video_id}", "count": 200})
+  → Fields: id, text, author, published_at, like_count, reply_count, reply_level
   → Analyze commenter patterns
+
+Use get_page(cache_key, offset=10, limit=10) to load more comments.
 ```
 
 3. **Audience Demographics from Comments**
@@ -143,6 +170,12 @@ From comments analyze:
 - Topics discussed (interests)
 - Language and tone
 - Technical depth
+
+Use query_cache(cache_key, conditions=[{"field": "text", "op": "contains", "value": "?"}])
+to filter questions from comments.
+
+Use query_cache(cache_key, sort_by={"field": "like_count", "order": "desc"})
+to find most popular comments.
 ```
 
 4. **Content Performance by Audience**
@@ -150,7 +183,9 @@ From comments analyze:
 Correlate:
 - High-view videos → audience interests
 - High-comment videos → engagement topics
-- High-like videos → quality indicators
+
+Use query_cache(cache_key, sort_by={"field": "view_count", "order": "desc"})
+to rank videos by performance metrics.
 ```
 
 **Expected Output**:
@@ -165,7 +200,7 @@ Correlate:
 
 1. **Get Post History**
 ```
-get_linkedin_user_posts(urn, count=50)
+execute("linkedin", "post", "get_user_posts", {"user": "{alias}", "count": 50})
 ```
 
 2. **Analyze Engagement**
@@ -175,6 +210,9 @@ For each post:
 - Comment depth
 - Share count
 - Post reach indicators
+
+Use query_cache(cache_key, sort_by={"field": "reactions", "order": "desc"})
+to find most engaging posts.
 ```
 
 3. **Profile Engagers** (if accessible)
@@ -184,6 +222,9 @@ From reactions/comments:
 - Industries
 - Companies
 - Seniority levels
+
+Use execute("linkedin", "user", "get", {"user": "{engager_alias}"})
+to get full profiles of top engagers.
 ```
 
 4. **Content-Audience Mapping**
@@ -193,6 +234,9 @@ Correlate:
 - Which formats perform best
 - Which audiences engage with what
 - When different audiences are active
+
+Use query_cache(cache_key, aggregate={"field": "reactions", "op": "avg"}, group_by="post_type")
+to analyze performance by content type.
 ```
 
 **Expected Output**:
@@ -203,21 +247,49 @@ Correlate:
 
 ## MCP Tools Reference
 
-### Instagram
-- `get_instagram_user` - Profile stats
-- `get_instagram_user_friendships` - Follower/following lists
-- `get_instagram_user_posts` - Post history
-- `get_instagram_post_likes` - Who liked posts
-- `get_instagram_post_comments` - Comment analysis
+### v2 Meta-Tools
 
-### YouTube
-- `get_youtube_channel_videos` - Channel content
-- `get_youtube_video` - Video metrics
-- `get_youtube_video_comments` - Audience engagement
+| Tool | Purpose |
+|------|---------|
+| `discover(source, category)` | Learn available endpoints and params before execute |
+| `execute(source, category, endpoint, params)` | Fetch data — replaces all v1 tools |
+| `get_page(cache_key, offset, limit)` | Load more items from previous execute |
+| `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` | Filter/sort/aggregate cached data |
+| `export_data(cache_key, format)` | Export dataset as CSV/JSON/JSONL |
 
-### LinkedIn
-- `get_linkedin_user_posts` - Post history
-- `get_linkedin_profile` - Profile insights
+### Instagram Endpoints
+
+| Endpoint | Call | Key Params |
+|----------|------|------------|
+| Profile | `execute("instagram", "user", "user", {"user": "..."})` | `user` (alias/ID/URL) |
+| Followers/Following | `execute("instagram", "user", "user_friendships", {"user": "...", "count": N, "type": "followers"})` | `user`, `count`, `type` (followers\|following) |
+| User Posts | `execute("instagram", "user", "user_posts", {"user": "...", "count": N})` | `user`, `count` |
+| User Reels | `execute("instagram", "user", "user_reels", {"user": "...", "count": N})` | `user`, `count` |
+| Post Details | `execute("instagram", "post", "post", {"post": "{id}"})` | `post` (numeric post ID) |
+| Post Likes | `execute("instagram", "post", "post_likes", {"post": "{id}", "count": N})` | `post`, `count` |
+| Post Comments | `execute("instagram", "post", "post_comments", {"post": "{id}", "count": N})` | `post`, `count` |
+
+### YouTube Endpoints
+
+| Endpoint | Call | Key Params |
+|----------|------|------------|
+| Channel Videos | `execute("youtube", "channel", "channel_videos", {"channel": "...", "count": N})` | `channel` (URL/@alias/ID), `count` (max 1000) |
+| Video Details | `execute("youtube", "video", "video", {"video": "..."})` | `video` (ID or URL) |
+| Video Comments | `execute("youtube", "video", "video_comments", {"video": "...", "count": N})` | `video`, `count` (max 2000) |
+| Video Subtitles | `execute("youtube", "video", "video_subtitles", {"video": "...", "lang": "en"})` | `video`, `lang` |
+
+### LinkedIn Endpoints
+
+| Endpoint | Call | Key Params |
+|----------|------|------------|
+| User Posts | `execute("linkedin", "post", "get_user_posts", {"user": "..."})` | `user` (alias) |
+| User Profile | `execute("linkedin", "user", "get", {"user": "..."})` | `user` (alias) |
+
+### Error Handling
+
+- If `execute()` returns an error with `"llm_hint"`, follow the hint.
+- If `execute()` returns `{"error": "Source not found", "available_sources": [...]}`, check source name.
+- If `execute()` returns `{"error": "Endpoint not found", "available_endpoints": [...]}`, call `discover()` to find correct endpoint names.
 
 ## Audience Analysis Framework
 
@@ -253,12 +325,12 @@ Correlate:
 - Content recommendations
 - Strategic insights
 
-**CSV Export**:
+**CSV Export** via `export_data(cache_key, "csv")`:
 - Follower sample data
 - Engagement metrics
 - Segment distribution
 
-**JSON Export**:
+**JSON Export** via `export_data(cache_key, "json")`:
 - Complete audience data
 - Engagement time series
 - Segmentation details

@@ -9,23 +9,25 @@ Frameworks and templates for analyzing competitors using anysite MCP data.
 **Strengths**:
 ```
 LinkedIn:
-- get_linkedin_company → Company size, growth
-- get_linkedin_company_posts → Messaging, brand strength
-- search_linkedin_users → Leadership quality
+- execute("linkedin", "company", "company", {"company": "..."}) → Company size, growth
+- execute("linkedin", "company", "company_posts", {"urn": ..., "count": 20}) → Messaging, brand strength
+- execute("linkedin", "search", "search_users", {"company_keywords": "...", "title": "...", "count": 50}) → Leadership quality
 
 Y Combinator:
-- get_yc_company → Funding, pedigree
+- execute("yc", "company", "get", {"slug": "..."}) → Funding, pedigree
 
 Social:
 - Follower counts, engagement rates
 - Content quality and frequency
+- Use query_cache(cache_key, aggregate=[{"field": "like_count", "function": "avg"}]) for engagement benchmarks
 ```
 
 **Weaknesses**:
 ```
 Reddit:
-- search_reddit_posts(competitor) → Customer complaints
+- execute("reddit", "search", "search_posts", {"query": "competitor", "count": 50}) → Customer complaints
 - Product gaps, feature requests
+- Use query_cache(cache_key, sort_by=[{"field": "comment_count", "order": "desc"}]) to find most-discussed issues
 
 LinkedIn:
 - Employee turnover (departures)
@@ -48,8 +50,8 @@ Market gaps identified through:
 **Threats**:
 ```
 Competitive threats:
-- YC batch analysis (new entrants)
-- Hiring velocity (aggressive growth)
+- YC batch analysis (new entrants): execute("yc", "search", "search_companies", {"query": "...", "count": 50})
+- Hiring velocity (aggressive growth): execute("linkedin", "company", "company_employee_stats", {"urn": ...})
 - New product launches
 - Pricing changes
 ```
@@ -63,16 +65,18 @@ Competitive threats:
 4. Customer Type (Technical vs. Business Users)
 
 **Data Sources**:
-- Website messaging
-- LinkedIn company description
-- Pricing pages
-- Job postings (customer success vs. enterprise support)
+- Website messaging: `execute("webparser", "parse", "parse", {"url": "..."})`
+- LinkedIn company description: `execute("linkedin", "company", "company", {"company": "..."})`
+- Pricing pages: `execute("webparser", "parse", "parse", {"url": "<website>/pricing"})`
+- Job postings: `execute("linkedin", "search", "search_jobs", {"keywords": "...", "count": 50})`
+
+**Export**: Use `export_data(cache_key, "csv")` to build comparison spreadsheets.
 
 ## Porter's Five Forces Analysis
 
 **Threat of New Entrants**:
-- Monitor YC batches for new competitors
-- Track LinkedIn company formations in space
+- Monitor YC batches for new competitors: `execute("yc", "search", "search_companies", {"query": "...", "count": 50})`
+- Track LinkedIn company formations in space: `execute("linkedin", "search", "search_companies", {"keywords": "...", "count": 50})`
 - Watch for well-funded startups
 
 **Competitive Rivalry**:

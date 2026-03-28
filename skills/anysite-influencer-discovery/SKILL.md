@@ -17,6 +17,17 @@ Find and analyze influencers across social platforms using anysite MCP. Discover
 
 **Coverage**: 85% - Excellent for Instagram, Twitter, LinkedIn, YouTube influencers.
 
+## v2 Tool Interface
+
+All data fetching uses the anysite v2 meta-tools:
+
+- **execute(source, category, endpoint, params)** - Fetch data. Returns first page + `cache_key`.
+- **get_page(cache_key, offset, limit)** - Load more items from a previous execute (when `next_offset` is returned).
+- **query_cache(cache_key, conditions, sort_by, aggregate, group_by)** - Filter, sort, or aggregate cached data without new API calls.
+- **export_data(cache_key, format)** - Export full dataset as CSV, JSON, or JSONL. Returns a download URL.
+
+**Error handling**: Check responses for `llm_hint` fields that provide actionable guidance on failures (e.g., alias not found, URN required).
+
 ## Supported Platforms
 
 - ✅ **Instagram**: Profile stats, posts, followers, engagement, Reels
@@ -30,18 +41,18 @@ Find and analyze influencers across social platforms using anysite MCP. Discover
 **Step 1: Search for Influencers**
 
 By platform:
-- Instagram: `search_instagram_posts` with niche keywords + hashtags
-- Twitter: `search_twitter_users` with niche keywords
-- LinkedIn: `search_linkedin_users` with industry + "thought leader"
-- YouTube: `search_youtube_videos` with niche, then analyze channels
+- Instagram: `execute("instagram", "search", "search_posts", {"query": "niche keywords", "count": 50})` with niche keywords + hashtags
+- Twitter: `execute("twitter", "search", "search_users", {"query": "niche keywords", "count": 50})` with niche keywords
+- LinkedIn: `execute("linkedin", "search", "search_users", {"keywords": "industry thought leader", "count": 50})` with industry + "thought leader"
+- YouTube: `execute("youtube", "search", "search_videos", {"query": "niche", "count": 50})` with niche, then analyze channels
 
 **Step 2: Analyze Profiles**
 
 Get detailed metrics:
-- Instagram: `get_instagram_user` → followers, posts, engagement rate
-- Twitter: `get_twitter_user` → followers, tweet frequency
-- YouTube: `get_youtube_channel_videos` → subscribers, views, growth
-- LinkedIn: `get_linkedin_profile` → connections, post engagement
+- Instagram: `execute("instagram", "user", "user", {"user": "username"})` -> followers, posts, engagement rate
+- Twitter: `execute("twitter", "user", "get", {"username": "handle"})` -> followers, tweet frequency
+- YouTube: `execute("youtube", "channel", "channel_videos", {"channel": "...", "count": 30})` -> subscribers, views, growth
+- LinkedIn: `execute("linkedin", "user", "user", {"user": "alias"})` -> connections, post engagement
 
 **Step 3: Evaluate Engagement**
 
@@ -51,9 +62,11 @@ Check engagement quality:
 - Audience authenticity (comment quality)
 - Content consistency (posts per week)
 
+Use `query_cache(cache_key, sort_by=[{"field": "like_count", "order": "desc"}])` to rank posts by engagement without re-fetching.
+
 **Step 4: Build Influencer List**
 
-Export with:
+Export with `export_data(cache_key, "csv")`:
 - Name, handle, platform
 - Follower count, engagement rate
 - Niche/topics, content type
@@ -70,18 +83,19 @@ Export with:
 
 1. **Search by Hashtag/Keywords**
 ```
-search_instagram_posts(
-  query="sustainable fashion OR eco friendly fashion",
-  count=100
-)
-→ Extract unique user handles from results
+execute("instagram", "search", "search_posts", {
+  "query": "sustainable fashion OR eco friendly fashion",
+  "count": 100
+})
+-> Extract unique user handles from results
+-> Use get_page(cache_key, offset, 50) if next_offset returned for more results
 ```
 
 2. **Analyze Each Creator**
 ```
 For each unique handle:
-  get_instagram_user(username)
-  → Follower count, bio, profile type
+  execute("instagram", "user", "user", {"user": "username"})
+  -> Follower count, bio, profile type
 
 Filter for:
 - 10k-100k followers
@@ -92,19 +106,22 @@ Filter for:
 3. **Evaluate Content**
 ```
 For qualified creators:
-  get_instagram_user_posts(username, count=30)
+  execute("instagram", "user", "user_posts", {"user": "username", "count": 30})
 
 Analyze:
 - Post frequency (consistency)
 - Engagement rate per post
 - Content quality and style
 - Brand partnerships visible
+
+Use query_cache(cache_key, sort_by=[{"field": "like_count", "order": "desc"}]) to find top posts
+Use query_cache(cache_key, aggregate=[{"field": "like_count", "function": "avg"}]) for average engagement
 ```
 
 4. **Check Audience Quality**
 ```
-get_instagram_post_likes(post_id, count=100)
-get_instagram_post_comments(post_id, count=50)
+execute("instagram", "post", "post_likes", {"post": "post_id", "count": 100})
+execute("instagram", "post", "post_comments", {"post": "post_id", "count": 50})
 
 Look for:
 - Real comments (not just emojis)
@@ -119,8 +136,8 @@ From Instagram bio:
 - Website links
 
 If LinkedIn mentioned:
-  search_linkedin_users(first_name, last_name)
-  get_linkedin_profile(user)
+  execute("linkedin", "search", "search_users", {"keywords": "first_name last_name"})
+  execute("linkedin", "user", "user", {"user": "alias_from_search"})
 ```
 
 **Expected Output**:
@@ -128,6 +145,8 @@ If LinkedIn mentioned:
 - Engagement metrics for each
 - Contact information for 60-70%
 - Partnership fit scores
+
+Use `export_data(cache_key, "csv")` to generate a downloadable influencer list.
 
 ### Workflow 2: LinkedIn Thought Leader Identification
 
@@ -137,22 +156,25 @@ If LinkedIn mentioned:
 
 1. **Search for Active Posters**
 ```
-search_linkedin_users(
-  keywords="SaaS sales thought leader",
-  title="VP Sales OR Head of Sales OR Chief Revenue Officer",
-  count=100
-)
+execute("linkedin", "search", "search_users", {
+  "keywords": "SaaS sales thought leader",
+  "title": "VP Sales OR Head of Sales OR Chief Revenue Officer",
+  "count": 100
+})
 ```
 
 2. **Analyze Post Activity**
 ```
 For each candidate:
-  get_linkedin_user_posts(urn, count=50)
+  execute("linkedin", "post", "get_user_posts", {"user": "urn", "count": 50})
 
 Filter for:
 - Posts 2-3x per week minimum
 - High engagement (100+ reactions)
 - Original content (not just shares)
+
+Use query_cache(cache_key, conditions=[{"field": "comment_count", "operator": ">", "value": 10}])
+to filter for high-engagement posts
 ```
 
 3. **Evaluate Influence**
@@ -162,6 +184,11 @@ Check post engagement:
 - Comment quality and quantity
 - Share count
 - Follower growth signals
+
+Use query_cache(cache_key, aggregate=[
+  {"field": "comment_count", "function": "avg"},
+  {"field": "share_count", "function": "avg"}
+]) for average metrics
 ```
 
 4. **Assess Content Quality**
@@ -179,6 +206,8 @@ Review posts for:
 - Engagement metrics
 - Partnership opportunities (guest posts, quotes, etc.)
 
+Use `export_data(cache_key, "csv")` to export the thought leader list.
+
 ### Workflow 3: YouTube Creator Research
 
 **Scenario**: Find YouTube creators in tech reviews
@@ -187,29 +216,32 @@ Review posts for:
 
 1. **Search for Niche Content**
 ```
-search_youtube_videos(
-  query="tech review 2026",
-  count=100
-)
-→ Extract unique channel names
+execute("youtube", "search", "search_videos", {
+  "query": "tech review 2026",
+  "count": 100
+})
+-> Extract unique channel names
+-> Use get_page(cache_key, offset, 50) if more results needed
 ```
 
 2. **Analyze Channels**
 ```
 For each channel:
-  get_youtube_channel_videos(channel, count=30)
+  execute("youtube", "channel", "channel_videos", {"channel": "channel_id", "count": 30})
 
 Check:
 - Subscriber count
 - Upload frequency
 - Average views per video
 - Video length (long-form vs shorts)
+
+Use query_cache(cache_key, aggregate=[{"field": "view_count", "function": "avg"}]) for average views
 ```
 
 3. **Evaluate Video Performance**
 ```
 For top videos:
-  get_youtube_video(video_id)
+  execute("youtube", "video", "video", {"video": "video_id"})
 
 Metrics:
 - View count
@@ -220,7 +252,7 @@ Metrics:
 
 4. **Analyze Audience Engagement**
 ```
-get_youtube_video_comments(video_id, count=100)
+execute("youtube", "video", "video_comments", {"video": "video_id", "count": 100})
 
 Look for:
 - Active community
@@ -234,39 +266,50 @@ Look for:
 - Engagement analysis
 - Partnership fit assessment
 
-## MCP Tools Reference
+Use `export_data(cache_key, "csv")` to export channel data.
+
+## MCP Tools Reference (v2)
 
 ### Instagram
-- `search_instagram_posts` - Find posts by keywords/hashtags
-- `get_instagram_user` - Get profile with followers, bio
-- `get_instagram_user_posts` - Get recent posts with engagement
-- `get_instagram_post_likes` - Check audience authenticity
-- `get_instagram_post_comments` - Analyze engagement quality
-- `get_instagram_user_friendships` - Get followers list (for analysis)
+- `execute("instagram", "search", "search_posts", {"query": ..., "count": N})` - Find posts by keywords/hashtags
+- `execute("instagram", "user", "user", {"user": ...})` - Get profile with followers, bio
+- `execute("instagram", "user", "user_posts", {"user": ..., "count": N})` - Get recent posts with engagement
+- `execute("instagram", "post", "post_likes", {"post": ..., "count": N})` - Check audience authenticity
+- `execute("instagram", "post", "post_comments", {"post": ..., "count": N})` - Analyze engagement quality
+- `execute("instagram", "user", "user_friendships", {"user": ..., "count": N, "type": "followers"})` - Get followers list (for analysis)
 
 ### Twitter/X
-- `search_twitter_users` - Find users by keywords/bio
-- `get_twitter_user` - Get profile with followers, tweets
-- `get_twitter_user_posts` - Get recent tweets with engagement
-- `search_twitter_posts` - Find influential tweets in niche
+- `execute("twitter", "search", "search_users", {"query": ..., "count": N})` - Find users by keywords/bio
+- `execute("twitter", "user", "get", {"username": ...})` - Get profile with followers, tweets
+- `execute("twitter", "user_tweets", "get", {"username": ...})` - Get recent tweets with engagement
+- `execute("twitter", "search", "search_posts", {"query": ..., "count": N})` - Find influential tweets in niche
 
 ### LinkedIn
-- `search_linkedin_users` - Find professionals by keywords/title
-- `get_linkedin_profile` - Get complete profile
-- `get_linkedin_user_posts` - Get post history and engagement
-- `get_linkedin_user_skills` - Verify expertise
-- `get_linkedin_user_connections` - Network size (for own account)
+- `execute("linkedin", "search", "search_users", {"keywords": ..., "count": N})` - Find professionals by keywords/title
+- `execute("linkedin", "user", "user", {"user": ...})` - Get complete profile (includes skills with `with_skills: true`)
+- `execute("linkedin", "post", "get_user_posts", {"user": "urn", "count": N})` - Get post history and engagement
+- `execute("linkedin", "user", "user_skills", {"urn": ..., "count": N})` - Verify expertise (requires URN from profile)
+
+Note: LinkedIn connection count is returned in the profile response (`connection_count` field). No separate endpoint needed.
 
 ### YouTube
-- `search_youtube_videos` - Find videos by keywords
-- `get_youtube_channel_videos` - Get all videos from channel
-- `get_youtube_video` - Get video metrics (views, likes)
-- `get_youtube_video_comments` - Analyze audience engagement
+- `execute("youtube", "search", "search_videos", {"query": ..., "count": N})` - Find videos by keywords
+- `execute("youtube", "channel", "channel_videos", {"channel": ..., "count": N})` - Get all videos from channel
+- `execute("youtube", "video", "video", {"video": ...})` - Get video metrics (views, likes)
+- `execute("youtube", "video", "video_comments", {"video": ..., "count": N})` - Analyze audience engagement
 
 ### Reddit
-- `search_reddit_posts` - Find influential posts in subreddits
-- `reddit_user_posts` - Get user's post history
-- `reddit_user_comments` - Analyze community engagement
+- `execute("reddit", "search", "search_posts", {"query": ..., "count": N})` - Find influential posts in subreddits
+- `execute("reddit", "user", "user_posts", {"username": ..., "count": N})` - Get user's post history
+- `execute("reddit", "user", "user_comments", {"username": ..., "count": N})` - Analyze community engagement
+
+### Web Scraping
+- `execute("webparser", "parse", "parse", {"url": ...})` - Scrape any webpage for contact info, media kits, etc.
+
+### Pagination, Caching & Export
+- `get_page(cache_key, offset, limit)` - Fetch additional pages from any execute() result
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` - Filter/sort/aggregate cached data
+- `export_data(cache_key, "csv"|"json"|"jsonl")` - Export full dataset as downloadable file
 
 ## Output Formats
 
@@ -276,14 +319,14 @@ Look for:
 - Partnership recommendations
 - Contact information found
 
-**CSV Export**:
+**CSV Export** (via `export_data(cache_key, "csv")`):
 - Influencer name, handle, platform
 - Followers, engagement rate
 - Niche, content type
 - Email, website
 - Fit score (1-100)
 
-**JSON Export**:
+**JSON Export** (via `export_data(cache_key, "json")`):
 - Complete profile data
 - All posts with engagement
 - Audience demographics (if available)
@@ -332,8 +375,8 @@ Benefits:
 - Niche expertise
 
 Discovery approach:
-- Use hashtag searches
-- Analyze engagement vs. reach
+- Use hashtag searches via execute("instagram", "search", "search_posts", ...)
+- Use query_cache() to filter by engagement rate vs. reach
 - Prioritize niche relevance over size
 ```
 
@@ -342,9 +385,12 @@ Discovery approach:
 Identify influencers active across platforms:
 ```
 1. Find on Instagram/Twitter
-2. Search LinkedIn for professional presence
-3. Check for YouTube channel
-4. Look for website/blog (parse_webpage)
+2. Search LinkedIn for professional presence:
+   execute("linkedin", "search", "search_users", {"keywords": "name"})
+3. Check for YouTube channel:
+   execute("youtube", "search", "search_videos", {"query": "creator name", "count": 10})
+4. Look for website/blog:
+   execute("webparser", "parse", "parse", {"url": "website_url"})
 
 Benefits:
 - Multiple touchpoints
@@ -358,15 +404,16 @@ Benefits:
 Analyze who follows the influencer:
 ```
 Instagram:
-- get_instagram_user_friendships(followers, count=100)
+- execute("instagram", "user", "user_friendships", {"user": "username", "count": 100, "type": "followers"})
 - Analyze follower profiles for patterns
+- Use query_cache(cache_key, group_by="location") to segment by geography
 
 LinkedIn:
 - Check who engages with posts
-- Identify follower job titles/industries
+- Identify follower job titles/industries from post comments
 
 YouTube:
-- Analyze comment demographics
+- Analyze comment demographics via execute("youtube", "video", "video_comments", ...)
 - Check subscriber locations (if available)
 ```
 
@@ -383,15 +430,20 @@ YouTube:
 - Reduce minimum follower requirements
 
 **Low Engagement Rates**:
-- Filter for engagement rate > 2-3%
+- Use `query_cache(cache_key, conditions=[{"field": "engagement_rate", "operator": ">", "value": 0.03}])` to filter
 - Focus on micro-influencers (smaller = higher engagement)
 - Check for bot followers (sudden spikes)
 
 **No Contact Information**:
 - Check bio for email/website
-- Look for LinkedIn profile
-- Try website domain (parse_webpage)
+- Look for LinkedIn profile via `execute("linkedin", "search", "search_users", {"keywords": "name"})`
+- Try website domain: `execute("webparser", "parse", "parse", {"url": "domain"})`
 - Search for media kit or press page
+
+**API Errors**:
+- Check `llm_hint` in error responses for actionable guidance
+- LinkedIn endpoints requiring URN: get URN from profile response first, do not guess aliases
+- Use `execute("linkedin", "search", "search_users", ...)` to find correct aliases before fetching profiles
 
 ---
 

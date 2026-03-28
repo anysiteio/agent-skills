@@ -5,7 +5,19 @@ description: Deep competitive intelligence combining web scraping, LinkedIn data
 
 # Competitor Analyzer
 
-Systematic framework for gathering and analyzing competitive intelligence using Anysite MCP tools.
+Systematic framework for gathering and analyzing competitive intelligence using Anysite MCP v2 tools.
+
+## Tool Interface (v2)
+
+All data fetching uses the unified v2 meta-tools:
+
+- **`execute(source, category, endpoint, params)`** - Fetch data. Returns first 10 items + `cache_key`. If `next_offset` is present, use `get_page()` to load more.
+- **`get_page(cache_key, offset, limit)`** - Paginate through cached results from a previous `execute()`. Data cached 7 days.
+- **`query_cache(cache_key, conditions, sort_by, aggregate, group_by)`** - Filter, sort, count, or aggregate already-fetched data without new API calls.
+- **`export_data(cache_key, format)`** - Export full dataset as CSV, JSON, or JSONL. Returns a download URL.
+- **`discover(source, category)`** - Inspect available endpoints and params before calling `execute()`.
+
+**Error handling:** If `execute()` returns an error with `llm_hint`, follow the hint to fix the call. Common issues: wrong URN format, alias not found (search first), fsd_company vs company: prefix mismatch.
 
 ## When to Use This Skill
 
@@ -26,7 +38,7 @@ Trigger this skill when users ask to:
 # 1. Generate analysis template
 python scripts/analyze_competitor.py "Competitor Name" "https://competitor.com"
 
-# 2. Use Anysite tools to gather data (see workflow below)
+# 2. Use Anysite v2 tools to gather data (see workflow below)
 
 # 3. Fill in the JSON template with findings
 
@@ -52,20 +64,20 @@ python scripts/analyze_competitor.py "Competitor Name" "https://competitor.com" 
 Scrape key pages to understand positioning:
 ```python
 # Homepage - core messaging
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com",
     "only_main_content": true,
     "strip_all_tags": true
 })
 
 # Pricing - cost structure
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com/pricing",
     "only_main_content": true
 })
 
 # About - company background
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com/about",
     "only_main_content": true,
     "extract_contacts": true
@@ -95,13 +107,13 @@ Anysite:parse_webpage({
 
 ```python
 # Search for company
-Anysite:search_linkedin_companies({
+execute("linkedin", "search", "search_companies", {
     "keywords": "competitor name",
     "count": 5
 })
 
 # Get detailed profile using slug from search results
-Anysite:get_linkedin_company({
+execute("linkedin", "company", "company", {
     "company": "company-slug-from-search"
 })
 ```
@@ -116,18 +128,24 @@ Anysite:get_linkedin_company({
 **Step 4: Analyze Team & Growth**
 
 ```python
-# Check employee growth signals
-Anysite:get_linkedin_company_employees({
-    "companies": ["company-slug"],
+# Check employee growth signals (use search_users with current_company filter)
+execute("linkedin", "search", "search_users", {
+    "current_company": "company-slug",
     "keywords": "engineer developer",
     "count": 50
 })
 
 # Find leadership
-Anysite:get_linkedin_company_employees({
-    "companies": ["company-slug"],
-    "keywords": "CEO founder",
+execute("linkedin", "search", "search_users", {
+    "current_company": "company-slug",
+    "title": "CEO founder",
     "count": 10
+})
+
+# Get employee stats breakdown (functions, seniority, growth trends)
+# First get company URN from company profile, convert fsd_company to company: prefix
+execute("linkedin", "company", "company_employee_stats", {
+    "urn": {"type": "company", "value": "COMPANY_ID_FROM_URN"}
 })
 ```
 
@@ -136,12 +154,18 @@ Anysite:get_linkedin_company_employees({
 - Eng:sales ratio → GTM strategy signal
 - Recent hires → growth phase indicator
 
+**Tip:** Use `query_cache()` on the employee search results to filter by title or sort by relevance without re-fetching:
+```python
+query_cache(cache_key, conditions=[{"field": "headline", "operator": "contains", "value": "engineer"}])
+```
+
 **Step 5: Content Strategy**
 
 ```python
 # Analyze posting activity
-Anysite:get_linkedin_company_posts({
-    "urn": "company-urn-from-profile",
+# Use company: prefix URN from the company profile (convert fsd_company:{id} to company:{id})
+execute("linkedin", "company", "company_posts", {
+    "urn": {"type": "company", "value": "COMPANY_ID_FROM_URN"},
     "count": 20
 })
 ```
@@ -152,6 +176,11 @@ Anysite:get_linkedin_company_posts({
 - Engagement → online_presence.linkedin.engagement_quality
 - Tone → content_strategy.tone_of_voice
 
+**Tip:** Use `query_cache()` to aggregate engagement metrics across fetched posts:
+```python
+query_cache(cache_key, aggregate=[{"field": "comment_count", "function": "avg"}])
+```
+
 ### Phase 3: Deep Social & Community Research (20-30 min)
 
 **Step 6: Twitter Deep Dive**
@@ -159,15 +188,17 @@ Anysite:get_linkedin_company_posts({
 **A. Company Account Analysis**
 ```python
 # Get profile stats
-Anysite:get_twitter_user({
-    "user": "competitor_handle"
+execute("twitter", "user", "get", {
+    "username": "competitor_handle"
 })
 
 # Recent activity (analyze more posts)
-Anysite:get_twitter_user_posts({
-    "user": "competitor_handle",
+execute("twitter", "user_tweets", "get", {
+    "username": "competitor_handle",
     "count": 100
 })
+# If next_offset returned, use get_page() to load more:
+# get_page(cache_key, offset=next_offset, limit=50)
 ```
 
 **Extract from company account:**
@@ -178,15 +209,20 @@ Anysite:get_twitter_user_posts({
 - Tone of voice
 - Most engaging tweets (viral content patterns)
 
+**Tip:** Use `query_cache()` to find top-performing tweets:
+```python
+query_cache(cache_key, sort_by=[{"field": "favorite_count", "order": "desc"}])
+```
+
 **B. Founder/Executive Twitter Presence**
 ```python
 # Find and analyze founder accounts
-Anysite:get_twitter_user({
-    "user": "founder_handle"
+execute("twitter", "user", "get", {
+    "username": "founder_handle"
 })
 
-Anysite:get_twitter_user_posts({
-    "user": "founder_handle",
+execute("twitter", "user_tweets", "get", {
+    "username": "founder_handle",
     "count": 100
 })
 ```
@@ -202,25 +238,25 @@ Anysite:get_twitter_user_posts({
 **C. Brand Mentions & Sentiment**
 ```python
 # Comprehensive mention search
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "competitor_name OR @handle OR #competitor_hashtag",
     "count": 200
 })
 
 # Problem/complaint mentions
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "competitor_name (problem OR issue OR bug OR slow OR expensive)",
     "count": 100
 })
 
 # Positive sentiment
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "competitor_name (love OR great OR amazing OR best OR solved)",
     "count": 100
 })
 
 # Competitive mentions
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "competitor_name vs OR competitor_name alternative OR switching from competitor_name",
     "count": 100
 })
@@ -238,16 +274,21 @@ Sentiment Score = (Positive - Negative) / Total
 Range: -1.0 (very negative) to +1.0 (very positive)
 ```
 
+**Tip:** Use `query_cache()` to filter cached mentions by sentiment keywords without re-fetching:
+```python
+query_cache(cache_key, conditions=[{"field": "text", "operator": "contains", "value": "love"}])
+```
+
 **D. Customer Voice Analysis**
 ```python
 # Find actual users
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "using competitor_name OR tried competitor_name",
     "count": 100
 })
 
 # Power users
-Anysite:search_twitter_posts({
+execute("twitter", "search", "search_posts", {
     "query": "@handle thanks OR @handle helped OR @handle support",
     "count": 50
 })
@@ -265,23 +306,22 @@ Anysite:search_twitter_posts({
 **A. Brand Presence Mapping**
 ```python
 # General mentions across Reddit
-Anysite:search_reddit_posts({
+execute("reddit", "search", "search_posts", {
     "query": "competitor_name",
     "count": 100
 })
 
-# Industry-specific subreddits
-relevant_subs = [
+# Industry-specific searches (combine with subreddit keywords)
+relevant_topics = [
     "SaaS", "startups", "Entrepreneur",  # Business
     "webdev", "programming", "devops",    # Tech
     "nocode", "automation",               # No-code
     "datascience", "analytics"            # Data
 ]
 
-for sub in relevant_subs:
-    Anysite:search_reddit_posts({
-        "query": "competitor_name",
-        "subreddit": sub,
+for topic in relevant_topics:
+    execute("reddit", "search", "search_posts", {
+        "query": f"competitor_name {topic}",
         "count": 50
     })
 ```
@@ -289,24 +329,24 @@ for sub in relevant_subs:
 **B. Competitive Discussions**
 ```python
 # Direct comparisons
-Anysite:search_reddit_posts({
+execute("reddit", "search", "search_posts", {
     "query": "competitor_name vs",
     "count": 100
 })
 
 # Alternative searches
-Anysite:search_reddit_posts({
+execute("reddit", "search", "search_posts", {
     "query": "alternative to competitor_name",
     "count": 100
 })
 
-Anysite:search_reddit_posts({
+execute("reddit", "search", "search_posts", {
     "query": "better than competitor_name",
     "count": 50
 })
 
 # Problem space
-Anysite:search_reddit_posts({
+execute("reddit", "search", "search_posts", {
     "query": "[problem they solve] tools OR solutions",
     "count": 100
 })
@@ -317,12 +357,12 @@ Anysite:search_reddit_posts({
 For high-engagement threads, get comments:
 ```python
 # Get specific post details
-Anysite:get_reddit_post({
+execute("reddit", "posts", "posts", {
     "post_url": "reddit.com/r/subreddit/comments/..."
 })
 
 # Get all comments
-Anysite:get_reddit_post_comments({
+execute("reddit", "posts", "posts_comments", {
     "post_url": "reddit.com/r/subreddit/comments/..."
 })
 ```
@@ -334,6 +374,11 @@ Anysite:get_reddit_post_comments({
 - Pricing discussions
 - Customer support experiences
 - Decision factors (why they chose/didn't choose)
+
+**Tip:** Use `query_cache()` on fetched comments to sort by score and find the most upvoted opinions:
+```python
+query_cache(cache_key, sort_by=[{"field": "score", "order": "desc"}])
+```
 
 **D. Sentiment & Voice Analysis**
 
@@ -405,14 +450,14 @@ Community Health:
 
 ```python
 # Find founders and C-level
-Anysite:search_linkedin_users({
+execute("linkedin", "search", "search_users", {
     "company_keywords": "competitor-name",
     "title": "founder OR CEO OR CTO OR CPO",
     "count": 10
 })
 
 # Get detailed profiles
-Anysite:get_linkedin_profile({
+execute("linkedin", "user", "user", {
     "user": "founder-linkedin-username",
     "with_experience": true,
     "with_education": true,
@@ -431,21 +476,21 @@ Anysite:get_linkedin_profile({
 **Step 9: Analyze Leadership Activity**
 
 ```python
-# Get personal posts
-Anysite:get_linkedin_user_posts({
-    "urn": "user-urn-from-profile",
+# Get personal posts (use fsd_profile URN from user profile)
+execute("linkedin", "user", "user_posts", {
+    "urn": {"type": "fsd_profile", "value": "USER_URN_VALUE"},
     "count": 50
 })
 
 # Check comments on others' posts
-Anysite:get_linkedin_user_comments({
-    "urn": "user-urn",
+execute("linkedin", "user", "user_comments", {
+    "urn": {"type": "fsd_profile", "value": "USER_URN_VALUE"},
     "count": 30
 })
 
 # See what they're engaging with
-Anysite:get_linkedin_user_reactions({
-    "urn": "user-urn",
+execute("linkedin", "user", "user_reactions", {
+    "urn": {"type": "fsd_profile", "value": "USER_URN_VALUE"},
     "count": 50
 })
 ```
@@ -458,16 +503,24 @@ Anysite:get_linkedin_user_reactions({
 - Thought leadership quality
 - Network quality (who engages with them)
 
+**Tip:** Use `query_cache()` on leadership posts to aggregate engagement:
+```python
+query_cache(cache_key, aggregate=[
+    {"field": "comment_count", "function": "avg"},
+    {"field": "comment_count", "function": "sum"}
+])
+```
+
 **Step 10: Twitter Leadership Presence**
 
 ```python
 # Founder Twitter activity
-Anysite:get_twitter_user({
-    "user": "founder_handle"
+execute("twitter", "user", "get", {
+    "username": "founder_handle"
 })
 
-Anysite:get_twitter_user_posts({
-    "user": "founder_handle",
+execute("twitter", "user_tweets", "get", {
+    "username": "founder_handle",
     "count": 100
 })
 ```
@@ -486,29 +539,13 @@ Anysite:get_twitter_user_posts({
 
 ```python
 # Scrape docs homepage
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com/docs",
     "only_main_content": true
 })
 
 # Check API reference
-Anysite:parse_webpage({
-    "url": "https://competitor.com/api",
-    "only_main_content": true
-})
-```
-
-**Step 11: Documentation Quality**
-
-```python
-# Scrape docs homepage
-Anysite:parse_webpage({
-    "url": "https://competitor.com/docs",
-    "only_main_content": true
-})
-
-# Check API reference
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com/api",
     "only_main_content": true
 })
@@ -525,13 +562,13 @@ Anysite:parse_webpage({
 
 ```python
 # Parse GitHub profile page
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://github.com/competitor-org",
     "only_main_content": true
 })
 
 # Check main repository
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://github.com/competitor-org/main-repo",
     "only_main_content": true
 })
@@ -549,7 +586,7 @@ Anysite:parse_webpage({
 
 ```python
 # Glassdoor reviews (if company page exists)
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://www.glassdoor.com/Reviews/competitor-name",
     "only_main_content": true
 })
@@ -567,29 +604,13 @@ Anysite:parse_webpage({
 
 ```python
 # Get sitemap to find all pages
-Anysite:get_sitemap({
-    "url": "https://competitor.com/sitemap.xml",
+execute("webparser", "sitemap", "sitemap", {
+    "url": "https://competitor.com",
     "count": 50
 })
 
 # Parse integrations page
-Anysite:parse_webpage({
-    "url": "https://competitor.com/integrations",
-    "only_main_content": true
-})
-```
-
-**Step 14: Integration Ecosystem**
-
-```python
-# Get sitemap to find all pages
-Anysite:get_sitemap({
-    "url": "https://competitor.com/sitemap.xml",
-    "count": 50
-})
-
-# Parse integrations page
-Anysite:parse_webpage({
+execute("webparser", "parse", "parse", {
     "url": "https://competitor.com/integrations",
     "only_main_content": true
 })
@@ -668,6 +689,12 @@ cp /tmp/analysis.json /mnt/user-data/outputs/
 cp /tmp/analysis.md /mnt/user-data/outputs/
 ```
 
+**Tip:** Use `export_data()` to export any collected dataset for the final report:
+```python
+export_data(cache_key, "csv")   # Returns download URL for spreadsheet import
+export_data(cache_key, "json")  # Returns download URL for programmatic use
+```
+
 ## Advanced Techniques
 
 ### Multi-Competitor Analysis
@@ -682,6 +709,13 @@ For analyzing 3-5 competitors simultaneously:
    - Market position map (price vs capabilities)
    - Social presence comparison
 
+**Tip:** Export each competitor's data and use `query_cache()` to compare metrics:
+```python
+# After fetching data for each competitor, aggregate and compare
+query_cache(cache_key, aggregate=[{"field": "follower_count", "function": "sum"}])
+export_data(cache_key, "csv")
+```
+
 ### Ongoing Monitoring
 
 For quarterly updates (not full re-analysis):
@@ -689,16 +723,25 @@ For quarterly updates (not full re-analysis):
 **Quick check (30 min):**
 ```python
 # 1. Re-scrape pricing
-Anysite:parse_webpage({"url": "competitor.com/pricing"})
+execute("webparser", "parse", "parse", {"url": "https://competitor.com/pricing"})
 
-# 2. Check recent posts
-Anysite:get_linkedin_company_posts({"urn": "...", "count": 10})
+# 2. Check recent posts (use company: prefix URN)
+execute("linkedin", "company", "company_posts", {
+    "urn": {"type": "company", "value": "COMPANY_ID"},
+    "count": 10
+})
 
 # 3. Employee growth
-Anysite:get_linkedin_company_employees({"companies": ["..."], "count": 20})
+execute("linkedin", "search", "search_users", {
+    "current_company": "company-slug",
+    "count": 20
+})
 
 # 4. Recent mentions
-Anysite:search_twitter_posts({"query": "competitor", "count": 50})
+execute("twitter", "search", "search_posts", {
+    "query": "competitor",
+    "count": 50
+})
 ```
 
 Update only changed sections in JSON template.
@@ -807,22 +850,28 @@ For founder/team intelligence:
 - Mark which data is recent vs stale
 - Plan update frequency based on importance
 
+**Use v2 Efficiency Features:**
+- Use `get_page()` instead of re-executing with higher counts
+- Use `query_cache()` to filter/sort/aggregate without new API calls
+- Use `export_data()` to generate shareable CSV/JSON files
+- Check `llm_hint` in error responses for fix guidance
+
 ## Output Quality Standards
 
 **Good competitive analysis includes:**
-- ✅ Clear positioning statement
-- ✅ Quantified metrics (prices, follower counts, team size)
-- ✅ Specific examples (actual quotes, feature lists)
-- ✅ Strategic implications explained
-- ✅ Data sources noted
-- ✅ Confidence levels indicated
+- Clear positioning statement
+- Quantified metrics (prices, follower counts, team size)
+- Specific examples (actual quotes, feature lists)
+- Strategic implications explained
+- Data sources noted
+- Confidence levels indicated
 
 **Avoid:**
-- ❌ Vague assessments ("they seem good at X")
-- ❌ Unsupported claims ("probably losing money")
-- ❌ Missing pricing details
-- ❌ Outdated data without date stamps
-- ❌ Pure feature lists without analysis
+- Vague assessments ("they seem good at X")
+- Unsupported claims ("probably losing money")
+- Missing pricing details
+- Outdated data without date stamps
+- Pure feature lists without analysis
 
 ## Troubleshooting
 
@@ -845,3 +894,13 @@ For founder/team intelligence:
 - Start with Phase 1 & 2 only (foundation + LinkedIn)
 - Generate partial report
 - Add Phase 3 & 4 if needed for depth
+
+**"execute() returned error with llm_hint":**
+- Read the hint carefully and adjust params
+- Common: wrong URN format (use company: prefix, not fsd_company)
+- Common: alias not found (use search endpoint first)
+
+**"Need more than 10 results from execute()":**
+- Check if response includes `next_offset`
+- Use `get_page(cache_key, offset=next_offset, limit=50)` to load more
+- Do NOT re-execute with a higher count — use pagination

@@ -28,7 +28,7 @@ AskUserQuestion:
 
 ### Step 2: Fetch & Analyze Project
 
-1. **Website**: Use `mcp__anysite__parse_webpage(url=website)` to understand:
+1. **Website**: Use `execute("webparser", "parse", "parse", {"url": website})` to understand:
    - Product/service description
    - Target market
    - Key features
@@ -163,10 +163,12 @@ After onboarding, analyze investors from CSV or list.
 ### 1. Fetch LinkedIn Profile (ALWAYS FIRST)
 
 ```
-mcp__anysite__get_linkedin_profile(user="linkedin-url-or-username")
+execute("linkedin", "user", "get", {"user": "linkedin-url-or-username"})
 ```
 
 CSV data has ~20% error rate. Always verify actual role before scoring.
+
+> **v2 tip:** The `execute()` call returns a `cache_key`. Use `query_cache(cache_key, ...)` to filter/sort results without re-fetching. Use `get_page(cache_key, offset, limit)` if paginated results exist. Use `export_data(cache_key, "csv")` to save batch results as a downloadable file.
 
 ### 2. Score Investor (0-100)
 
@@ -252,6 +254,14 @@ Best,
   "top_candidates": ["Name1", "Name2"]
 }
 ```
+
+### v2 Batch Features
+
+- **Pagination**: When `execute()` returns `next_offset`, use `get_page(cache_key, offset, limit)` to fetch additional results without re-running the query.
+- **Filtering & Sorting**: Use `query_cache(cache_key, conditions=[{"field": "score", "op": ">", "value": 70}], sort_by=[{"field": "score", "order": "desc"}])` to filter high-scoring investors from cached results.
+- **Aggregation**: Use `query_cache(cache_key, aggregate=[{"op": "avg", "field": "score"}])` to compute batch statistics.
+- **Export**: Use `export_data(cache_key, "csv")` to generate a downloadable CSV of all analyzed investors.
+- **Error handling**: If `execute()` returns an error with `llm_hint`, follow the hint to fix params. Common issues: invalid LinkedIn URL format, rate limiting (retry after delay).
 
 ---
 

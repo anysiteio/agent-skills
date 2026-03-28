@@ -21,10 +21,24 @@ This skill provides comprehensive lead generation capabilities with the added be
 
 ## Supported Platforms
 
-- ✅ **LinkedIn** (Primary): People search, profile enrichment, email discovery, company research, employee listings
-- ✅ **Web Scraping**: Contact extraction from websites, sitemap parsing, general web data
-- ✅ **Instagram**: Business account discovery and profile analysis (supplementary)
-- ✅ **Y Combinator**: Startup company and founder research (supplementary)
+- **LinkedIn** (Primary): People search, profile enrichment, email discovery, company research, employee listings
+- **Web Scraping**: Contact extraction from websites, sitemap parsing, general web data
+- **Instagram**: Business account discovery and profile analysis (supplementary)
+- **Y Combinator**: Startup company and founder research (supplementary)
+
+## v2 API Overview
+
+All data fetching uses the universal `execute()` tool with four parameters: `source`, `category`, `endpoint`, `params`. Supporting tools:
+
+- **`execute(source, category, endpoint, params)`** - Fetch data. Returns first page of items + `cache_key`.
+- **`get_page(cache_key, offset, limit)`** - Load additional pages from a previous execute() result using the returned `cache_key` and `next_offset`.
+- **`query_cache(cache_key, conditions, sort_by, aggregate, group_by)`** - Filter, sort, count, or aggregate already-fetched data without a new API call.
+- **`export_data(cache_key, format)`** - Export a full dataset as CSV, JSON, or JSONL. Returns a download URL.
+- **`discover(source, category)`** - Inspect available endpoints and their accepted params (use when unsure about params).
+
+### Error Handling
+
+v2 responses may include an `llm_hint` field with human-readable guidance when something goes wrong (e.g., invalid params, rate limits). Always check for `llm_hint` in the response and follow its advice before retrying.
 
 ## Quick Start
 
@@ -32,58 +46,69 @@ This skill provides comprehensive lead generation capabilities with the added be
 
 Choose the appropriate data source based on your prospecting goal:
 
-| Goal | Primary Tool | Use Case |
-|------|-------------|----------|
-| Find prospects by title/company | `search_linkedin_users` | B2B prospecting, targeted outreach |
-| Enrich existing leads | `get_linkedin_profile` | Add work history, education, skills |
-| Find verified emails | `find_linkedin_user_email` | Email outreach campaigns |
-| Extract website contacts | `parse_webpage` | Get emails/phones from contact pages |
-| Research target companies | `search_linkedin_companies` | Account-based marketing (ABM) |
-| Find company employees | `search_linkedin_users` + company filter | Multi-threading into accounts |
+| Goal | v2 Call | Use Case |
+|------|---------|----------|
+| Find prospects by title/company | `execute("linkedin", "search", "search_users", {...})` | B2B prospecting, targeted outreach |
+| Enrich existing leads | `execute("linkedin", "user", "get", {"user": ...})` | Add work history, education, skills |
+| Find verified emails | `execute("linkedin", "email", "find", {"user": ...})` | Email outreach campaigns |
+| Extract website contacts | `execute("webparser", "parse", "parse", {"url": ...})` | Get emails/phones from contact pages |
+| Research target companies | `execute("linkedin", "search", "search_companies", {...})` | Account-based marketing (ABM) |
+| Find company employees | `execute("linkedin", "search", "search_users", {...})` + company filter | Multi-threading into accounts |
 
 ### Step 2: Execute Data Collection
 
-Use anysite MCP tools directly to gather lead data:
+Use anysite MCP v2 tools directly to gather lead data:
 
 **Example: Find Sales VPs in San Francisco**
 ```
-Tool: mcp__anysite__search_linkedin_users
+Tool: mcp__anysite__execute
 Parameters:
-- title: "VP Sales"
-- location: "San Francisco Bay Area"
-- count: 25
+- source: "linkedin"
+- category: "search"
+- endpoint: "search_users"
+- params: {"title": "VP Sales", "location": "San Francisco Bay Area", "count": 25}
 ```
 
 **Example: Enrich a LinkedIn Profile**
 ```
-Tool: mcp__anysite__get_linkedin_profile
+Tool: mcp__anysite__execute
 Parameters:
-- user: "linkedin.com/in/johndoe" or "johndoe"
-- with_experience: true
-- with_education: true
-- with_skills: true
+- source: "linkedin"
+- category: "user"
+- endpoint: "get"
+- params: {"user": "linkedin.com/in/johndoe", "with_experience": true, "with_education": true, "with_skills": true}
 ```
 
 **Example: Find Email Address**
 ```
-Tool: mcp__anysite__find_linkedin_user_email
+Tool: mcp__anysite__execute
 Parameters:
-- email: "john@company.com" (for reverse lookup)
-- count: 5
+- source: "linkedin"
+- category: "email"
+- endpoint: "find"
+- params: {"user": "johndoe"}
 ```
 
 **Example: Extract Contacts from Website**
 ```
-Tool: mcp__anysite__parse_webpage
+Tool: mcp__anysite__execute
 Parameters:
-- url: "https://company.com/contact"
-- extract_contacts: true
-- strip_all_tags: true
+- source: "webparser"
+- category: "parse"
+- endpoint: "parse"
+- params: {"url": "https://company.com/contact", "extract_contacts": true, "strip_all_tags": true}
 ```
 
 ### Step 3: Process and Analyze Results
 
-Review the returned data for:
+After execute() returns data with a `cache_key`, use v2 post-processing:
+
+- **Filter results**: `query_cache(cache_key, conditions=[{"field": "title", "operator": "contains", "value": "VP"}])`
+- **Sort results**: `query_cache(cache_key, sort_by=[{"field": "follower_count", "order": "desc"}])`
+- **Count results**: `query_cache(cache_key, aggregate=[{"function": "count", "field": "*"}])`
+- **Get more pages**: `get_page(cache_key, offset=next_offset, limit=10)`
+
+Also review the returned data for:
 - **Profile completeness**: Work history, education, skills presence
 - **Contact quality**: Email deliverability, phone format
 - **Relevance scoring**: Title match, company fit, location alignment
@@ -98,15 +123,23 @@ Choose your preferred output format:
 - Includes actionable next steps
 - Shows data quality metrics
 
-**CSV Export**
-- Full prospect list with all fields
-- Ready for CRM import (Salesforce, HubSpot, etc.)
-- Includes: Name, Title, Company, Location, Email, LinkedIn URL, Work History
+**CSV Export (via v2 export_data)**
+```
+Tool: mcp__anysite__export_data
+Parameters:
+- cache_key: <cache_key from execute>
+- format: "csv"
+```
+Returns a download URL. Ready for CRM import (Salesforce, HubSpot, etc.)
 
-**JSON Export**
-- Structured data for custom integration
-- Complete API response with metadata
-- Ideal for automation and data pipelines
+**JSON Export (via v2 export_data)**
+```
+Tool: mcp__anysite__export_data
+Parameters:
+- cache_key: <cache_key from execute>
+- format: "json"
+```
+Returns a download URL. Structured data for custom integration.
 
 ## Common Workflows
 
@@ -118,38 +151,44 @@ Choose your preferred output format:
 
 1. **Search for prospects**
 ```
-Tool: mcp__anysite__search_linkedin_users
+Tool: mcp__anysite__execute
 Parameters:
-- keywords: "SaaS software cloud"
-- title: "Head of Marketing, VP Marketing, CMO"
-- location: "United States"
-- company_keywords: "software"
-- count: 50
+- source: "linkedin"
+- category: "search"
+- endpoint: "search_users"
+- params: {"keywords": "SaaS software cloud", "title": "Head of Marketing, VP Marketing, CMO", "location": "United States", "company_keywords": "software", "count": 50}
 ```
 
 2. **Enrich top prospects** (for first 10-20 results)
 ```
 For each prospect from step 1:
-Tool: mcp__anysite__get_linkedin_profile
+Tool: mcp__anysite__execute
 Parameters:
-- user: <prospect_username>
-- with_experience: true
-- with_education: true
-- with_skills: false (unless skills matter for qualification)
+- source: "linkedin"
+- category: "user"
+- endpoint: "get"
+- params: {"user": "<prospect_username>", "with_experience": true, "with_education": true}
 ```
 
 3. **Find email addresses**
 ```
 For each qualified prospect:
-Tool: mcp__anysite__find_linkedin_user_email
-Then try:
-Tool: mcp__anysite__get_linkedin_user_email_db
+Tool: mcp__anysite__execute
+Parameters:
+- source: "linkedin"
+- category: "email"
+- endpoint: "find"
+- params: {"user": "<prospect_username>"}
 ```
 
 4. **Export to CRM**
-- Format as CSV with fields: Full Name, Title, Company, Location, Email, LinkedIn URL
-- Import to your CRM system
-- Set up outreach sequences
+```
+Tool: mcp__anysite__export_data
+Parameters:
+- cache_key: <cache_key from search>
+- format: "csv"
+```
+Import the CSV to your CRM system and set up outreach sequences.
 
 **Expected Output**:
 - 50 prospects with LinkedIn profiles
@@ -165,41 +204,55 @@ Tool: mcp__anysite__get_linkedin_user_email_db
 
 1. **Research target companies**
 ```
-Tool: mcp__anysite__search_linkedin_companies
+Tool: mcp__anysite__execute
 Parameters:
-- keywords: <your ICP description>
-- industry: <target industry>
-- employee_count: ["51-200", "201-500"]
-- location: <target location>
-- count: 20
+- source: "linkedin"
+- category: "search"
+- endpoint: "search_companies"
+- params: {"keywords": "<your ICP description>", "industry": "<target industry>", "employee_count": ["51-200", "201-500"], "location": "<target location>", "count": 20}
 ```
 
 2. **Get company details**
 ```
 For each target company:
-Tool: mcp__anysite__get_linkedin_company
+Tool: mcp__anysite__execute
 Parameters:
-- company: <company_identifier or URL>
+- source: "linkedin"
+- category: "company"
+- endpoint: "get"
+- params: {"company": "<company_identifier or URL>"}
 ```
 
 3. **Find employees at target companies**
 ```
 For each target company:
-Tool: mcp__anysite__search_linkedin_users
+Tool: mcp__anysite__execute
 Parameters:
-- company_keywords: "<Company Name>"
-- title: "VP, Director, Head of, Chief"
-- count: 10
+- source: "linkedin"
+- category: "search"
+- endpoint: "search_users"
+- params: {"company_keywords": "<Company Name>", "title": "VP, Director, Head of, Chief", "count": 10}
 ```
 
 4. **Enrich decision-makers**
 ```
 For each decision-maker:
-Tool: mcp__anysite__get_linkedin_profile
-Tool: mcp__anysite__find_linkedin_user_email
+Tool: mcp__anysite__execute
+  source: "linkedin", category: "user", endpoint: "get", params: {"user": "<username>"}
+Tool: mcp__anysite__execute
+  source: "linkedin", category: "email", endpoint: "find", params: {"user": "<username>"}
 ```
 
-5. **Create ABM campaign**
+5. **Filter and analyze with query_cache**
+```
+Tool: mcp__anysite__query_cache
+Parameters:
+- cache_key: <cache_key from employee search>
+- conditions: [{"field": "title", "operator": "contains", "value": "VP"}]
+- sort_by: [{"field": "name", "order": "asc"}]
+```
+
+6. **Create ABM campaign**
 - Group prospects by company
 - Identify multi-threading opportunities
 - Build company-specific messaging
@@ -219,18 +272,24 @@ Tool: mcp__anysite__find_linkedin_user_email
 1. **Get company websites**
 ```
 From LinkedIn company search or existing list
-Tool: mcp__anysite__get_linkedin_company
+Tool: mcp__anysite__execute
+Parameters:
+- source: "linkedin"
+- category: "company"
+- endpoint: "get"
+- params: {"company": "<company_identifier>"}
 Extract: company website URLs
 ```
 
 2. **Parse contact pages**
 ```
 For each website:
-Tool: mcp__anysite__parse_webpage
+Tool: mcp__anysite__execute
 Parameters:
-- url: "https://company.com/contact"
-- extract_contacts: true
-- strip_all_tags: true
+- source: "webparser"
+- category: "parse"
+- endpoint: "parse"
+- params: {"url": "https://company.com/contact", "extract_contacts": true, "strip_all_tags": true}
 
 Alternative pages to try:
 - /contact
@@ -241,18 +300,21 @@ Alternative pages to try:
 
 3. **Parse team pages** (if available)
 ```
-Tool: mcp__anysite__parse_webpage
+Tool: mcp__anysite__execute
 Parameters:
-- url: "https://company.com/team"
-- extract_contacts: true
+- source: "webparser"
+- category: "parse"
+- endpoint: "parse"
+- params: {"url": "https://company.com/team", "extract_contacts": true}
 ```
 
 4. **Get sitemap** (for comprehensive coverage)
 ```
-Tool: mcp__anysite__get_sitemap
+Tool: mcp__anysite__discover
 Parameters:
-- url: "https://company.com"
-- count: 50
+- source: "webparser"
+- category: "parse"
+(Use discover to find the sitemap endpoint and its params, then execute accordingly)
 
 Identify pages likely to contain contacts:
 - /contact, /team, /about, /leadership
@@ -282,30 +344,47 @@ Required skills, titles, experience level, location
 
 2. **Search for candidates**
 ```
-Tool: mcp__anysite__search_linkedin_users
+Tool: mcp__anysite__execute
 Parameters:
-- keywords: <technical skills, e.g., "Python React AWS">
-- title: <relevant titles, e.g., "Software Engineer, Senior Engineer">
-- location: <location or "Remote">
-- count: 100
+- source: "linkedin"
+- category: "search"
+- endpoint: "search_users"
+- params: {"keywords": "Python React AWS", "title": "Software Engineer, Senior Engineer", "location": "Remote", "count": 100}
 ```
 
-3. **Enrich candidate profiles**
+3. **Get more results with pagination**
+```
+If response includes next_offset:
+Tool: mcp__anysite__get_page
+Parameters:
+- cache_key: <cache_key from search>
+- offset: <next_offset>
+- limit: 50
+```
+
+4. **Enrich candidate profiles**
 ```
 For promising candidates:
-Tool: mcp__anysite__get_linkedin_profile
-Tool: mcp__anysite__get_linkedin_user_experience
-Tool: mcp__anysite__get_linkedin_user_skills
-Tool: mcp__anysite__get_linkedin_user_education
+Tool: mcp__anysite__execute
+  source: "linkedin", category: "user", endpoint: "get", params: {"user": "<username>", "with_experience": true, "with_education": true, "with_skills": true}
 ```
 
-4. **Find contact information**
+5. **Find contact information**
 ```
-Tool: mcp__anysite__find_linkedin_user_email
-Tool: mcp__anysite__get_linkedin_user_email_db
+Tool: mcp__anysite__execute
+  source: "linkedin", category: "email", endpoint: "find", params: {"user": "<username>"}
 ```
 
-5. **Build candidate pipeline**
+6. **Filter candidates with query_cache**
+```
+Tool: mcp__anysite__query_cache
+Parameters:
+- cache_key: <cache_key from search>
+- conditions: [{"field": "location", "operator": "contains", "value": "Remote"}]
+- sort_by: [{"field": "follower_count", "order": "desc"}]
+```
+
+7. **Build candidate pipeline**
 - Score candidates on skills match
 - Prioritize by years of experience
 - Create outreach sequence
@@ -321,11 +400,11 @@ Tool: mcp__anysite__get_linkedin_user_email_db
 ### Primary Tools
 
 #### LinkedIn People Search
-**Tool**: `mcp__anysite__search_linkedin_users`
+**v2 Call**: `execute("linkedin", "search", "search_users", {...})`
 
 Search for LinkedIn users by various criteria.
 
-**Parameters**:
+**Parameters** (passed in `params`):
 - `keywords` (optional): General keywords for search
 - `title` (optional): Job title keywords (e.g., "VP Sales", "Software Engineer")
 - `company_keywords` (optional): Company name keywords
@@ -335,7 +414,7 @@ Search for LinkedIn users by various criteria.
 - `last_name` (optional): Last name
 - `count` (default: 10): Number of results to return
 
-**Returns**: List of user profiles with name, title, location, profile URL, and URN
+**Returns**: List of user profiles with name, title, location, profile URL, and URN. Includes `cache_key` for pagination and filtering.
 
 **Use Cases**:
 - Find prospects by title and location
@@ -343,12 +422,14 @@ Search for LinkedIn users by various criteria.
 - Search for alumni from specific schools
 - Build prospect lists for outreach
 
+**Pagination**: If `next_offset` is returned, call `get_page(cache_key, next_offset, limit)` for more results.
+
 #### LinkedIn Profile Details
-**Tool**: `mcp__anysite__get_linkedin_profile`
+**v2 Call**: `execute("linkedin", "user", "get", {"user": ...})`
 
 Get comprehensive profile information for a LinkedIn user.
 
-**Parameters**:
+**Parameters** (passed in `params`):
 - `user` (required): LinkedIn username or full profile URL
 - `with_education` (default: true): Include education history
 - `with_experience` (default: true): Include work experience
@@ -363,52 +444,33 @@ Get comprehensive profile information for a LinkedIn user.
 - Understand prospect's career path
 
 #### Email Finding
-**Tool**: `mcp__anysite__find_linkedin_user_email`
+**v2 Call**: `execute("linkedin", "email", "find", {"user": ...})`
 
 Search for email addresses associated with LinkedIn profiles.
 
-**Parameters**:
-- `email` (required): Email address for reverse lookup
-- `count` (default: 5): Number of results
-- `request_timeout` (default: 300): Timeout in seconds
+**Parameters** (passed in `params`):
+- `user` (required): LinkedIn username or profile URL
 
-**Returns**: LinkedIn profiles associated with email addresses
+**Returns**: Email addresses associated with the LinkedIn profile
 
 **Use Cases**:
 - Find verified emails for prospects
-- Reverse lookup email to LinkedIn profile
 - Enrich contact databases
-
-#### Email Database Lookup
-**Tool**: `mcp__anysite__get_linkedin_user_email_db`
-
-Retrieve cached email address for a LinkedIn profile.
-
-**Parameters**:
-- `profile` (required): LinkedIn profile URL
-- `request_timeout` (default: 300): Timeout in seconds
-
-**Returns**: Email address if available in database
-
-**Use Cases**:
-- Quick email lookup for known profiles
-- Batch email enrichment
-- Contact data verification
+- Build email outreach lists
 
 #### Company Search
-**Tool**: `mcp__anysite__search_linkedin_companies`
+**v2 Call**: `execute("linkedin", "search", "search_companies", {...})`
 
 Search for LinkedIn companies by various criteria.
 
-**Parameters**:
+**Parameters** (passed in `params`):
 - `keywords` (optional): Company name or description keywords
 - `location` (optional): Company location
 - `industry` (optional): Industry type
 - `employee_count` (optional): Array of employee count ranges (e.g., ["51-200", "201-500"])
 - `count` (required): Number of results to return
-- `request_timeout` (default: 300): Timeout in seconds
 
-**Returns**: List of companies with name, industry, size, location, and URN
+**Returns**: List of companies with name, industry, size, location, and URN. Includes `cache_key`.
 
 **Use Cases**:
 - Identify target accounts for ABM
@@ -417,13 +479,12 @@ Search for LinkedIn companies by various criteria.
 - Market segmentation analysis
 
 #### Company Details
-**Tool**: `mcp__anysite__get_linkedin_company`
+**v2 Call**: `execute("linkedin", "company", "get", {"company": ...})`
 
 Get detailed information about a LinkedIn company.
 
-**Parameters**:
+**Parameters** (passed in `params`):
 - `company` (required): Company identifier or LinkedIn URL
-- `request_timeout` (default: 300): Timeout in seconds
 
 **Returns**: Company profile with description, industry, size, specialties, website
 
@@ -434,15 +495,9 @@ Get detailed information about a LinkedIn company.
 - Qualify accounts before prospecting
 
 #### Company Employee Stats
-**Tool**: `mcp__anysite__get_linkedin_company_employee_stats`
+**v2 Call**: `discover("linkedin", "company")` to find the employee stats endpoint, then `execute(...)` with the discovered endpoint and params.
 
 Get employee statistics and insights for a company.
-
-**Parameters**:
-- `urn` (required): Company URN from company lookup
-- `request_timeout` (default: 300): Timeout in seconds
-
-**Returns**: Employee count, growth metrics, department distribution
 
 **Use Cases**:
 - Track hiring velocity (company growth)
@@ -453,17 +508,15 @@ Get employee statistics and insights for a company.
 ### Supporting Tools
 
 #### Web Contact Extraction
-**Tool**: `mcp__anysite__parse_webpage`
+**v2 Call**: `execute("webparser", "parse", "parse", {"url": ...})`
 
 Extract content and contact information from web pages.
 
-**Parameters**:
+**Parameters** (passed in `params`):
 - `url` (required): Webpage URL
 - `extract_contacts` (default: false): Extract emails, phones, social links
 - `strip_all_tags` (default: true): Remove HTML tags
 - `only_main_content` (default: true): Extract only main content area
-- `same_origin_links` (default: false): Include only same-domain links
-- `request_timeout` (default: 300): Timeout in seconds
 
 **Returns**: Page content, contacts (emails, phones), links
 
@@ -474,16 +527,9 @@ Extract content and contact information from web pages.
 - Discover team member information
 
 #### Sitemap Parsing
-**Tool**: `mcp__anysite__get_sitemap`
+**v2 Call**: `discover("webparser", "parse")` to find the sitemap endpoint, then `execute(...)` with discovered endpoint and params.
 
 Retrieve sitemap URLs from a website.
-
-**Parameters**:
-- `url` (required): Website URL
-- `count` (default: 50): Number of URLs to return
-- `request_timeout` (default: 300): Timeout in seconds
-
-**Returns**: List of URLs from sitemap
 
 **Use Cases**:
 - Find all pages on a website
@@ -491,41 +537,45 @@ Retrieve sitemap URLs from a website.
 - Comprehensive website crawling
 - Discover hidden landing pages
 
-#### LinkedIn User Experience
-**Tool**: `mcp__anysite__get_linkedin_user_experience`
+#### LinkedIn User Posts
+**v2 Call**: `execute("linkedin", "post", "get_user_posts", {"user": ...})`
 
-Get detailed work experience history for a LinkedIn user.
-
-**Parameters**:
-- `urn` (required): User URN from search or profile
-- `count` (default: 10): Number of experience entries
-- `request_timeout` (default: 300): Timeout in seconds
-
-**Returns**: Detailed work history with dates, descriptions, companies
+Get recent posts from a LinkedIn user for engagement research.
 
 **Use Cases**:
-- Deep work history analysis
-- Career path research
-- Qualification scoring
-- Experience validation
+- Research prospect interests and activity
+- Identify conversation starters
+- Analyze thought leadership topics
 
-#### LinkedIn User Skills
-**Tool**: `mcp__anysite__get_linkedin_user_skills`
+#### LinkedIn Post Search
+**v2 Call**: `execute("linkedin", "post", "search_posts", {...})`
 
-Get skills and endorsements for a LinkedIn user.
-
-**Parameters**:
-- `urn` (required): User URN
-- `count` (default: 10): Number of skills to return
-- `request_timeout` (default: 300): Timeout in seconds
-
-**Returns**: Skills list with endorsement counts
+Search LinkedIn posts by keywords.
 
 **Use Cases**:
-- Technical skills validation
-- Expertise assessment
-- Candidate qualification
-- Skills-based matching
+- Find prospects discussing relevant topics
+- Monitor industry conversations
+- Identify engaged professionals
+
+#### LinkedIn Job Search
+**v2 Call**: `execute("linkedin", "job_search", "search_jobs", {...})`
+
+Search LinkedIn job postings.
+
+**Use Cases**:
+- Identify companies that are hiring (growth signals)
+- Find companies investing in specific roles
+- Research market demand
+
+#### Google LinkedIn Search
+**v2 Call**: `execute("linkedin", "google", "search", {"query": ...})`
+
+Search Google for LinkedIn profiles.
+
+**Use Cases**:
+- Find profiles that LinkedIn search misses
+- Search by specific phrases
+- Discover profiles with particular keywords
 
 ## Output Formats
 
@@ -567,7 +617,7 @@ Next Steps:
 
 ### CSV Export
 
-Use CSV format for CRM import and spreadsheet analysis.
+Use `export_data(cache_key, "csv")` to get a download URL for CRM import and spreadsheet analysis.
 
 **How to Request**:
 "Export the results as CSV"
@@ -583,15 +633,9 @@ Full Name,First Name,Last Name,Title,Company,Location,Email,Phone,LinkedIn URL,P
 - Spreadsheet analysis and filtering
 - Team collaboration via Google Sheets
 
-**CSV Benefits**:
-- Universal format for all CRM systems
-- Easy filtering and sorting
-- Compatible with email tools
-- Shareable with team members
-
 ### JSON Export
 
-Use JSON format for programmatic access and custom integration.
+Use `export_data(cache_key, "json")` to get a download URL for programmatic access and custom integration.
 
 **How to Request**:
 "Export the results as JSON"
@@ -643,7 +687,7 @@ Use JSON format for programmatic access and custom integration.
 
 Combine LinkedIn data with other platforms for comprehensive lead profiles:
 
-**Pattern**: LinkedIn → Company Website → Instagram (for B2C)
+**Pattern**: LinkedIn -> Company Website -> Instagram (for B2C)
 
 1. Find prospect on LinkedIn
 2. Get company website from LinkedIn company profile
@@ -653,11 +697,11 @@ Combine LinkedIn data with other platforms for comprehensive lead profiles:
 
 **Example**:
 ```
-1. search_linkedin_users → Find "Emily Chen" at "FashionBrand"
-2. get_linkedin_company("FashionBrand") → Get website URL
-3. parse_webpage(website + "/contact") → Get phone, email
-4. search_instagram_posts(query="FashionBrand") → Find official account
-5. get_instagram_user("fashionbrand") → Verify business account, get follower count
+1. execute("linkedin", "search", "search_users", {"keywords": "Emily Chen", "company_keywords": "FashionBrand"})
+2. execute("linkedin", "company", "get", {"company": "FashionBrand"}) -> Get website URL
+3. execute("webparser", "parse", "parse", {"url": "<website>/contact", "extract_contacts": true}) -> Get phone, email
+4. execute("instagram", "search", "search_users", {"query": "FashionBrand"}) -> Find official account
+5. execute("instagram", "user", "user", {"user": "fashionbrand"}) -> Verify business account, get follower count
 ```
 
 ### Boolean Search Patterns
@@ -718,18 +762,24 @@ Score prospects based on multiple criteria:
 - **50-69**: Qualified - Standard outreach
 - **<50**: Unqualified - Nurture or discard
 
+Use `query_cache()` to filter by score thresholds:
+```
+query_cache(cache_key, conditions=[{"field": "score", "operator": ">=", "value": 70}], sort_by=[{"field": "score", "order": "desc"}])
+```
+
 ### Automated Prospect Enrichment
 
 Systematic enrichment workflow for large lists:
 
 **Process**:
-1. **Initial Search**: Get 100-500 prospects from LinkedIn search
-2. **First Filter**: Remove obviously unqualified (wrong title, location, etc.)
-3. **Batch Enrichment**: Enrich top 50 prospects with full profiles
-4. **Email Discovery**: Find emails for top 25 prospects
-5. **Web Research**: Extract company contacts for remaining prospects
-6. **Final Scoring**: Apply lead scoring framework
-7. **Export**: Generate CSV for top-scored leads only
+1. **Initial Search**: Get 100-500 prospects from LinkedIn search via execute()
+2. **Paginate**: Use get_page() to collect all results beyond the first page
+3. **First Filter**: Use query_cache() to remove obviously unqualified (wrong title, location, etc.)
+4. **Batch Enrichment**: Enrich top 50 prospects with full profiles via execute()
+5. **Email Discovery**: Find emails for top 25 prospects via execute()
+6. **Web Research**: Extract company contacts for remaining prospects
+7. **Final Scoring**: Apply lead scoring framework
+8. **Export**: Use export_data(cache_key, "csv") for top-scored leads
 
 **Efficiency Tips**:
 - Start with larger searches (100+) to account for filtering
@@ -743,6 +793,8 @@ Systematic enrichment workflow for large lists:
 
 This skill focuses on B2B lead generation where LinkedIn, web scraping, and professional networks provide the most comprehensive data. For local business discovery and contact extraction, the combination of LinkedIn company search and web scraping provides strong coverage.
 
+**Note on Crunchbase**: Crunchbase tools are disabled in v2. Use LinkedIn company search and Y Combinator data as alternatives for company research and funding information.
+
 ### Rate Limits and Timeouts
 
 **Default Timeout**: 300 seconds (5 minutes) per MCP tool call
@@ -753,10 +805,7 @@ This skill focuses on B2B lead generation where LinkedIn, web scraping, and prof
    - Make multiple calls for larger lists
    - Allow processing time between batches
 
-2. **Increase Timeout**: Use `request_timeout` parameter for complex queries
-   - Company employee searches: 400-500 seconds
-   - Profile enrichment: 300-400 seconds
-   - Email finding: 400-600 seconds
+2. **Pagination**: Use `get_page(cache_key, offset, limit)` to retrieve additional results without re-executing the search.
 
 3. **Parallel Processing**: For independent queries
    - Search multiple locations simultaneously
@@ -766,32 +815,26 @@ This skill focuses on B2B lead generation where LinkedIn, web scraping, and prof
 **Example**:
 ```
 Instead of:
-search_linkedin_users(count=200) → May timeout
+execute("linkedin", "search", "search_users", {"count": 200}) -> May timeout
 
 Do this:
-search_linkedin_users(count=50, location="California")
-search_linkedin_users(count=50, location="New York")
-search_linkedin_users(count=50, location="Texas")
-search_linkedin_users(count=50, location="Florida")
+execute("linkedin", "search", "search_users", {"count": 50, "location": "California"})
+execute("linkedin", "search", "search_users", {"count": 50, "location": "New York"})
+execute("linkedin", "search", "search_users", {"count": 50, "location": "Texas"})
+execute("linkedin", "search", "search_users", {"count": 50, "location": "Florida"})
 ```
 
 ### Data Freshness
 
 **LinkedIn Data**: Real-time access through anysite MCP
-- No caching (always current)
-- Profile updates reflected immediately
+- Results cached for 7 days via cache_key (use get_page/query_cache without re-fetching)
+- Profile updates reflected in new execute() calls
 - Company changes visible in real-time
 
-**Email Database**: May have stale entries
-- `get_linkedin_user_email_db` returns cached emails
-- Some emails may be outdated
-- Verify before mass outreach
-
 **Recommendation**:
-1. Use `find_linkedin_user_email` for current email discovery
-2. Fall back to `get_linkedin_user_email_db` if first method fails
-3. Validate emails before sending (use email validation service)
-4. Update your CRM when emails bounce
+1. Use `execute("linkedin", "email", "find", {"user": ...})` for email discovery
+2. Validate emails before sending (use email validation service)
+3. Update your CRM when emails bounce
 
 ### Privacy and Compliance
 
@@ -838,24 +881,21 @@ For advanced techniques and strategies, see:
 - Broaden search criteria (remove some filters)
 - Try location variations: "San Francisco", "San Francisco Bay Area", "SF"
 - Use partial titles: "Sales" instead of "Vice President of Sales"
-- Verify company names with `search_linkedin_companies` first
+- Verify company names with `execute("linkedin", "search", "search_companies", {...})` first
+- Check `llm_hint` in the response for guidance
 
 **Example Fix**:
 ```
-❌ Too Restrictive:
-title="Vice President of Enterprise Sales"
-location="San Francisco, California"
-company_keywords="Salesforce Inc"
+Too Restrictive:
+execute("linkedin", "search", "search_users", {"title": "Vice President of Enterprise Sales", "location": "San Francisco, California", "company_keywords": "Salesforce Inc"})
 
-✅ Better:
-title="VP Sales OR Head of Sales"
-location="San Francisco Bay Area"
-company_keywords="Salesforce"
+Better:
+execute("linkedin", "search", "search_users", {"title": "VP Sales OR Head of Sales", "location": "San Francisco Bay Area", "company_keywords": "Salesforce"})
 ```
 
 #### 2. Email Not Found
 
-**Symptoms**: `find_linkedin_user_email` returns no results
+**Symptoms**: Email find returns no results
 
 **Causes**:
 - Email not in database
@@ -863,16 +903,15 @@ company_keywords="Salesforce"
 - Email verification required
 
 **Solutions**:
-1. Try `get_linkedin_user_email_db` as alternative
-2. Extract email from company website instead
-3. Use email pattern guessing (firstname.lastname@company.com)
-4. Check for email in LinkedIn profile "Contact Info" section
+1. Extract email from company website instead
+2. Use email pattern guessing (firstname.lastname@company.com)
+3. Check for email in LinkedIn profile "Contact Info" section
 
 **Alternative Workflow**:
 ```
-1. get_linkedin_profile(user) → Get current company
-2. get_linkedin_company(company) → Get company website
-3. parse_webpage(website + "/contact") → Extract company emails
+1. execute("linkedin", "user", "get", {"user": "<username>"}) -> Get current company
+2. execute("linkedin", "company", "get", {"company": "<company>"}) -> Get company website
+3. execute("webparser", "parse", "parse", {"url": "<website>/contact", "extract_contacts": true}) -> Extract company emails
 4. Use email pattern: first.last@companydomain.com
 ```
 
@@ -887,26 +926,18 @@ company_keywords="Salesforce"
 
 **Solutions**:
 - Reduce `count` parameter (try 25-50 instead of 100+)
-- Increase `request_timeout` to 400-600 seconds
 - Break large searches into multiple smaller searches
 - Simplify search criteria
+- Check `llm_hint` for retry guidance
 
 **Example**:
 ```
-❌ May Timeout:
-search_linkedin_users(
-  title="Software Engineer",
-  count=500,
-  request_timeout=300
-)
+May Timeout:
+execute("linkedin", "search", "search_users", {"title": "Software Engineer", "count": 500})
 
-✅ Better:
-search_linkedin_users(
-  title="Software Engineer",
-  count=50,
-  request_timeout=400
-)
-# Then make additional calls for more results
+Better:
+execute("linkedin", "search", "search_users", {"title": "Software Engineer", "count": 50})
+# Then use get_page(cache_key, next_offset, 50) for additional results
 ```
 
 #### 4. Incomplete Profile Data
@@ -919,8 +950,7 @@ search_linkedin_users(
 - Profile hasn't been updated
 
 **Solutions**:
-- Set `with_experience=true`, `with_education=true` explicitly
-- Try getting detailed experience with `get_linkedin_user_experience`
+- Set `with_experience`, `with_education`, `with_skills` to true in params
 - Accept incomplete data and supplement with web research
 - Focus on prospects with complete profiles
 
@@ -945,6 +975,7 @@ search_linkedin_users(
 - Verify MCP server is running and configured
 - Check MCP server logs for errors
 - Ensure authentication is set up correctly
+- Check `llm_hint` field in error responses for actionable guidance
 
 **Skill-Specific Questions**:
 - Review reference documentation in `references/` folder
@@ -955,6 +986,7 @@ search_linkedin_users(
 - Validate search criteria before large batches
 - Test with small `count` values first
 - Review data quality in chat summary before export
+- Use `query_cache()` to filter low-quality results
 
 **Integration Problems**:
 - Verify CSV format matches your CRM requirements
@@ -969,11 +1001,11 @@ search_linkedin_users(
 
 **Process**:
 1. Define ICP: VP/Director level, Enterprise Software, 500-5000 employees
-2. Search LinkedIn: `title="VP Sales" company_keywords="Enterprise Software" count=100`
-3. Filter by company size using `search_linkedin_companies`
+2. Search LinkedIn: `execute("linkedin", "search", "search_users", {"title": "VP Sales", "company_keywords": "Enterprise Software", "count": 100})`
+3. Filter by company size using `execute("linkedin", "search", "search_companies", {...})`
 4. Enrich top 30 prospects with full profiles
 5. Find emails for top 20 prospects
-6. Export CSV for Salesforce import
+6. Export CSV via `export_data(cache_key, "csv")` for Salesforce import
 
 **Success Metrics**:
 - 100 prospects found and qualified
@@ -986,8 +1018,8 @@ search_linkedin_users(
 **Goal**: Source 50 Python engineers for startup
 
 **Process**:
-1. Search: `keywords="Python Django AWS" title="Software Engineer" location="Remote" count=100`
-2. Filter: Remove <2 years experience
+1. Search: `execute("linkedin", "search", "search_users", {"keywords": "Python Django AWS", "title": "Software Engineer", "location": "Remote", "count": 100})`
+2. Filter: Use `query_cache()` to remove <2 years experience
 3. Enrich: Get skills and education for top 50
 4. Score: Rank by skills match and experience level
 5. Contact: Find emails for top 25
@@ -1004,9 +1036,9 @@ search_linkedin_users(
 **Goal**: Find potential integration partners in marketing tech
 
 **Process**:
-1. Search companies: `keywords="marketing automation" employee_count=["51-200"]`
-2. Identify decision-makers: `title="VP Product OR Head of Partnerships" company_keywords=<company>`
-3. Research: Get company details and recent LinkedIn posts
+1. Search companies: `execute("linkedin", "search", "search_companies", {"keywords": "marketing automation", "employee_count": ["51-200"]})`
+2. Identify decision-makers: `execute("linkedin", "search", "search_users", {"title": "VP Product OR Head of Partnerships", "company_keywords": "<company>"})`
+3. Research: Get company details and recent LinkedIn posts via `execute("linkedin", "post", "get_user_posts", {"user": ...})`
 4. Enrich: Full profiles for all decision-makers
 5. Personalize: Reference their product and use cases
 6. Multi-channel: LinkedIn + email outreach

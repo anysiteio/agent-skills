@@ -1,6 +1,6 @@
 # Web Scraping for Contact Extraction
 
-Strategies and techniques for extracting contact information from company websites using anysite MCP.
+Strategies and techniques for extracting contact information from company websites using anysite MCP v2.
 
 ## Overview
 
@@ -13,18 +13,20 @@ Web scraping complements LinkedIn lead generation by:
 
 ## Contact Extraction Tools
 
-### parse_webpage
+### Web Page Parsing (v2)
 
 Primary tool for extracting contacts from web pages.
 
+**v2 Call**: `execute("webparser", "parse", "parse", {"url": ..., "extract_contacts": true})`
+
 **Basic Usage**:
 ```
-Tool: mcp__anysite__parse_webpage
+Tool: mcp__anysite__execute
 Parameters:
-- url: "https://company.com/contact"
-- extract_contacts: true
-- strip_all_tags: true
-- only_main_content: true
+- source: "webparser"
+- category: "parse"
+- endpoint: "parse"
+- params: {"url": "https://company.com/contact", "extract_contacts": true, "strip_all_tags": true, "only_main_content": true}
 ```
 
 **Returns**:
@@ -32,22 +34,34 @@ Parameters:
 - Phones: Phone numbers in various formats
 - Social links: LinkedIn, Twitter, Facebook, Instagram
 - Content: Page text for additional parsing
+- `cache_key`: For use with query_cache and export_data
 
 **Best Practices**:
 - Set `extract_contacts: true` to enable contact extraction
 - Use `only_main_content: true` to avoid footer/header noise
 - Try multiple page variations (/contact, /about, /team)
 
-### get_sitemap
+### Sitemap Parsing (v2)
 
 Discover all pages on a website to find contact information.
 
+**v2 Call**: `discover("webparser", "parse")` to find the sitemap endpoint, then `execute(...)` with discovered endpoint and params.
+
 **Basic Usage**:
 ```
-Tool: mcp__anysite__get_sitemap
+Step 1: Discover sitemap endpoint
+Tool: mcp__anysite__discover
 Parameters:
-- url: "https://company.com"
-- count: 100
+- source: "webparser"
+- category: "parse"
+
+Step 2: Execute with discovered endpoint
+Tool: mcp__anysite__execute
+Parameters:
+- source: "webparser"
+- category: "parse"
+- endpoint: <discovered_sitemap_endpoint>
+- params: {"url": "https://company.com", "count": 100}
 ```
 
 **Returns**:
@@ -58,7 +72,7 @@ Parameters:
 **Best Practices**:
 - Start with count=100 to get comprehensive coverage
 - Filter results for relevant pages (contact, team, about, leadership)
-- Parse identified pages with parse_webpage
+- Parse identified pages with execute("webparser", "parse", "parse", ...)
 
 ## Common Page Patterns
 
@@ -84,7 +98,7 @@ Parameters:
 
 **Example**:
 ```
-parse_webpage("https://company.com/contact", extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "https://company.com/contact", "extract_contacts": true})
 
 Expected data:
 - General company email (info@, contact@, hello@)
@@ -115,7 +129,7 @@ Expected data:
 
 **Example**:
 ```
-parse_webpage("https://company.com/about", extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "https://company.com/about", "extract_contacts": true})
 
 Expected data:
 - Leadership emails
@@ -147,7 +161,7 @@ Expected data:
 
 **Example**:
 ```
-parse_webpage("https://company.com/team", extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "https://company.com/team", "extract_contacts": true})
 
 Expected data:
 - Individual names and titles
@@ -177,7 +191,7 @@ Expected data:
 
 **Example**:
 ```
-parse_webpage("https://company.com/locations", extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "https://company.com/locations", "extract_contacts": true})
 
 Expected data:
 - Office-specific emails
@@ -331,11 +345,14 @@ Extracted:
 
 1. **Get sitemap**
 ```
-get_sitemap("https://company.com", count=100)
+discover("webparser", "parse") -> find sitemap endpoint -> execute(...)
 ```
 
 2. **Filter for relevant pages**
 ```
+Use query_cache on sitemap results:
+query_cache(cache_key, conditions=[{"field": "url", "operator": "contains", "value": "contact"}])
+
 Filter sitemap results for:
 - URLs containing: contact, about, team, location, office
 - Exclude: blog, news, privacy, terms
@@ -344,7 +361,7 @@ Filter sitemap results for:
 3. **Parse each relevant page**
 ```
 For each filtered URL:
-  parse_webpage(url, extract_contacts=true)
+  execute("webparser", "parse", "parse", {"url": "<url>", "extract_contacts": true})
 ```
 
 4. **Consolidate and deduplicate**
@@ -359,8 +376,13 @@ For each filtered URL:
 5. **Enrich with LinkedIn**
 ```
 For team member names found:
-  search_linkedin_users(first_name, last_name, company_keywords)
-  get_linkedin_profile(user)
+  execute("linkedin", "search", "search_users", {"first_name": "<first>", "last_name": "<last>", "company_keywords": "<company>"})
+  execute("linkedin", "user", "get", {"user": "<username>"})
+```
+
+6. **Export results**
+```
+export_data(cache_key, "csv") -> Download URL for consolidated contacts
 ```
 
 **Expected Output**:
@@ -379,18 +401,18 @@ For team member names found:
 1. **Find team page**
 ```
 Try common patterns:
-- parse_webpage("https://company.com/team")
-- parse_webpage("https://company.com/about/team")
-- parse_webpage("https://company.com/people")
+- execute("webparser", "parse", "parse", {"url": "https://company.com/team"})
+- execute("webparser", "parse", "parse", {"url": "https://company.com/about/team"})
+- execute("webparser", "parse", "parse", {"url": "https://company.com/people"})
 
 Or use sitemap:
-- get_sitemap("https://company.com", count=100)
+- discover("webparser", "parse") -> find sitemap endpoint -> execute(...)
 - Filter for "team" or "people"
 ```
 
 2. **Extract team members**
 ```
-parse_webpage(team_url, extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "<team_url>", "extract_contacts": true})
 
 Look for patterns:
 - Name + Title combinations
@@ -405,25 +427,25 @@ Some team pages link to individual profiles:
 - /team/john-smith
 - /people/jane-doe
 
-parse_webpage(individual_url, extract_contacts=true)
-→ Often has direct email, phone
+execute("webparser", "parse", "parse", {"url": "<individual_url>", "extract_contacts": true})
+-> Often has direct email, phone
 ```
 
 4. **Match to LinkedIn**
 ```
 For each team member name:
-  search_linkedin_users(
-    first_name=<first>,
-    last_name=<last>,
-    company_keywords=<company>
-  )
+  execute("linkedin", "search", "search_users", {
+    "first_name": "<first>",
+    "last_name": "<last>",
+    "company_keywords": "<company>"
+  })
 ```
 
 5. **Construct email addresses**
 ```
 If email pattern detected from some team members:
 - Apply pattern to all team members
-- Example: john.doe@company.com → jane.smith@company.com
+- Example: john.doe@company.com -> jane.smith@company.com
 ```
 
 **Expected Output**:
@@ -440,7 +462,7 @@ If email pattern detected from some team members:
 
 1. **Find locations page**
 ```
-parse_webpage("https://company.com/locations", extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "https://company.com/locations", "extract_contacts": true})
 ```
 
 2. **Extract location information**
@@ -459,17 +481,17 @@ Some companies have per-location pages:
 - /locations/san-francisco
 - /offices/new-york
 
-parse_webpage(location_url, extract_contacts=true)
+execute("webparser", "parse", "parse", {"url": "<location_url>", "extract_contacts": true})
 ```
 
 4. **Find office leaders**
 ```
 For each location:
-  search_linkedin_users(
-    title="Office Manager OR General Manager",
-    company_keywords=<company>,
-    location=<office_city>
-  )
+  execute("linkedin", "search", "search_users", {
+    "title": "Office Manager OR General Manager",
+    "company_keywords": "<company>",
+    "location": "<office_city>"
+  })
 ```
 
 5. **Build location contact sheet**
@@ -481,6 +503,8 @@ Spreadsheet with:
 - Local email
 - Office manager name + LinkedIn
 - Office manager email
+
+Export via: export_data(cache_key, "csv")
 ```
 
 **Expected Output**:
@@ -591,7 +615,7 @@ YouTube: youtube.com/[company]
 
 **Parsing Strategy**:
 ```
-parse_webpage(url, extract_contacts=true) returns social links
+execute("webparser", "parse", "parse", {"url": "<url>", "extract_contacts": true}) returns social links
 
 Use social profiles to:
 1. Verify company information
@@ -607,8 +631,8 @@ Social links found:
 - Twitter: twitter.com/techcorp
 
 Next steps:
-get_linkedin_company("techcorp") → Company details
-get_twitter_user("techcorp") → Twitter profile
+execute("linkedin", "company", "get", {"company": "techcorp"}) -> Company details
+execute("twitter", "user", "get", {"username": "techcorp"}) -> Twitter profile
 ```
 
 ## Error Handling & Troubleshooting
@@ -617,7 +641,7 @@ get_twitter_user("techcorp") → Twitter profile
 
 #### 1. No Contacts Found
 
-**Symptoms**: parse_webpage returns no emails or phones
+**Symptoms**: execute() returns no emails or phones
 
 **Causes**:
 - JavaScript-rendered content (page loads dynamically)
@@ -639,6 +663,8 @@ get_twitter_user("techcorp") → Twitter profile
    - Annual report might list executives
 
 4. Use LinkedIn as primary source instead
+
+5. Check llm_hint in response for guidance
 ```
 
 #### 2. Malformed Contact Data
@@ -682,22 +708,23 @@ Extension: "123"
 **Solutions**:
 ```
 Filtering strategy:
-1. only_main_content: true (remove footer/header)
+1. Use only_main_content: true in params (remove footer/header)
 2. Verify email domain matches company domain
 3. Exclude common spam patterns (noreply@, donotreply@)
 4. Filter out tracking/marketing emails
+5. Use query_cache() to filter results after fetching
 ```
 
 **Example Filter**:
 ```
 Keep:
-- john@company.com ✓
-- sales@company.com ✓
+- john@company.com
+- sales@company.com
 
 Discard:
-- noreply@company.com ✗
-- partner@otherdomain.com ✗
-- ads@advertising-network.com ✗
+- noreply@company.com
+- partner@otherdomain.com
+- ads@advertising-network.com
 ```
 
 #### 4. Rate Limiting or Blocking
@@ -711,16 +738,16 @@ Discard:
 
 **Solutions**:
 ```
-1. Increase request_timeout parameter
-2. Add delays between requests (30-60 seconds)
-3. Rotate user agents (handled by MCP server)
-4. Scrape during off-peak hours
-5. Use smaller batch sizes
+1. Add delays between requests (30-60 seconds)
+2. Rotate user agents (handled by MCP server)
+3. Scrape during off-peak hours
+4. Use smaller batch sizes
+5. Check llm_hint in error response for specific guidance
 ```
 
 **Best Practices**:
 ```
-- Wait 30-60 seconds between parse_webpage calls
+- Wait 30-60 seconds between execute() calls for the same domain
 - Process 5-10 websites per batch
 - Don't scrape same site multiple times rapidly
 - Respect robots.txt
@@ -730,22 +757,22 @@ Discard:
 
 **Email Validation Checklist**:
 ```
-✓ Contains @ symbol
-✓ Has valid domain extension
-✓ Domain matches company website
-✓ Not a role-based email (noreply, admin, etc.)
-✓ Proper format (no spaces, special chars)
-✓ Not a personal email (gmail, yahoo, etc. for B2B)
+- Contains @ symbol
+- Has valid domain extension
+- Domain matches company website
+- Not a role-based email (noreply, admin, etc.)
+- Proper format (no spaces, special chars)
+- Not a personal email (gmail, yahoo, etc. for B2B)
 ```
 
 **Phone Validation Checklist**:
 ```
-✓ Contains correct number of digits for region
-✓ Has valid area/city code
-✓ Not a fax number
-✓ Not a toll-free number (for direct contact)
-✓ Matches expected country code
-✓ Includes extension if available
+- Contains correct number of digits for region
+- Has valid area/city code
+- Not a fax number
+- Not a toll-free number (for direct contact)
+- Matches expected country code
+- Includes extension if available
 ```
 
 **Data Quality Scoring**:
@@ -772,7 +799,7 @@ Poor Quality (<50):
 
 ## Integration with LinkedIn Data
 
-### Workflow: LinkedIn → Web Enrichment
+### Workflow: LinkedIn -> Web Enrichment
 
 **Pattern**: Use LinkedIn as source, enrich with web data
 
@@ -780,21 +807,21 @@ Poor Quality (<50):
 
 1. **Find prospects on LinkedIn**
 ```
-search_linkedin_users(title, location, company_keywords)
+execute("linkedin", "search", "search_users", {"title": "<title>", "location": "<location>", "company_keywords": "<company>"})
 ```
 
 2. **Get company websites**
 ```
 For each prospect:
-  get_linkedin_company(prospect.company)
-  → Extract website URL
+  execute("linkedin", "company", "get", {"company": "<prospect.company>"})
+  -> Extract website URL
 ```
 
 3. **Extract company contacts**
 ```
 For each company website:
-  parse_webpage(website + "/contact", extract_contacts=true)
-  parse_webpage(website + "/team", extract_contacts=true)
+  execute("webparser", "parse", "parse", {"url": "<website>/contact", "extract_contacts": true})
+  execute("webparser", "parse", "parse", {"url": "<website>/team", "extract_contacts": true})
 ```
 
 4. **Match web contacts to LinkedIn**
@@ -803,7 +830,7 @@ For each email found on website:
   If email pattern matches prospect name:
     Assign email to LinkedIn prospect
   Else:
-    Try find_linkedin_user_email(email)
+    Try execute("linkedin", "email", "find", {"user": "<prospect>"})
 ```
 
 5. **Build enriched prospect list**
@@ -813,6 +840,8 @@ Combine:
 - Company website (phone, address)
 - Direct email (from web or LinkedIn)
 - Social profiles (from website)
+
+Export via: export_data(cache_key, "csv")
 ```
 
 **Expected Result**:
@@ -821,7 +850,7 @@ Combine:
 - Verified company websites
 - Full contact profiles ready for outreach
 
-### Workflow: Web → LinkedIn Validation
+### Workflow: Web -> LinkedIn Validation
 
 **Pattern**: Use website as source, validate with LinkedIn
 
@@ -829,27 +858,27 @@ Combine:
 
 1. **Extract team from website**
 ```
-parse_webpage("https://company.com/team", extract_contacts=true)
-→ Get names, titles, emails
+execute("webparser", "parse", "parse", {"url": "https://company.com/team", "extract_contacts": true})
+-> Get names, titles, emails
 ```
 
 2. **Search LinkedIn for each person**
 ```
 For each team member:
-  search_linkedin_users(
-    first_name=<first>,
-    last_name=<last>,
-    company_keywords=<company>
-  )
+  execute("linkedin", "search", "search_users", {
+    "first_name": "<first>",
+    "last_name": "<last>",
+    "company_keywords": "<company>"
+  })
 ```
 
 3. **Validate and enrich**
 ```
 For each LinkedIn match:
-  get_linkedin_profile(user)
-  → Verify title matches
-  → Get full work history
-  → Find additional contact methods
+  execute("linkedin", "user", "get", {"user": "<username>"})
+  -> Verify title matches
+  -> Get full work history
+  -> Find additional contact methods
 ```
 
 4. **Cross-reference data**
@@ -867,6 +896,8 @@ Keep prospects where:
 - Title matches (or is recent)
 - Still at company
 - Email validated
+
+Export via: export_data(cache_key, "csv")
 ```
 
 **Expected Result**:
@@ -883,6 +914,8 @@ Keep prospects where:
 2. **Parse in batches** of 5-10 websites at a time
 3. **Prioritize high-value pages** (team, leadership) over generic contact pages
 4. **Use LinkedIn first** for individual contacts, web scraping for company-level contacts
+5. **Use get_page()** to paginate through large result sets without re-executing
+6. **Use query_cache()** to filter and sort already-fetched data without new API calls
 
 ### Quality
 
@@ -904,6 +937,7 @@ Keep prospects where:
 2. **Date stamp extractions** to know data freshness
 3. **Deduplicate systematically** (same email from multiple pages)
 4. **Categorize contacts** (by department, location, role)
+5. **Export via export_data()** for permanent records and team sharing
 
 ---
 

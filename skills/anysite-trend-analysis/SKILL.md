@@ -19,24 +19,41 @@ Discover emerging trends and track viral content across social platforms using a
 
 ## Supported Platforms
 
-- ✅ **Twitter/X**: Trending topics, viral tweets, hashtag tracking
-- ✅ **Reddit**: Trending posts, subreddit activity, upvote velocity
-- ✅ **YouTube**: Trending videos, search trends, rising channels
-- ✅ **LinkedIn**: Professional trends, industry discussions
-- ✅ **Instagram**: Trending hashtags, viral content
+- **Twitter/X**: Trending topics, viral tweets, hashtag tracking
+- **Reddit**: Trending posts, subreddit activity, upvote velocity
+- **YouTube**: Trending videos, search trends, rising channels
+- **LinkedIn**: Professional trends, industry discussions
+- **Instagram**: Trending hashtags, viral content
+
+## v2 Tool Interface
+
+All data fetching uses the universal `execute()` meta-tool. Always call `discover(source, category)` first if you need to verify endpoint names or available parameters.
+
+**Core tools**:
+- `execute(source, category, endpoint, params)` - Fetch data. Returns first page + `cache_key`.
+- `get_page(cache_key, offset, limit)` - Load more results from a previous execute.
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` - Filter, sort, or aggregate cached data without new API calls.
+- `export_data(cache_key, format)` - Export full dataset as CSV, JSON, or JSONL.
+
+**Error handling**: If execute() returns an error with `llm_hint`, follow the hint to fix the request (e.g., correcting a parameter name or adjusting the query).
 
 ## Quick Start
 
 **Step 1: Search for Trending Content**
 
 By platform:
-- Twitter: `search_twitter_posts(query, count)` sorted by engagement
-- Reddit: `search_reddit_posts(query, count)` sorted by upvotes
-- YouTube: `search_youtube_videos(query, count)` by recent
-- LinkedIn: `search_linkedin_posts(keywords, count)`
-- Instagram: `search_instagram_posts(query, count)`
+- Twitter: `execute("twitter", "search", "search_tweets", {"query": "<topic>", "count": 100})` sorted by engagement
+- Reddit: `execute("reddit", "search", "search", {"query": "<topic>"})` sorted by upvotes
+- YouTube: `execute("youtube", "search", "search_videos", {"query": "<topic>", "count": 50})` by recent
+- LinkedIn: `execute("linkedin", "post", "search_posts", {"keywords": "<topic>"})` by engagement
+- Instagram: `execute("instagram", "search", "search_users", {"query": "<topic>"})` for hashtag/topic discovery
 
 **Step 2: Analyze Momentum**
+
+Use `query_cache()` to filter and sort cached results:
+```
+query_cache(cache_key, sort_by="engagement_desc", conditions=[{"field": "date", "op": ">", "value": "2024-01-01"}])
+```
 
 Check indicators:
 - Engagement velocity (growth rate)
@@ -53,6 +70,8 @@ Monitor changes:
 - Peak timing prediction
 
 **Step 4: Report Insights**
+
+Use `export_data(cache_key, "csv")` to generate downloadable reports.
 
 Deliver:
 - Trending topics list
@@ -71,23 +90,46 @@ Deliver:
 1. **Search Across Platforms**
 ```
 # Twitter
-search_twitter_posts(query="AI OR artificial intelligence", count=100)
-Filter for: Posted within 24-48h, high engagement
+execute("twitter", "search", "search_tweets", {"query": "AI OR artificial intelligence", "count": 100})
+→ Filter for: Posted within 24-48h, high engagement
+→ Save cache_key as twitter_cache
 
 # Reddit
-search_reddit_posts(query="artificial intelligence", count=100)
-Filter: r/technology, r/MachineLearning, r/singularity
+execute("reddit", "search", "search", {"query": "artificial intelligence"})
+→ Filter: r/technology, r/MachineLearning, r/singularity
+→ Save cache_key as reddit_cache
 
 # YouTube
-search_youtube_videos(query="AI news", count=50)
-Filter: Published this week, views >10k
+execute("youtube", "search", "search_videos", {"query": "AI news", "count": 50})
+→ Filter: Published this week, views >10k
+→ Save cache_key as youtube_cache
 
 # LinkedIn
-search_linkedin_posts(keywords="artificial intelligence", count=50)
-Filter: High engagement, recent
+execute("linkedin", "post", "search_posts", {"keywords": "artificial intelligence"})
+→ Filter: High engagement, recent
+→ Save cache_key as linkedin_cache
 ```
 
-2. **Extract Common Themes**
+2. **Use query_cache to Filter Results**
+```
+# Filter Twitter for high-engagement posts
+query_cache(twitter_cache, sort_by="engagement_desc", conditions=[{"field": "likes", "op": ">", "value": 100}])
+
+# Filter Reddit for specific subreddits
+query_cache(reddit_cache, conditions=[{"field": "subreddit", "op": "contains", "value": "technology"}])
+
+# Aggregate YouTube view counts
+query_cache(youtube_cache, aggregate={"field": "views", "op": "avg"})
+```
+
+3. **Load More Results if Needed**
+```
+# If execute() returned next_offset, paginate
+get_page(twitter_cache, offset=10, limit=50)
+get_page(reddit_cache, offset=10, limit=50)
+```
+
+4. **Extract Common Themes**
 ```
 Analyze content for recurring:
 - Keywords and phrases
@@ -96,7 +138,7 @@ Analyze content for recurring:
 - Questions or concerns
 ```
 
-3. **Calculate Trend Score**
+5. **Calculate Trend Score**
 ```
 For each theme:
 - Platform count (how many platforms)
@@ -105,7 +147,7 @@ For each theme:
 - Sentiment distribution
 ```
 
-4. **Identify Breakout Trends**
+6. **Identify Breakout Trends**
 ```
 Trends with:
 - Presence on 3+ platforms
@@ -128,21 +170,27 @@ Trends with:
 
 1. **Search by Hashtag**
 ```
-# Instagram
-search_instagram_posts(query="#sustainability", count=100)
-Group by: Last 24h, last week, last month
+# Instagram - discover users/content around the hashtag
+execute("instagram", "search", "search_users", {"query": "sustainability"})
+→ Save cache_key as ig_cache
 
 # Twitter
-search_twitter_posts(query="#sustainability", count=100)
-Track tweet volume over time
+execute("twitter", "search", "search_tweets", {"query": "#sustainability", "count": 100})
+→ Track tweet volume over time
+→ Save cache_key as tw_cache
 
 # LinkedIn
-search_linkedin_posts(keywords="sustainability", count=50)
-Check professional adoption
+execute("linkedin", "post", "search_posts", {"keywords": "sustainability"})
+→ Check professional adoption
+→ Save cache_key as li_cache
 ```
 
-2. **Calculate Velocity**
+2. **Calculate Velocity with query_cache**
 ```
+# Sort by recency and engagement
+query_cache(tw_cache, sort_by="date_desc")
+query_cache(ig_cache, sort_by="followers_desc")
+
 Hashtag velocity:
 - Posts in last 24h vs. previous 24h
 - Engagement rate change
@@ -159,7 +207,14 @@ Compare early vs. recent posts:
 - Commercial adoption
 ```
 
-4. **Predict Peak**
+4. **Export Results**
+```
+export_data(tw_cache, "csv")
+export_data(ig_cache, "json")
+→ Share downloadable reports
+```
+
+5. **Predict Peak**
 ```
 Based on growth curve:
 - Early stage (accelerating)
@@ -181,18 +236,22 @@ Based on growth curve:
 
 1. **Search Target Subreddits**
 ```
-search_reddit_posts(
-  query="",
-  subreddit="technology"
-)
+execute("reddit", "posts", "get", {"subreddit": "technology"})
 → Get top posts from last week
+→ Save cache_key as reddit_tech_cache
 ```
 
 2. **Analyze Post Momentum**
 ```
-For each post:
-  get_reddit_post(post_url)
-  get_reddit_post_comments(post_url)
+# Sort cached posts by engagement
+query_cache(reddit_tech_cache, sort_by="upvotes_desc")
+
+# Aggregate engagement metrics
+query_cache(reddit_tech_cache, aggregate={"field": "upvotes", "op": "avg"})
+
+For each high-momentum post:
+  execute("reddit", "search", "search", {"query": "<post topic>"})
+  → Deeper analysis
 
 Calculate:
 - Upvotes per hour
@@ -213,9 +272,9 @@ From high-momentum posts:
 4. **Track Cross-Pollination**
 ```
 Check if trending Reddit topics appear on:
-- Twitter (mainstream awareness)
-- LinkedIn (professional discussion)
-- YouTube (explainer content)
+- Twitter: execute("twitter", "search", "search_tweets", {"query": "<topic>"})
+- LinkedIn: execute("linkedin", "post", "search_posts", {"keywords": "<topic>"})
+- YouTube: execute("youtube", "search", "search_videos", {"query": "<topic>"})
 ```
 
 **Expected Output**:
@@ -224,29 +283,34 @@ Check if trending Reddit topics appear on:
 - Mainstream potential
 - Early mover opportunities
 
-## MCP Tools Reference
+## MCP Tools Reference (v2)
 
 ### Twitter/X
-- `search_twitter_posts(query, count)` - Find tweets, filter by engagement
-- `get_twitter_user(user)` - Check influencer adoption
+- `execute("twitter", "search", "search_tweets", {"query": ..., "count": N})` - Find tweets, filter by engagement
+- `execute("twitter", "user", "get", {"username": ...})` - Check influencer adoption
 
 ### Reddit
-- `search_reddit_posts(query, subreddit, count)` - Find discussions
-- `get_reddit_post(url)` - Get post details and momentum
-- `get_reddit_post_comments(url)` - Analyze discussion depth
+- `execute("reddit", "search", "search", {"query": ...,})` - Find discussions
+- `execute("reddit", "posts", "get", {"subreddit": ...})` - Get subreddit posts and momentum
+- `execute("reddit", "user", "get", {"username": ...})` - Get user details
 
 ### YouTube
-- `search_youtube_videos(query, count)` - Find trending videos
-- `get_youtube_video(video)` - Track view velocity
-- `get_youtube_video_comments(video, count)` - Gauge interest
+- `execute("youtube", "search", "search_videos", {"query": ..., "count": N})` - Find trending videos
+- `execute("youtube", "video", "video", {"video": ...})` - Track view velocity
+- `execute("youtube", "video", "video_comments", {"video": ..., "count": N})` - Gauge interest
 
 ### LinkedIn
-- `search_linkedin_posts(keywords, count)` - Professional trends
-- `get_linkedin_company_posts(urn, count)` - Corporate adoption
+- `execute("linkedin", "post", "search_posts", {"keywords": ...})` - Professional trends
+- `execute("linkedin", "company", "get", {"company": ...})` - Company details
 
 ### Instagram
-- `search_instagram_posts(query, count)` - Hashtag trends
-- `get_instagram_post(post_id)` - Engagement metrics
+- `execute("instagram", "search", "search_users", {"query": ...})` - Discover users/hashtags
+- `execute("instagram", "post", "post", {"post": ...})` - Engagement metrics
+
+### Pagination & Analysis
+- `get_page(cache_key, offset, limit)` - Load additional results from any execute() call
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` - Filter, sort, aggregate cached data
+- `export_data(cache_key, "csv"|"json"|"jsonl")` - Export datasets for reporting
 
 ## Trend Identification Framework
 
@@ -291,12 +355,12 @@ Check if trending Reddit topics appear on:
 - Platform breakdown
 - Strategic recommendations
 
-**CSV Export**:
+**CSV Export** (via `export_data(cache_key, "csv")`):
 - Trend name, platforms, volume
 - Growth rate, sentiment
 - Key influencers mentioning
 
-**JSON Export**:
+**JSON Export** (via `export_data(cache_key, "json")`):
 - Complete trend data
 - Time-series metrics
 - Cross-platform correlations

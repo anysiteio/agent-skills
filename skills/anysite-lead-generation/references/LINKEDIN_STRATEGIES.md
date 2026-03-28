@@ -1,6 +1,6 @@
 # LinkedIn Lead Generation Strategies
 
-Advanced strategies and best practices for LinkedIn prospecting using anysite MCP.
+Advanced strategies and best practices for LinkedIn prospecting using anysite MCP v2.
 
 ## Boolean Search Operators
 
@@ -111,18 +111,22 @@ location:"United Kingdom"
 **Search Strategy**:
 ```
 Step 1: Find Companies
-- keywords: "B2B SaaS" OR "Enterprise Software"
-- employee_count: ["201-500", "501-1000", "1001-5000"]
-- industry: "Computer Software"
+execute("linkedin", "search", "search_companies", {
+  "keywords": "B2B SaaS OR Enterprise Software",
+  "employee_count": ["201-500", "501-1000", "1001-5000"],
+  "industry": "Computer Software"
+})
 
 Step 2: Find Decision-Makers
-- company_keywords: <from step 1>
-- title: "VP" OR "SVP" OR "Chief" OR "Head of"
-- keywords: "Sales" OR "Revenue" OR "GTM" OR "Business Development"
+execute("linkedin", "search", "search_users", {
+  "company_keywords": "<from step 1>",
+  "title": "VP OR SVP OR Chief OR Head of",
+  "keywords": "Sales OR Revenue OR GTM OR Business Development"
+})
 ```
 
 **Refinement**:
-- Filter for companies with recent funding (check YC or Crunchbase)
+- Filter for companies with recent funding (check YC data via `execute("yc", "search", "search", {"query": ...})`)
 - Prioritize companies with 100+ LinkedIn followers
 - Target specific verticals (HR Tech, Sales Tech, Marketing Tech)
 
@@ -133,24 +137,25 @@ Step 2: Find Decision-Makers
 **Search Strategy**:
 ```
 Step 1: Find Startups (Y Combinator)
-- search_yc_companies
-- batches: Recent batches (W24, S23, W23)
-- industries: <your target verticals>
+execute("yc", "search", "search", {"query": "<your target verticals>"})
+- Filter by recent batches (W24, S23, W23)
 
 Step 2: Find Founders
-- get_yc_company → Extract founder LinkedIn profiles
-- title: "Founder" OR "Co-Founder" OR "CEO"
+execute("yc", "company", "get", {"slug": "<company_slug>"})
+-> Extract founder LinkedIn profiles
 
 Step 3: Find Early Team
-- company_keywords: <startup names from step 1>
-- title: "Head of" OR "VP" OR "Lead"
+execute("linkedin", "search", "search_users", {
+  "company_keywords": "<startup names from step 1>",
+  "title": "Head of OR VP OR Lead"
+})
 - Filter for <50 total employees
 ```
 
 **Refinement**:
 - Target companies that recently raised funding
 - Focus on specific YC batches or industries
-- Look for hiring signals (job postings, team growth)
+- Look for hiring signals (job postings via `execute("linkedin", "job_search", "search_jobs", {...})`, team growth)
 
 ### Agency/Services
 
@@ -159,13 +164,17 @@ Step 3: Find Early Team
 **Search Strategy**:
 ```
 Step 1: Find Agencies
-- keywords: "Agency" OR "Services" OR "Consulting"
-- employee_count: ["11-50", "51-200"]
-- industry: <specific agency type>
+execute("linkedin", "search", "search_companies", {
+  "keywords": "Agency OR Services OR Consulting",
+  "employee_count": ["11-50", "51-200"],
+  "industry": "<specific agency type>"
+})
 
 Step 2: Find Owners/Principals
-- title: "Owner" OR "Founder" OR "Principal" OR "Managing Director"
-- company_keywords: <agency names>
+execute("linkedin", "search", "search_users", {
+  "title": "Owner OR Founder OR Principal OR Managing Director",
+  "company_keywords": "<agency names>"
+})
 ```
 
 **Refinement**:
@@ -228,15 +237,17 @@ Step 2: Find Owners/Principals
 Example:
 ```
 Parallel Batch 1:
-- search_linkedin_users(location="San Francisco", count=50)
-- search_linkedin_users(location="New York", count=50)
-- search_linkedin_users(location="Austin", count=50)
+execute("linkedin", "search", "search_users", {"location": "San Francisco", "count": 50})
+execute("linkedin", "search", "search_users", {"location": "New York", "count": 50})
+execute("linkedin", "search", "search_users", {"location": "Austin", "count": 50})
 
-After review, Parallel Batch 2:
-- Enrich top 10 from San Francisco
-- Enrich top 10 from New York
-- Enrich top 10 from Austin
+After review, Parallel Batch 2 (enrich top 10 from each using cache_key + query_cache to filter):
+execute("linkedin", "user", "get", {"user": "<sf_prospect>"})
+execute("linkedin", "user", "get", {"user": "<ny_prospect>"})
+execute("linkedin", "user", "get", {"user": "<austin_prospect>"})
 ```
+
+**Pagination**: When a search returns `next_offset`, use `get_page(cache_key, next_offset, limit)` to load more results without re-executing.
 
 ## Qualification Frameworks
 
@@ -246,7 +257,7 @@ After review, Parallel Batch 2:
 ```
 Check:
 - Employee count (proxy for budget)
-- Recent funding rounds (via YC or company posts)
+- Recent funding rounds (via YC data: execute("yc", "search", "search", {"query": ...}))
 - Company description for "Enterprise" or "SMB"
 ```
 
@@ -262,8 +273,8 @@ Target titles:
 **Need** - Problem awareness
 ```
 Research:
-- LinkedIn posts about challenges
-- Job postings for relevant roles
+- LinkedIn posts about challenges (execute("linkedin", "post", "search_posts", {"query": ...}))
+- Job postings for relevant roles (execute("linkedin", "job_search", "search_jobs", {...}))
 - Company growth signals
 - Industry trends
 ```
@@ -284,7 +295,7 @@ Indicators:
 **Situation** - Current state analysis
 ```
 Research company:
-- Recent news and LinkedIn posts
+- Recent news and LinkedIn posts (execute("linkedin", "post", "get_user_posts", {"user": ...}))
 - Company growth trajectory
 - Team expansion signals
 - Technology stack (from jobs)
@@ -336,13 +347,15 @@ Identify:
 - **40-59**: Qualified
 - **<40**: Nurture or discard
 
+Use `query_cache()` to filter and sort by score after enrichment.
+
 ## Personalization Research
 
 ### Profile Intelligence
 
 **Work History**:
 ```
-get_linkedin_profile + with_experience: true
+execute("linkedin", "user", "get", {"user": "<username>", "with_experience": true})
 
 Extract:
 - Career progression (promotions, moves)
@@ -353,7 +366,7 @@ Extract:
 
 **Education**:
 ```
-get_linkedin_profile + with_education: true
+execute("linkedin", "user", "get", {"user": "<username>", "with_education": true})
 
 Look for:
 - Alma mater (school connections)
@@ -364,7 +377,7 @@ Look for:
 
 **Skills & Expertise**:
 ```
-get_linkedin_user_skills
+execute("linkedin", "user", "get", {"user": "<username>", "with_skills": true})
 
 Identify:
 - Technical skills (for product fit)
@@ -377,7 +390,7 @@ Identify:
 
 **Company Profile**:
 ```
-get_linkedin_company
+execute("linkedin", "company", "get", {"company": "<company>"})
 
 Analyze:
 - Company description (positioning)
@@ -388,7 +401,7 @@ Analyze:
 
 **Recent Activity**:
 ```
-get_linkedin_company_posts
+execute("linkedin", "post", "get_user_posts", {"user": "<company_page>"})
 
 Review:
 - Announcement posts (expansion, funding, hiring)
@@ -399,7 +412,7 @@ Review:
 
 **Team Growth**:
 ```
-get_linkedin_company_employee_stats
+discover("linkedin", "company") -> find employee stats endpoint -> execute(...)
 
 Track:
 - Hiring velocity (growth rate)
@@ -440,29 +453,24 @@ Track:
 
 **Method 1**: Direct Email Finding
 ```
-find_linkedin_user_email(email="prospect@company.com")
+execute("linkedin", "email", "find", {"user": "<prospect_username>"})
 ```
 
-**Method 2**: Database Lookup
+**Method 2**: Contact Info from Profile
 ```
-get_linkedin_user_email_db(profile="linkedin.com/in/prospect")
-```
-
-**Method 3**: Contact Info Section
-```
-get_linkedin_profile(user, with_experience=true)
-→ Check profile for contact info section
-→ May include email, phone, website
+execute("linkedin", "user", "get", {"user": "<username>", "with_experience": true})
+-> Check profile for contact info section
+-> May include email, phone, website
 ```
 
 ### Website Email Extraction
 
 **Contact Page Pattern**:
 ```
-parse_webpage(
-  url="https://company.com/contact",
-  extract_contacts=true
-)
+execute("webparser", "parse", "parse", {
+  "url": "https://company.com/contact",
+  "extract_contacts": true
+})
 
 Common contact pages:
 - /contact
@@ -474,10 +482,10 @@ Common contact pages:
 
 **Team/About Page Pattern**:
 ```
-parse_webpage(
-  url="https://company.com/about/team",
-  extract_contacts=true
-)
+execute("webparser", "parse", "parse", {
+  "url": "https://company.com/about/team",
+  "extract_contacts": true
+})
 
 Common team pages:
 - /team
@@ -491,13 +499,13 @@ Common team pages:
 **Sitemap Discovery**:
 ```
 Step 1: Get sitemap
-get_sitemap(url="https://company.com", count=100)
+discover("webparser", "parse") -> find sitemap endpoint -> execute(...)
 
 Step 2: Filter for contact-related pages
-→ Look for: contact, team, about, leadership, people
+-> Look for: contact, team, about, leadership, people
 
 Step 3: Parse identified pages
-parse_webpage(url, extract_contacts=true) for each page
+execute("webparser", "parse", "parse", {"url": "<page_url>", "extract_contacts": true}) for each page
 ```
 
 ### Email Pattern Guessing
@@ -551,14 +559,14 @@ janes@techcorp.com
 ```
 Target: TechCorp
 
-search_linkedin_users(company_keywords="TechCorp", title="CTO")
-→ Economic Buyer: John Smith, CTO
+execute("linkedin", "search", "search_users", {"company_keywords": "TechCorp", "title": "CTO"})
+-> Economic Buyer: John Smith, CTO
 
-search_linkedin_users(company_keywords="TechCorp", title="VP Engineering")
-→ Decision Maker: Jane Doe, VP Engineering
+execute("linkedin", "search", "search_users", {"company_keywords": "TechCorp", "title": "VP Engineering"})
+-> Decision Maker: Jane Doe, VP Engineering
 
-search_linkedin_users(company_keywords="TechCorp", title="Director")
-→ Influencer: Bob Johnson, Director of Platform
+execute("linkedin", "search", "search_users", {"company_keywords": "TechCorp", "title": "Director"})
+-> Influencer: Bob Johnson, Director of Platform
 
 Outreach sequence:
 Day 1: Contact Jane (VP) - decision maker
@@ -579,8 +587,8 @@ Characteristics:
 
 **Research Workflow**:
 ```
-1. get_linkedin_profile(champion)
-2. get_linkedin_user_posts(champion, count=20)
+1. execute("linkedin", "user", "get", {"user": "<champion>"})
+2. execute("linkedin", "post", "get_user_posts", {"user": "<champion>", "count": 20})
 3. Analyze:
    - Topics they care about
    - Problems they discuss
@@ -613,7 +621,7 @@ San Francisco,Software,201-500,LinkedIn,85,Active on LinkedIn
 ```
 
 **Import Process**:
-1. Export prospects as CSV
+1. Export prospects via `export_data(cache_key, "csv")`
 2. Map CSV columns to Salesforce fields
 3. Import via Data Loader or manual import
 4. Assign to sales reps
@@ -634,8 +642,8 @@ techcorp.com,TechCorp,Computer Software,350,linkedin.com/company/techcorp
 ```
 
 **Import Process**:
-1. Export contacts CSV
-2. Export companies CSV (from LinkedIn company data)
+1. Export contacts via `export_data(cache_key, "csv")`
+2. Export companies CSV (from LinkedIn company data cache)
 3. Import companies first
 4. Import contacts (will associate with companies)
 5. Create workflows for engagement
@@ -656,7 +664,7 @@ jane@tech.com,Jane,Smith,VP Sales,TechCorp,linkedin.com/in/janesmith,Personaliza
 **Sequence Setup**:
 1. Import prospects with variables
 2. Create email templates using {{Custom1}}, {{Custom2}}, etc.
-3. Set up multi-touch sequence (Email → Wait → LinkedIn → Wait → Call)
+3. Set up multi-touch sequence (Email -> Wait -> LinkedIn -> Wait -> Call)
 4. Track engagement and replies
 
 ## Compliance & Best Practices

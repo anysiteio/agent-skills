@@ -117,14 +117,25 @@ Replace each old tool call using this mapping:
 
 If the input references a tool name **not in the mapping above**:
 
-1. Try to infer the source and category from the tool name
-2. Add a `discover()` call before the `execute()`:
-   ```
-   Use discover("{source}", "{category}") to find available endpoints and params.
-   Then use execute("{source}", "{category}", "{endpoint}", {params}).
-   ```
+1. Try to infer the source and category from the tool name (e.g., `get_instagram_user_friendships` → source `"instagram"`, category `"user"` or `"friendship"`)
+2. **IMPORTANT: Actually call `discover()` yourself right now** — do NOT leave placeholder `{endpoint}` in the migrated output. Run `discover("{source}", "{category}")` via the MCP tool to get the real endpoint names and parameter schemas.
+3. If the first category guess returns "Category not found", try alternative categories (e.g., if `"friendship"` fails, try `"user"` — the endpoint may be nested under a different category)
+4. Once you get the real endpoint list from `discover()`, use the exact endpoint name and params in the migrated `execute()` call
 
-**Important:** Only add `discover()` when the exact endpoint or params are unknown. If the mapping above covers it, use `execute()` directly — no discover needed.
+**Example — resolving an unknown tool:**
+```
+Old tool: get_instagram_user_friendships(user, type, count)
+→ Not in mapping table
+→ You call: discover("instagram", "friendship") → error "Category not found"
+→ You call: discover("instagram", "user") → returns endpoints including "user_friendships"
+→ Migrated: execute("instagram", "user", "user_friendships", {"user": "...", "count": 100, "type": "followers"})
+```
+
+**Rules:**
+- NEVER leave `discover()` as a placeholder instruction in the final migrated skill. The migrated output must contain exact `execute()` calls with real endpoint names and params.
+- Only include `discover()` in the migrated skill text if the skill's workflow genuinely needs runtime discovery (e.g., the skill works with user-specified sources where the endpoint can't be known at migration time).
+- If the mapping above covers the tool, use `execute()` directly — no discover needed.
+- Run discover for ALL sources and categories used by the skill to verify that endpoint names and params in the mapping table are still accurate.
 
 ### Step 5: Add v2 Capabilities
 

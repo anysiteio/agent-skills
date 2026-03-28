@@ -19,16 +19,33 @@ The anysite Competitor Intelligence skill helps you:
 
 This skill provides 90% coverage of competitive intelligence capabilities with excellent LinkedIn and social media monitoring.
 
+## v2 Tool Interface
+
+All data fetching uses the universal `execute()` meta-tool:
+
+```
+execute(source, category, endpoint, params) → returns data + cache_key
+```
+
+After fetching, use these for analysis and export:
+- `get_page(cache_key, offset, limit)` — paginate through large result sets
+- `query_cache(cache_key, conditions, sort_by, aggregate, group_by)` — filter/sort/aggregate cached data without re-fetching
+- `export_data(cache_key, format)` — export to CSV, JSON, or JSONL for sharing
+
+Always call `discover(source, category)` first if unsure about endpoint names or params.
+
+**Error handling**: Check response for `llm_hint` field on errors — it provides actionable guidance (e.g., "Likely passed fsd_company URN instead of company: prefix").
+
 ## Supported Platforms
 
-- ✅ **LinkedIn** (Primary): Company pages, employee search, post monitoring, job listings, growth tracking
-- ✅ **Y Combinator**: Startup competitor research, funding data, batch analysis
-- ✅ **Twitter/X**: Social presence monitoring, content strategy, engagement analysis
-- ✅ **Reddit**: Community sentiment, product discussions, competitor mentions
-- ✅ **Instagram**: Brand presence, visual content strategy, influencer partnerships
-- ✅ **YouTube**: Video content, channel growth, community engagement
-- ✅ **Web Scraping**: Company websites, press releases, blog content
-- ✅ **SEC**: Public company filings for competitors
+- **LinkedIn** (Primary): Company pages, employee search, post monitoring, job listings, growth tracking
+- **Y Combinator**: Startup competitor research, funding data, batch analysis
+- **Twitter/X**: Social presence monitoring, content strategy, engagement analysis
+- **Reddit**: Community sentiment, product discussions, competitor mentions
+- **Instagram**: Brand presence, visual content strategy, influencer partnerships
+- **YouTube**: Video content, channel growth, community engagement
+- **Web Scraping**: Company websites, press releases, blog content
+- **SEC**: Public company filings for competitors
 
 ## Quick Start
 
@@ -36,12 +53,12 @@ This skill provides 90% coverage of competitive intelligence capabilities with e
 
 Choose your competitor identification method:
 
-| Goal | Primary Tool | Output |
-|------|-------------|--------|
-| Find similar companies | `search_linkedin_companies` | Company list with metrics |
-| Research startup competitors | `search_yc_companies` | YC startups by industry/batch |
-| Discover by employee search | `search_linkedin_users` → companies | Companies from employee profiles |
-| Find by keywords/industry | `search_linkedin_companies` + keywords | Filtered company list |
+| Goal | v2 Call | Output |
+|------|---------|--------|
+| Find similar companies | `execute("linkedin", "search", "search_companies", {"keywords": "...", "count": 50})` | Company list with metrics |
+| Research startup competitors | `execute("yc", "search", "search_companies", {"query": "...", "count": 50})` | YC startups by industry/batch |
+| Discover by employee search | `execute("linkedin", "search", "search_users", {...})` → extract companies | Companies from employee profiles |
+| Find by keywords/industry | `execute("linkedin", "search", "search_companies", {"keywords": "...", "industry": "...", "count": 50})` | Filtered company list |
 
 ### Step 2: Gather Competitive Intelligence
 
@@ -49,37 +66,38 @@ Execute MCP tools to collect competitor data:
 
 **Company Profile Analysis**
 ```
-Tool: mcp__anysite__get_linkedin_company
-Parameters:
-- company: "competitor-name" or LinkedIn URL
-Returns: Description, size, location, website, specialties
+execute("linkedin", "company", "company", {"company": "competitor-name"})
+→ Returns: Description, size, location, website, specialties, URN
 ```
 
 **Employee Intelligence**
 ```
-Tool: mcp__anysite__search_linkedin_users
-Parameters:
-- company_keywords: "Competitor Inc"
-- title: "VP OR Director OR Head" (for leadership)
-- count: 50
-Returns: Key employees, org structure insights
+execute("linkedin", "search", "search_users", {
+  "company_keywords": "Competitor Inc",
+  "title": "VP OR Director OR Head",
+  "count": 50
+})
+→ Returns: Key employees, org structure insights
+→ Use get_page(cache_key, 10, 50) to load more results
 ```
 
 **Hiring Velocity Analysis**
 ```
-Tool: mcp__anysite__get_linkedin_company_employee_stats
-Parameters:
-- urn: <company URN from search>
-Returns: Growth metrics, department distribution
+execute("linkedin", "company", "company_employee_stats", {
+  "urn": {"type": "company", "value": "<company_id>"}
+})
+→ Returns: Growth metrics, department distribution
+→ Use query_cache(cache_key, sort_by=[{"field": "count", "order": "desc"}]) to rank departments
 ```
 
 **Content Strategy**
 ```
-Tool: mcp__anysite__get_linkedin_company_posts
-Parameters:
-- urn: <company URN>
-- count: 20
-Returns: Recent posts, engagement, messaging themes
+execute("linkedin", "company", "company_posts", {
+  "urn": {"type": "company", "value": "<company_id>"},
+  "count": 20
+})
+→ Returns: Recent posts, engagement, messaging themes
+→ Use query_cache(cache_key, aggregate=[{"field": "reactions", "function": "avg"}]) for engagement stats
 ```
 
 ### Step 3: Process and Analyze
@@ -90,11 +108,16 @@ Analyze gathered data for:
 - **Market positioning**: Messaging, target audience, value props
 - **Competitive threats**: New products, partnerships, key hires
 
+Use `query_cache()` to filter and aggregate without re-fetching:
+```
+query_cache(cache_key, conditions=[{"field": "department", "operator": "contains", "value": "Engineering"}])
+```
+
 ### Step 4: Format Output
 
 **Chat Summary**: Competitive insights with key findings
-**CSV Export**: Competitor comparison matrix
-**JSON Export**: Complete data for tracking over time
+**CSV Export**: `export_data(cache_key, "csv")` → Competitor comparison matrix
+**JSON Export**: `export_data(cache_key, "json")` → Complete data for tracking over time
 
 ## Common Workflows
 
@@ -106,54 +129,67 @@ Analyze gathered data for:
 
 1. **Company Overview**
 ```
-get_linkedin_company("competitor")
+execute("linkedin", "company", "company", {"company": "competitor"})
 → Size, industry, description, website, founding year
+→ Save the URN (convert fsd_company to company: prefix for sub-endpoints)
 ```
 
 2. **Leadership Team**
 ```
-search_linkedin_users(
-  company_keywords="Competitor Inc",
-  title="C-level OR VP OR SVP OR President"
-)
+execute("linkedin", "search", "search_users", {
+  "company_keywords": "Competitor Inc",
+  "title": "C-level OR VP OR SVP OR President",
+  "count": 50
+})
 → C-suite and VP-level executives
+→ Use get_page(cache_key, 10, 50) for more results
 ```
 
 3. **Organizational Structure**
 ```
-get_linkedin_company_employee_stats(urn)
+execute("linkedin", "company", "company_employee_stats", {
+  "urn": {"type": "company", "value": "<company_id>"}
+})
 → Total employees, growth rate, department breakdown
 
 For each department:
-  search_linkedin_users(company_keywords, title=<department_title>)
+  execute("linkedin", "search", "search_users", {
+    "company_keywords": "Competitor Inc",
+    "title": "<department_title>",
+    "count": 50
+  })
 → Team sizes, key roles
 ```
 
 4. **Hiring Intelligence**
 ```
-search_linkedin_jobs(keywords="Competitor Inc")
+execute("linkedin", "search", "search_jobs", {"keywords": "Competitor Inc", "count": 50})
 → Open positions, hiring priorities, expansion areas
+→ Use query_cache(cache_key, group_by="location") to see geographic expansion
 ```
 
 5. **Content Strategy**
 ```
-get_linkedin_company_posts(urn, count=50)
+execute("linkedin", "company", "company_posts", {
+  "urn": {"type": "company", "value": "<company_id>"},
+  "count": 50
+})
 → Posting frequency, themes, engagement levels
 
-get_twitter_user("competitor")
-get_twitter_user_posts("competitor", count=50)
+execute("twitter", "user", "user", {"user": "competitor"})
+execute("twitter", "user", "user_posts", {"user": "competitor", "count": 50})
 → Social media presence and strategy
 ```
 
 6. **Product/Market Intelligence**
 ```
-parse_webpage("https://competitor.com")
+execute("webparser", "parse", "parse", {"url": "https://competitor.com"})
 → Positioning, messaging, product offerings
 
-parse_webpage("https://competitor.com/blog")
+execute("webparser", "parse", "parse", {"url": "https://competitor.com/blog"})
 → Content topics, thought leadership
 
-search_reddit_posts(query="Competitor Inc", count=20)
+execute("reddit", "search", "search_posts", {"query": "Competitor Inc", "count": 20})
 → Customer sentiment, product feedback
 ```
 
@@ -164,6 +200,7 @@ search_reddit_posts(query="Competitor Inc", count=20)
 - Content strategy analysis
 - Product positioning insights
 - Customer sentiment summary
+- Use `export_data(cache_key, "csv")` to create downloadable competitor report
 
 ### Workflow 2: Competitive Landscape Mapping
 
@@ -173,18 +210,18 @@ search_reddit_posts(query="Competitor Inc", count=20)
 
 1. **Identify Competitors**
 ```
-search_linkedin_companies(
-  keywords="<your industry keywords>",
-  industry="<industry>",
-  employee_count=["51-200", "201-500", "501-1000"],
-  count=50
-)
+execute("linkedin", "search", "search_companies", {
+  "keywords": "<your industry keywords>",
+  "industry": "<industry>",
+  "employee_count": ["51-200", "201-500", "501-1000"],
+  "count": 50
+})
 ```
 
 2. **Filter and Prioritize**
 ```
 For each company:
-  get_linkedin_company(company)
+  execute("linkedin", "company", "company", {"company": "<alias>"})
   → Review description for relevance
   → Check employee count and growth
   → Verify competitive overlap
@@ -200,28 +237,35 @@ Potential: Adjacent space, could expand
 4. **Size and Growth Metrics**
 ```
 For each competitor:
-  get_linkedin_company_employee_stats(urn)
+  execute("linkedin", "company", "company_employee_stats", {
+    "urn": {"type": "company", "value": "<company_id>"}
+  })
   → Employee count, growth rate
   → Department distribution
+  → Use query_cache() to compare across competitors
 ```
 
 5. **Positioning Analysis**
 ```
 For each competitor:
-  get_linkedin_company_posts(urn, count=10)
+  execute("linkedin", "company", "company_posts", {
+    "urn": {"type": "company", "value": "<company_id>"},
+    "count": 10
+  })
   → Key messaging themes
 
-  parse_webpage(website + "/about")
+  execute("webparser", "parse", "parse", {"url": "<website>/about"})
   → Value proposition, target market
 ```
 
 6. **Funding and Traction** (for startups)
 ```
-search_yc_companies(query="<industry>")
+execute("yc", "search", "search_companies", {"query": "<industry>", "count": 50})
 → YC competitors with funding data
+→ Use query_cache(cache_key, sort_by=[{"field": "team_size", "order": "desc"}]) to rank by size
 
 For each YC company:
-  get_yc_company(company)
+  execute("yc", "company", "get", {"slug": "<company_slug>"})
   → Batch, team size, description
 ```
 
@@ -231,6 +275,7 @@ For each YC company:
 - Size and growth metrics for each
 - Positioning and messaging summaries
 - Competitive landscape map
+- Use `export_data(cache_key, "csv")` for the full comparison matrix
 
 ### Workflow 3: Hiring Velocity Tracking
 
@@ -240,15 +285,18 @@ For each YC company:
 
 1. **Baseline Employee Count**
 ```
-get_linkedin_company_employee_stats(competitor_urn)
+execute("linkedin", "company", "company_employee_stats", {
+  "urn": {"type": "company", "value": "<company_id>"}
+})
 → Current total employees
 → Department distribution
 ```
 
 2. **Track Open Positions**
 ```
-search_linkedin_jobs(keywords="Competitor Inc")
+execute("linkedin", "search", "search_jobs", {"keywords": "Competitor Inc", "count": 100})
 → All open positions
+→ Use query_cache(cache_key, group_by="location") to group by office
 
 Group by department:
 - Engineering roles
@@ -259,14 +307,18 @@ Group by department:
 
 3. **Analyze Recent Hires**
 ```
-search_linkedin_users(
-  company_keywords="Competitor Inc",
-  count=100
-)
+execute("linkedin", "search", "search_users", {
+  "company_keywords": "Competitor Inc",
+  "count": 100
+})
 → Get all employees
+→ Use get_page(cache_key, 10, 100) to paginate through full list
 
 Filter for recent joins:
-get_linkedin_user_experience(urn)
+execute("linkedin", "user", "user_experience", {
+  "urn": {"type": "fsd_profile", "value": "<profile_id>"},
+  "count": 5
+})
 → Start date at current company
 → Identify hires from last 3-6 months
 ```
@@ -274,7 +326,7 @@ get_linkedin_user_experience(urn)
 4. **Track Key Departures**
 ```
 For former employees:
-search_linkedin_users(keywords="Competitor Inc")
+execute("linkedin", "search", "search_users", {"keywords": "Competitor Inc", "count": 50})
 → Filter profiles showing "Former" or past employment
 
 Identify:
@@ -289,6 +341,7 @@ Identify where competitors hire from:
 - For each new hire: get previous companies
 - Track talent pipelines
 - Identify poaching patterns
+→ Use export_data(cache_key, "csv") to build a hiring tracker spreadsheet
 ```
 
 **Expected Output**:
@@ -306,7 +359,11 @@ Identify where competitors hire from:
 
 1. **LinkedIn Content**
 ```
-get_linkedin_company_posts(urn, count=50)
+execute("linkedin", "company", "company_posts", {
+  "urn": {"type": "company", "value": "<company_id>"},
+  "count": 50
+})
+→ Use query_cache(cache_key, aggregate=[{"field": "comment_count", "function": "avg"}]) for engagement stats
 
 Analyze:
 - Posting frequency (posts/week)
@@ -318,8 +375,8 @@ Analyze:
 
 2. **Twitter/X Content**
 ```
-get_twitter_user("competitor")
-get_twitter_user_posts("competitor", count=100)
+execute("twitter", "user", "user", {"user": "competitor"})
+execute("twitter", "user", "user_posts", {"user": "competitor", "count": 100})
 
 Analyze:
 - Tweet frequency
@@ -331,10 +388,10 @@ Analyze:
 
 3. **YouTube Content**
 ```
-get_youtube_channel_videos("competitor", count=30)
+execute("youtube", "channel", "channel_videos", {"channel": "competitor", "count": 30})
 
 For each video:
-  get_youtube_video(video_id)
+  execute("youtube", "video", "video", {"video": "<video_id>"})
 
 Analyze:
 - Upload frequency
@@ -342,12 +399,13 @@ Analyze:
 - Engagement (likes, comments)
 - Content types (demos, webinars, customer stories)
 - Video length and production quality
+→ Use query_cache(cache_key, sort_by=[{"field": "view_count", "order": "desc"}]) to find top videos
 ```
 
 4. **Instagram Content** (if B2C)
 ```
-get_instagram_user("competitor")
-get_instagram_user_posts("competitor", count=50)
+execute("instagram", "user", "user", {"user": "competitor"})
+execute("instagram", "user", "user_posts", {"user": "competitor", "count": 50})
 
 Analyze:
 - Post frequency
@@ -359,8 +417,8 @@ Analyze:
 
 5. **Blog/Website Content**
 ```
-parse_webpage("https://competitor.com/blog")
-get_sitemap("https://competitor.com")
+execute("webparser", "parse", "parse", {"url": "https://competitor.com/blog"})
+execute("webparser", "sitemap", "sitemap", {"url": "https://competitor.com"})
 → Find all blog posts
 
 Analyze:
@@ -372,14 +430,15 @@ Analyze:
 
 6. **Community Sentiment**
 ```
-search_reddit_posts(query="Competitor Inc", count=50)
-search_reddit_posts(query="competitor product name", count=50)
+execute("reddit", "search", "search_posts", {"query": "Competitor Inc", "count": 50})
+execute("reddit", "search", "search_posts", {"query": "competitor product name", "count": 50})
 
 Analyze:
 - Customer feedback
 - Common complaints
 - Product strengths
 - Feature requests
+→ Use query_cache(cache_key, sort_by=[{"field": "comment_count", "order": "desc"}]) to find most-discussed threads
 ```
 
 **Expected Output**:
@@ -388,90 +447,107 @@ Analyze:
 - Content themes and messaging
 - Platform prioritization insights
 - Community sentiment summary
+- Use `export_data(cache_key, "csv")` for cross-platform content comparison
 
-## MCP Tools Reference
+## MCP Tools Reference (v2)
 
 ### LinkedIn Company Intelligence
 
-**search_linkedin_companies**
-- Search for companies by keywords, location, industry, size
-- Returns: Company list with basic info and URNs
-
-**get_linkedin_company**
+**Company Profile** — `execute("linkedin", "company", "company", {"company": "..."})`
 - Get detailed company profile
-- Returns: Description, website, size, industry, specialties
+- Returns: Description, website, size, industry, specialties, URN
 
-**get_linkedin_company_employee_stats**
+**Employee Stats** — `execute("linkedin", "company", "company_employee_stats", {"urn": {"type": "company", "value": "..."}})`
 - Get employee statistics and growth
 - Returns: Total employees, growth metrics, department distribution
+- Note: URN must use `company:` prefix (not `fsd_company`). Convert: `urn:li:fsd_company:1441` → `company:1441`
 
-**get_linkedin_company_posts**
+**Company Posts** — `execute("linkedin", "company", "company_posts", {"urn": {"type": "company", "value": "..."}, "count": N})`
 - Get recent company posts
 - Returns: Posts with engagement metrics, content, timestamps
 
 ### LinkedIn People Intelligence
 
-**search_linkedin_users**
+**Search Users** — `execute("linkedin", "search", "search_users", {"company_keywords": "...", "title": "...", "count": N})`
 - Find employees at competitor companies
 - Filter by title, department, location
 - Returns: Employee profiles with titles and URLs
 
-**get_linkedin_profile**
+**User Profile** — `execute("linkedin", "user", "user", {"user": "..."})`
 - Get detailed employee profile
 - Returns: Work history, education, skills
 
-**get_linkedin_user_experience**
+**User Experience** — `execute("linkedin", "user", "user_experience", {"urn": {"type": "fsd_profile", "value": "..."}, "count": N})`
 - Get detailed work history
 - Returns: All positions with dates and descriptions
 
+### LinkedIn Jobs
+
+**Search Jobs** — `execute("linkedin", "search", "search_jobs", {"keywords": "...", "count": N})`
+- Search job listings by keywords, location, and filters
+- Returns: Open positions with company, location, work type
+
 ### Y Combinator Intelligence
 
-**search_yc_companies**
+**Search Companies** — `execute("yc", "search", "search_companies", {"query": "...", "count": N})`
 - Search YC companies by industry, batch, filters
 - Returns: Company list with batch, team size, status
 
-**get_yc_company**
+**Company Details** — `execute("yc", "company", "get", {"slug": "..."})`
 - Get detailed YC company profile
 - Returns: Description, founders, batch, status, links
 
-**search_yc_founders**
+**Search Founders** — `execute("yc", "search", "search_founders", {"query": "...", "count": N})`
 - Search for founders by criteria
 - Returns: Founder profiles with company associations
 
 ### Social Media Monitoring
 
 **Twitter/X**:
-- `search_twitter_posts` - Find competitor mentions
-- `get_twitter_user` - Get competitor profile
-- `get_twitter_user_posts` - Get recent tweets
+- `execute("twitter", "search", "search_posts", {"query": "...", "count": N})` — Find competitor mentions
+- `execute("twitter", "user", "user", {"user": "..."})` — Get competitor profile
+- `execute("twitter", "user", "user_posts", {"user": "...", "count": N})` — Get recent tweets
 
 **Instagram**:
-- `search_instagram_posts` - Find hashtag/keyword mentions
-- `get_instagram_user` - Get profile stats
-- `get_instagram_user_posts` - Get recent posts
+- `execute("instagram", "search", "search_posts", {"query": "...", "count": N})` — Find hashtag/keyword mentions
+- `execute("instagram", "user", "user", {"user": "..."})` — Get profile stats
+- `execute("instagram", "user", "user_posts", {"user": "...", "count": N})` — Get recent posts
 
 **Reddit**:
-- `search_reddit_posts` - Find discussions about competitors
-- `get_reddit_post` - Get post details and sentiment
+- `execute("reddit", "search", "search_posts", {"query": "...", "count": N})` — Find discussions about competitors
+- `execute("reddit", "posts", "posts", {"post_url": "..."})` — Get post details and sentiment
 
 **YouTube**:
-- `search_youtube_videos` - Find competitor videos
-- `get_youtube_channel_videos` - Get all channel videos
-- `get_youtube_video` - Get video details and metrics
+- `execute("youtube", "search", "search_videos", {"query": "...", "count": N})` — Find competitor videos
+- `execute("youtube", "channel", "channel_videos", {"channel": "...", "count": N})` — Get all channel videos
+- `execute("youtube", "video", "video", {"video": "..."})` — Get video details and metrics
 
 ### Web Intelligence
 
-**parse_webpage**
+**Parse Webpage** — `execute("webparser", "parse", "parse", {"url": "..."})`
 - Extract content from competitor websites
 - Returns: Text content, links, contacts
 
-**get_sitemap**
+**Sitemap** — `execute("webparser", "sitemap", "sitemap", {"url": "..."})`
 - Get all pages on competitor site
 - Returns: URL list for comprehensive analysis
 
-**duckduckgo_search**
+**Web Search** — `execute("duckduckgo", "search", "search", {"query": "..."})`
 - Search for competitor mentions across the web
 - Returns: Search results with URLs and descriptions
+
+### Data Analysis Tools (use with any cache_key from execute)
+
+**Pagination** — `get_page(cache_key, offset, limit)`
+- Load more results beyond first page when `next_offset` is returned
+
+**Filter/Aggregate** — `query_cache(cache_key, conditions, sort_by, aggregate, group_by)`
+- Filter, sort, aggregate cached data without new API calls
+- Example: `query_cache(cache_key, sort_by=[{"field": "employee_count", "order": "desc"}])`
+
+**Export** — `export_data(cache_key, format)`
+- Export to "csv", "json", or "jsonl"
+- Returns downloadable URL
 
 ## Output Formats
 
@@ -486,7 +562,7 @@ Provides competitive intelligence highlights:
 
 ### CSV Export
 
-Competitor comparison matrix with:
+Use `export_data(cache_key, "csv")` for competitor comparison matrix with:
 - Company name, size, location
 - Employee count and growth rate
 - Posting frequency and engagement
@@ -495,7 +571,7 @@ Competitor comparison matrix with:
 
 ### JSON Export
 
-Complete competitive data for:
+Use `export_data(cache_key, "json")` for complete competitive data for:
 - Time-series tracking
 - Dashboard visualization
 - Automated monitoring
@@ -571,11 +647,11 @@ Track deals against specific competitors:
 **Intelligence Gathering**:
 ```
 For each competitor in win/loss:
-1. get_linkedin_company → Current positioning
-2. parse_webpage(website + "/pricing") → Pricing strategy
-3. parse_webpage(website + "/features") → Feature set
-4. search_reddit_posts(competitor) → Customer feedback
-5. get_linkedin_company_posts → Recent messaging
+1. execute("linkedin", "company", "company", {"company": "..."}) → Current positioning
+2. execute("webparser", "parse", "parse", {"url": "<website>/pricing"}) → Pricing strategy
+3. execute("webparser", "parse", "parse", {"url": "<website>/features"}) → Feature set
+4. execute("reddit", "search", "search_posts", {"query": "competitor", "count": 20}) → Customer feedback
+5. execute("linkedin", "company", "company_posts", {"urn": {"type": "company", "value": "..."}, "count": 10}) → Recent messaging
 ```
 
 **Analysis**:
@@ -620,6 +696,7 @@ Excellent coverage through:
 - Search for employees and extract company
 - Check if using DBA vs. legal name
 - Try website domain search
+- Error `412` means not found — check the `llm_hint` in the response for guidance
 
 ### Issue: Limited Employee Data
 
@@ -636,6 +713,14 @@ Excellent coverage through:
 - Check Twitter/Instagram instead
 - Use website blog for content analysis
 - Focus on employee posts mentioning company
+
+### Issue: URN Format Errors (422)
+
+**Solution**:
+- Company sub-endpoints require `company:` prefix, NOT `fsd_company`
+- Convert: `urn:li:fsd_company:1441` → use `{"type": "company", "value": "1441"}`
+- User sub-endpoints require `fsd_profile` URN from `/linkedin/user` response
+- Always get URNs from the parent endpoint response first
 
 ---
 
