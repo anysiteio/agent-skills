@@ -42,6 +42,9 @@
     "./skills/anysite-vc-analyst",
     "./skills/anysite-competitor-analyzer",
     "./skills/skill-audit",
-    "./skills/anysite-cli"
+    "./skills/anysite-cli",
+    "./skills/competitor-discovery",
+    "./skills/customer-pain-mining",
+    "./skills/positioning-map"
   ]
 }

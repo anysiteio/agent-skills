@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 13 professional skills for social media analysis, lead generation, market research, competitive intelligence, person intelligence, VC analysis, competitor research, security auditing, and CLI automation using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
+      "description": "Complete suite of 17 professional skills for social media analysis, lead generation, market research, competitive intelligence, competitor discovery, customer pain mining, positioning mapping, person intelligence, VC analysis, competitor research, security auditing, and CLI automation using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
       "version": "1.1.0",
       "author": {
         "name": "Anysite Skills Contributors",
@@ -144,6 +144,42 @@
       "source": "./",
       "category": "productivity",
       "skills": ["./skills/anysite-mcp-migration"]
+    },
+    {
+      "name": "competitor-discovery",
+      "description": "Find a startup's real competitors — the alternatives customers actually compare them to, not just the names on the pitch deck. Maps direct competitors, substitutes, \"doing nothing\" workarounds, and convergence threats using Anysite MCP (LinkedIn, Reddit, YouTube, Twitter, YC, SEC) and Exa MCP semantic web search. Supports top5 and landscape modes. Run before customer-pain-mining or positioning-map.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/competitor-discovery"]
+    },
+    {
+      "name": "customer-pain-mining",
+      "description": "Extract verbatim customer complaints about competitors — the exact wording a founder's product copy should steal, in customers' own words. Combines Anysite MCP (Reddit, LinkedIn, YouTube comments, Twitter) with Exa MCP semantic search for review posts and comparison articles. Returns 3–5 pain clusters with verbatim quotes plus a white-space section of unmet feature requests.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/customer-pain-mining"]
+    },
+    {
+      "name": "positioning-map",
+      "description": "Build a positioning map for 3–5 competitors and identify the empty quadrant a founder could own. Maps competitors across 5 signal axes (hero, pricing, specialities, recent shipping, hiring) using Anysite MCP (LinkedIn, SEC) and Exa MCP. Returns a comparison table, 3 candidate positioning moves with choice criteria, and a one-sentence positioning statement.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/positioning-map"]
     }
   ]
 }
