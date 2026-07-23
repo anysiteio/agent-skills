@@ -31,6 +31,7 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `competitor-discovery` | Find a startup's real competitors — the alternatives customers actually compare them to. Maps direct competitors, substitutes, workarounds, and convergence threats across LinkedIn, Reddit, YouTube, Twitter, YC, and SEC. | [SKILL.md](skills/competitor-discovery/SKILL.md) |
 | `customer-pain-mining` | Extract verbatim customer complaints about competitors for landing-page copy, custdev prep, and product strategy. Returns pain clusters with exact quotes plus a white-space section of unmet feature requests. | [SKILL.md](skills/customer-pain-mining/SKILL.md) |
 | `positioning-map` | Build a positioning map for 3–5 competitors and identify the empty quadrant to own. Maps 5 signal axes and returns a comparison table, candidate positioning moves, and a one-sentence positioning statement. | [SKILL.md](skills/positioning-map/SKILL.md) |
+| `anysite-crm-setup` | Connect the user's CRM (HubSpot) and configure safe AI enrichment: guided discovery, deterministic local field mapping, dry-run previews, fill-blank policy and undo. | [SKILL.md](skills/anysite-crm-setup/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
 ## Installation

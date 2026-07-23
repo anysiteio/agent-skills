@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 17 professional skills for social media analysis, lead generation, market research, competitive intelligence, competitor discovery, customer pain mining, positioning mapping, person intelligence, VC analysis, competitor research, security auditing, and CLI automation using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
+      "description": "Complete suite of 18 professional skills for social media analysis, lead generation, CRM enrichment setup, market research, competitive intelligence, competitor discovery, customer pain mining, positioning mapping, person intelligence, VC analysis, competitor research, security auditing, and CLI automation using anysite MCP server. Supports LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, GitHub, and web scraping. Zero configuration required - no API tokens or external tools needed.",
       "version": "1.1.0",
       "author": {
         "name": "Anysite Skills Contributors",
@@ -180,6 +180,18 @@
       "source": "./",
       "category": "productivity",
       "skills": ["./skills/positioning-map"]
+    },
+    {
+      "name": "anysite-crm-setup",
+      "description": "Connect and configure the user's CRM (HubSpot) for safe AI-driven enrichment via anysite MCP crm_* tools: guided discovery, deterministic field mapping saved as a local profile, and mandatory writing rules (dry-run previews, fill-blank policy, undo).",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./",
+      "category": "productivity",
+      "skills": ["./skills/anysite-crm-setup"]
     }
   ]
 }
