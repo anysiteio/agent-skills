@@ -45,6 +45,7 @@
     "./skills/anysite-cli",
     "./skills/competitor-discovery",
     "./skills/customer-pain-mining",
-    "./skills/positioning-map"
+    "./skills/positioning-map",
+    "./skills/anysite-crm-setup"
   ]
 }
