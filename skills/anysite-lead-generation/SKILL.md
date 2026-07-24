@@ -1,6 +1,6 @@
 ---
 name: anysite-lead-generation
-description: Lead generation and prospecting using anysite MCP server for LinkedIn prospect discovery, email finding, company research, and contact enrichment. Extract contacts from websites, find decision-makers at target companies, and build qualified prospect lists for sales, recruiting, and business development. Supports LinkedIn (primary), web scraping for contact extraction, and Instagram business discovery. Use when users need to build prospect lists, find decision-makers, extract contact information, research potential customers, or enrich existing leads with additional data.
+description: Lead generation and prospecting using anysite MCP server for LinkedIn prospect discovery, email finding, company research, and contact enrichment. Extract contacts from websites, find decision-makers at target companies, and build qualified prospect lists for sales, recruiting, and business development. Supports LinkedIn (primary), web scraping for contact extraction, and Instagram business discovery. Research and list-building only - this skill does NOT write to a CRM. For finding leads AND pushing them into a connected CRM use anysite-crm-prospect; for filling gaps in existing CRM records use anysite-crm-enrich. Use when users need to build prospect lists, find decision-makers, extract contact information, or research potential customers outside a CRM context.
 ---
 
 # anysite Lead Generation
