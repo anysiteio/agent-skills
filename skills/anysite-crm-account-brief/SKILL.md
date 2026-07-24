@@ -1,6 +1,6 @@
 ---
 name: anysite-crm-account-brief
-description: Pre-meeting intelligence brief for one account - CRM context plus fresh outside data (funding, exec changes, news, key people's recent LinkedIn activity, employer sentiment) condensed into a one-page brief with talking points. Read-only against the CRM. Use when the user asks to prep for a call/meeting/demo with a company, research an account before outreach, or "tell me everything about <account>". Works best with an active CRM connection but can run from just a company name.
+description: Pre-meeting brief for an account that lives in the connected CRM - what the CRM already knows (fields, contacts, history) merged with fresh outside data (funding, exec changes, news, key people's recent LinkedIn activity) into a one-page brief with talking points. Read-only. Use when the user preps for a call/meeting/demo with a CRM account or asks for account research in the context of their pipeline. Requires an active CRM connection - for briefs on arbitrary companies without CRM context, other research skills apply.
 ---
 
 # CRM Account Brief
@@ -28,13 +28,15 @@ an update candidate for `anysite-crm-enrich`/`anysite-crm-champions`.
 
 ### 3. What's happening now
 
-- Hiring: `linkedin/search/search_jobs {company: [urn], sort: "recent", count: 20}` —
-  what functions they're growing (that's their current priorities, use in talking points).
+- Hiring: `linkedin/search/search_jobs {company: [{"type": "company", "value": "<id>"}],
+  sort: "recent", count: 20}` (numeric id from the `fsd_company:<id>` URN) — what functions
+  they're growing (that's their current priorities, use in talking points).
 - News: crunchbase `news[]` first (already fetched); add
-  `techmeme/stories/stories_search {keyword: name}` for tech companies.
-- Employer sentiment (optional, for bigger companies): `glassdoor/companies` +
-  `companies_ratings`; `blind/companies/reviews` — morale, attrition themes. Use with care
-  in messaging — background context, never a quoted opener.
+  `techmeme/stories/stories_search {keyword: "<name>", count: 5}` for tech companies.
+- Employer sentiment (optional, for bigger companies): resolve the employer id first via
+  `glassdoor/companies/companies_search {company: "<name>", count: 1}` → then
+  `companies_ratings {company: <id>}`; `blind/companies/companies_reviews` — morale,
+  attrition themes. Use with care in messaging — background context, never a quoted opener.
 
 ### 4. The people in the room
 
@@ -44,7 +46,11 @@ execute linkedin/user/user {user: <url>}                       → role, tenure,
 execute linkedin/user/user_posts {urn, count: 10,
                                   posted_after: <90 days ago>} → what they talk about
 ```
-Posts are personalization gold: real interests, stated problems, conference activity.
+Caveat: `user` called with a URL may omit the `urn` in its response, and `user_posts`
+accepts ONLY a URN. If the urn is missing, recover it via
+`search_users {first_name, last_name, company_keywords, count: 3}` → pick the match →
+use its urn. Posts are personalization gold: real interests, stated problems, conference
+activity.
 No posts ≠ no signal — check `user_comments` for lurker activity if it matters.
 
 ### 5. The brief

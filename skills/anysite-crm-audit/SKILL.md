@@ -1,6 +1,6 @@
 ---
 name: anysite-crm-audit
-description: Read-only data quality audit of the connected CRM - field completeness per mapped property, duplicate candidates, stale records, enrichability estimate. Produces a report and a concrete fix plan (what anysite-crm-enrich could fill), never writes anything. Use when the user asks "what's the state of my CRM", wants a data quality report, duplicate check, or a safe first run after connecting a CRM. Requires an active CRM connection.
+description: Read-only data quality audit of the connected CRM - field completeness per mapped property, duplicate candidates, stale records, enrichability estimate. Produces a report and a concrete fix plan, never writes anything - run it first when you don't yet know what's broken; the actual fixing happens in anysite-crm-enrich. Use when the user asks "what's the state of my CRM", wants a data quality report, duplicate check, or a safe first run after connecting a CRM. Requires an active CRM connection.
 ---
 
 # CRM Audit

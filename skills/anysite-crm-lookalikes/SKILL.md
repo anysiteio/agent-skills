@@ -42,8 +42,13 @@ The user confirms/edits the pattern — it's their ICP, the data only proposes i
 - `execute crunchbase/db/db_search` — when stage matters (`last_funding_type`,
   `last_funding_date_after`); `crunchbase/search` live for `hiring: true` or
   `shares_investors_with: [<seed investors>]` (a strong hidden-similarity filter).
-- Niche supplements per pattern: `yc/search/companies` (early-stage), `builtin` (US tech
-  hubs), `producthunt` (product-led).
+- Niche supplements per pattern: `yc/search/search_companies` (early-stage), `builtin`
+  (US tech hubs), `producthunt` (product-led).
+
+Search wide, profile narrow: the searches themselves are cheap even at count 1000, but do
+NOT enrich every candidate — score on the fields the search already returned, and fetch
+extra evidence (crunchbase lookups etc.) only for the top ~50. State the credit estimate
+before any per-candidate enrichment.
 
 ### 4. Score and dedup
 

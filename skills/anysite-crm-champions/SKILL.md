@@ -1,6 +1,6 @@
 ---
 name: anysite-crm-champions
-description: Detect job changes among CRM contacts (champion tracking) - find contacts who moved to a new company, flag past champions at new accounts, update the CRM and propose re-engagement plays. The single highest-converting B2B signal (12-25% to meeting). Use when the user asks to track job changes, find champions who moved, check if contacts are still at their companies, or clean up outdated contact-company links. Requires an active CRM connection and contacts with linkedin_url or email.
+description: Detect job changes among CRM contacts (champion tracking) - find contacts who moved to a new company, flag past champions at new accounts, update the CRM and propose re-engagement plays. Widely considered the highest-converting B2B signal. Use specifically for job-change detection - "who changed jobs", "track champions", "are my contacts still there". For general field updates on contacts use anysite-crm-enrich instead. Requires an active CRM connection and contacts with linkedin_url or email.
 ---
 
 # CRM Champion Tracking
@@ -10,8 +10,10 @@ new company is warm pipeline. This skill finds the movers and turns them into pl
 
 ## Prerequisites
 
-Active CRM connection. Profile mapping for any writes. Contacts need `linkedin_url` or
-`email` — run `anysite-crm-enrich` first if coverage is poor.
+Active CRM connection. Profile mapping for any writes — the Writing rules in
+`anysite-crm-setup` apply, including its create policy: creating records here follows the
+profile's `allow_create`, same as in `anysite-crm-prospect`. Contacts need `linkedin_url`
+or `email` — run `anysite-crm-enrich` first if coverage is poor.
 
 ## Flow
 
@@ -57,11 +59,13 @@ dry-run and show the diff, even for small batches:
 - Update the old contact: new title/company per profile mapping (these need `overwrite` in
   the profile — job data is volatile by design).
 - New account: `crm_upsert_companies` (match by domain, `allow_create` per profile).
-- Optionally new email at the new company: `execute linkedin/user/find_email_by_url` →
-  include in the update.
-- Association: pass `associate_company_domain` so the contact links to the new company;
-  the server keeps the old association unless `overwrite_associations=true` — set it only
-  if the user confirms the contact should be re-linked.
+- New email at the new company: try `user_email`; the higher-yield `find_email_by_url` may
+  be disabled in MCP — check `discover("linkedin", "user")` before promising it. Note that
+  creating a NEW contact record requires an email; without one, update the existing record.
+- Association: pass `associate_company_domain` (or `associate_company_id` from the company
+  upsert result) so the contact links to the new company; the server keeps the old
+  association unless `overwrite_associations=true` — set it only if the user confirms the
+  contact should be re-linked.
 
 Save `run_id`s; mention `crm_undo`.
 

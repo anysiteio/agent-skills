@@ -6,13 +6,15 @@ description: Sweep CRM target accounts for buying signals - funding rounds, exec
 # CRM Signals
 
 Turn a static account list into a prioritized "act now" list. One signal is a guess; 2+
-signals within ~30 days is a pattern. Conversion benchmarks from GTM practice: job changes
-and exec hires convert 12–18% to meetings, funding 8–14%, versus 1–3% for cold cadence.
+signals within ~30 days is a pattern. Signal-triggered outreach converts several times
+better than cold cadence (vendor-reported benchmarks: exec hires and job changes lead,
+then funding) — treat the ordering as solid, the exact percentages as marketing.
 
 ## Prerequisites
 
 Active CRM connection (`crm_list_connections`). Profile optional for read-only sweeps;
-required if the user wants signal fields written back.
+required if the user wants signal fields written back — and then the Writing rules in
+`anysite-crm-setup` apply.
 
 ## Flow
 
@@ -44,9 +46,12 @@ Alias resolution is case-sensitive and costs credits — if the profile maps a
 
 **Hiring (what they're building):**
 ```
-execute linkedin/search/search_companies {keywords: "<name>", count: 1}  → company URN
-execute linkedin/search/search_jobs {company: [urn], count: 20, sort: "recent"}
+execute linkedin/search/search_companies {keywords: "<name>", count: 1}
+  → urn like "fsd_company:1441" → numeric id "1441"
+execute linkedin/search/search_jobs {company: [{"type": "company", "value": "1441"}],
+                                     count: 20, sort: "recent"}
 ```
+The `company` filter takes typed objects with the numeric id, not raw URN strings.
 Look for roles in the buyer function (e.g. RevOps/Growth/Data roles for a data product).
 
 **Mentions / social activity (optional):**
@@ -75,15 +80,17 @@ on Series B, reference the new VP Sales hire").
 If the profile maps signal fields (e.g. `last_signal_type`, `last_signal_date`,
 `signal_summary`) and the user wants them stored:
 ```
-crm_upsert_companies(records=[{record_id, properties:{...}}], allow_create=false,
+crm_upsert_companies(records=[{domain: "<domain>", properties:{...}}], allow_create=false,
                      overwrite_properties=[<signal fields — they are volatile by nature,
                      profile must mark them overwrite>], dry_run=true)
 ```
-→ confirm → write → report `run_id`.
+Company upserts match ONLY by domain — pull `domain` in step 1; accounts without one are
+report-only. → confirm → write → report `run_id`.
 
 ## Recurrence
 
 This skill is a one-shot sweep. For always-on monitoring suggest scheduling: a Claude Code
 cron / `/loop`, or an operator habit ("run signals every Monday"). Note what was swept and
-when in your report so the next run can use `posted_after` / date filters instead of
-re-reading history.
+when in your report so the next run compares against it. Post search granularity is coarse
+(`date_posted`: past-24h / past-week / past-month only) — a weekly cadence fits it best;
+funding/news items carry their own dates, filter those by date in-session.

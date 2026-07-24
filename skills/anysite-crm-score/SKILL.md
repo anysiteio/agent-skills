@@ -12,7 +12,9 @@ exactly one mapped field.
 
 Active CRM connection. Profile must map a score target field with `mode: overwrite`
 (scores are re-computed by design). Not mapped → offer to store nothing and just report,
-or send the user to re-run `/anysite-crm-setup`.
+or send the user to re-run `/anysite-crm-setup`. The Writing rules in `anysite-crm-setup`
+apply to every write. Cap a scoring run at ~50 companies and state the credit estimate
+(evidence calls × price) before fetching; more → propose tiers or a narrower list.
 
 ## Flow
 
@@ -38,7 +40,8 @@ crm_query_records(object_type="companies", ...) → record_id, name, domain, exi
   batch resolve; industry, employee_count, locations, description.
 - Stage/funding (only if the rubric needs it): `crunchbase/search` → alias →
   `crunchbase/company` (cache aliases; skip for obviously non-venture companies).
-- Hiring probe (only if in rubric): `linkedin/search/search_jobs` by company URN.
+- Hiring probe (only if in rubric): `linkedin/search/search_jobs` with
+  `company: [{"type": "company", "value": "<numeric id from fsd_company urn>"}]`.
 
 Skip any evidence source whose rubric weight is zero. State per-company data gaps —
 a company with missing data gets a confidence note, not a silently low score.
@@ -51,11 +54,13 @@ No evidence → that criterion scores 0 with an "unknown" marker, never a guesse
 ### 4. Write and report
 
 ```
-crm_upsert_companies(records=[{record_id, properties:{<score field>: <value>}}],
+crm_upsert_companies(records=[{domain: "<domain>", properties:{<score field>: <value>}}],
                      allow_create=false, overwrite_properties=[<score field>],
                      dry_run=true)  → confirm → write → run_id
 ```
-Write ONLY the score field (plus `scored_at` if mapped). Report: top-N with evidence lines,
+Company upserts match ONLY by domain — pull `domain` when querying records; companies
+without one get a score in the report but no write. Write ONLY the score field (plus
+`scored_at` if mapped). Report: top-N with evidence lines,
 distribution summary, gaps. Contacts scoring (persona fit) works the same way against
 contact records with `linkedin/user` evidence — same rubric-first discipline.
 

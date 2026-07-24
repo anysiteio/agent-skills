@@ -36,10 +36,13 @@ Page through everything in scope. Locally split records into:
 
 - Has `linkedin_url` → `execute linkedin/user/user` (full profile: title, company, location).
 - Only email → reverse lookup: `execute linkedin/email/email_sql_user` (cached, cheap) →
-  remainder via `email_user` (live). No profile found → leave record, report.
-- Needs email → cascade: `user_email` (batch ≤10) → `find_email_by_url` on the remainder.
+  remainder via `email_user` (live). Both take ONE email per call — loop, don't batch.
+  No profile found → leave record, report.
+- Needs email → `user_email` (batch ≤10 profiles, low yield — set expectations honestly).
+  A higher-yield `find_email_by_url` exists in the API but may be disabled in MCP — trust
+  `discover("linkedin", "user")`; if absent, stop at `user_email` and report coverage as-is.
 
-Batch identity resolution; re-use cache (`query_cache`) instead of re-fetching.
+Re-use cache (`query_cache`) instead of re-fetching anything twice.
 
 ### 3. Resolve companies
 
@@ -61,8 +64,10 @@ crm_upsert_contacts(records=[{record_id, properties:{<mapped fields only>}}],
 ```
 
 Show the diff (old → new, counts of fill/skip), get confirmation, re-run with
-`dry_run=false`. Same for companies via `crm_upsert_companies` (match by domain or record_id).
-Keep request batches reasonable (≤100 records per call). Save the returned `run_id`.
+`dry_run=false`. Companies go through `crm_upsert_companies`, which matches ONLY by
+`domain` — always include `domain` in the properties you pull in step 1; a company record
+without a domain is unwritable (report it, don't improvise a match). Keep request batches
+reasonable (≤100 records per call). Save the returned `run_id`.
 
 ### 5. Report
 
