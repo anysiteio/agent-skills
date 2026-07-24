@@ -104,18 +104,26 @@ that were not discussed.
 1. **Consult the profile first.** If `~/.claude/skills/anysite-crm-profile/SKILL.md` exists, its
    mapping is law: write ONLY to properties listed there, in the listed mode. If a new data type
    has no mapping, ask the user once and suggest re-running setup — do not guess.
-2. **No profile? Minimal safety.** Map only obvious standard properties; ask before writing
+2. **Creating a new contact requires email.** record_id and linkedin_url only MATCH existing
+   contacts; a record without email is skipped with `create_requires_email` when no match exists.
+   Never invent or guess emails — if no verified work email is available, report the person as
+   not imported and say why.
+3. **No profile? Minimal safety.** Map only obvious standard properties; ask before writing
    anything to a custom property; recommend running `/anysite-crm-setup`.
-3. **Dry-run before bulk.** For more than ~10 records, or any `overwrite_properties`, first call
+4. **Dry-run before bulk.** For more than ~10 records, or any `overwrite_properties`, first call
    the upsert with `dry_run=true`, show the user the old → new diff, and write only after
    confirmation.
-4. **Overwrite only per profile.** Pass a property in `overwrite_properties` only if the profile
+5. **Overwrite only per profile.** Pass a property in `overwrite_properties` only if the profile
    marks it `overwrite` (or the user explicitly asked in this session).
-5. **Enum values must come from the schema.** Check `options` before writing enum properties;
+6. **Enum values must come from the schema.** Check `options` before writing enum properties;
    the server skips invalid values with an `enum_option_missing` warning — do not retry blindly.
-6. **Report warnings honestly.** `fill_blank_skip` means the field already had a value — that is
+   When sources disagree on an enum like industry (e.g. YC vertical vs LinkedIn category), pick the
+   schema option closest to how the company describes itself and mention the choice to the user.
+   Use `crm_get_schema(object_type=..., properties=[...])` to fetch just the enum you need — the
+   unfiltered schema is very large.
+7. **Report warnings honestly.** `fill_blank_skip` means the field already had a value — that is
    the policy working, not an error. Summarize results/skipped/warnings for the user after writes.
-7. **Undo exists.** Every real write returns `run_id`. If the user is unhappy with a write,
+8. **Undo exists.** Every real write returns `run_id`. If the user is unhappy with a write,
    `crm_undo(run_id)` restores previous values (fields changed since are reported as conflicts).
 
 ## Tools reference
@@ -129,6 +137,8 @@ that were not discussed.
 | `crm_upsert_contacts` | Write contacts (match by email / record_id / linkedin_url) |
 | `crm_upsert_companies` | Write companies (match by domain) |
 | `crm_undo` | Revert a write run by run_id |
+
+Property values are strings; numbers and booleans are accepted and coerced server-side.
 
 Server-enforced regardless of anything in this skill: fill-blank by default, protected fields,
 no empty writes, create only with `allow_create`, full write log.
