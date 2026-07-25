@@ -26,12 +26,15 @@ resolve (the `website` search is substring match and can return only look-alike 
 a wrong seed poisons the whole ICP pattern downstream):
 ```
 execute linkedin/search/search_sql_companies {website: "seed1.com", count: 5}   # per seed
-# batched variant allowed, but: query_cache needs explicit limit (default 10!), and any
-# seed without an exact match must be re-queried individually
+# batched variant allowed, but: any seed without an exact match must be re-queried
+# individually. query_cache filters the WHOLE cached set; `limit` (default 10) caps only
+# how many rows come back — pass one when a batch should return more than 10 matches.
 query_cache {conditions: [{"field": "website", "op": "=", "value": "seed1.com"}], limit: 50}
 ```
-A seed with no exact website match is excluded from profiling (say so), not guessed —
-or resolved via crunchbase → contacts.linkedin_url → linkedin/company.
+A seed with no exact website match is NOT dropped yet — resolve it via the site itself
+(`webparser/parse {url, extract_minimal: true}` → top-level `title` + own linkedin.com/company
+URL in `links[]` → `linkedin/company`), or via crunchbase → `contacts.linkedin_url`. Only a
+seed that survives neither is excluded from profiling, and say which ones.
 Plus `crunchbase/company` for stage/funding on a subset (venture-relevant seeds only).
 Derive the pattern in-session and SHOW it:
 

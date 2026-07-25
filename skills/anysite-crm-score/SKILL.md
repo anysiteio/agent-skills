@@ -44,8 +44,12 @@ crm_query_records(object_type="companies", ...) → record_id, name, domain, exi
   explicit `limit` (default is 10 — a 20-domain batch needs more). Unverified match = no
   evidence, score that criterion "unknown"; a domain that never comes back exact-matched is
   resolved via `webparser/parse` on the site itself, per the same recipe.
-- Stage/funding (only if the rubric needs it): `crunchbase/search` → alias →
-  `crunchbase/company` (cache aliases; skip for obviously non-venture companies).
+- Stage/funding (only if the rubric needs it): take the alias from `crunchbase_link`, which
+  the domain-resolve above ALREADY returned — free, no lookup. Only when it is empty and the
+  company is plausibly venture-backed, fall back to the live `crunchbase/search` (20cr, fuzzy
+  — verify name+domain) → `crunchbase/company`. Skip entirely for obviously non-venture
+  companies. Note `leadership_hires[]` is unusable as an ICP criterion for SMB/startup targets
+  — measured empty on 6 of 6 live accounts, including a 281-person one.
 - Hiring probe (only if in rubric): prefer the numeric id from `organizational_urn` of the
   domain-resolve you already did → `search_jobs {company: [{"type": "company", "value":
   "<id>"}], count: 20}`. No resolve → `search_companies {keywords: name, count: 5}` +

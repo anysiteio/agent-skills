@@ -66,9 +66,11 @@ is the map: how to call them, which sources cover which GTM need, and how to not
   4) A whole class of domains never appears in its own substring results (common-token
      domains like stlabs.com) — so the website's own page is the STANDARD second step, not
      an emergency: `webparser/parse {url: "https://<domain>", extract_minimal: true}` →
-     the page title (inside `metadata`, not top-level) says who they are, `links[]` usually
-     carries their own linkedin.com/company/... URL → `linkedin/company` for the exact URN
-     (verified, ~1cr).
+     top-level `title` says who they are, `links[]` usually carries their own
+     linkedin.com/company/... URL → `linkedin/company` for the exact URN (verified, ~1cr).
+     Live shape on stlabs.com: `title: "STLabs — Intelligent Service Management"` at the TOP
+     level, while `metadata` came back `{}` and `cleaned_html` empty — read `title`, and treat
+     `metadata` as a fallback only, not the primary location.
      Secondary fallback: `crunchbase/search` by name → `contacts.linkedin_url`. Name search
      alone is never a source of truth.
   Bonus from a successful resolve: the `search_sql_companies` row already carries

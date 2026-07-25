@@ -60,13 +60,34 @@ Re-use cache (`query_cache`) instead of re-fetching anything twice.
   execute linkedin/search/search_sql_companies {website: "acme.com", count: 5}
   # batched variant: {website: "acme.com|globex.io", count: 10× domains}, then per domain:
   query_cache {conditions: [{"field": "website", "op": "=", "value": "acme.com"}],
-               limit: <fetched count>}          # limit is REQUIRED — its default is 10
+               limit: <fetched count>}
+  # query_cache filters over the WHOLE cached set; `limit` (default 10) caps only how many
+  # rows come BACK. One domain → the default is fine; a multi-domain batch → pass a limit.
   ```
   Only an exact-website match (normalized: lowercase, no protocol/www/path) counts as
-  resolved; unresolved domains are reported, never written. Gives industry, employee_count,
-  description, locations.
-- Deeper firmographics (funding, size range): `crunchbase/search` by name → alias →
-  `crunchbase/company` — only when profile maps such fields (cost-aware: 20cr each).
+  resolved. Gives industry, employee_count, description, locations.
+
+  **No exact match? Do NOT stop there** — a whole class of domains never appears in its own
+  substring results (verified: `{website: "stlabs.com", count: 5}` returns five other
+  *labs.com companies and never STLabs, a live company with a LinkedIn page). Standard second
+  step, ~1cr:
+  ```
+  execute webparser/parse {url: "https://acme.com", extract_minimal: true}
+    → top-level `title` = who they say they are
+    → links[] usually carries their own linkedin.com/company/... URL
+  execute linkedin/company {company: "<that URL>"}      # exact, no fuzzy matching
+  ```
+  Only after that fails is the domain genuinely unresolved — report it, never write.
+- Deeper firmographics (funding, size range): take the alias from `crunchbase_link`, which
+  the domain-resolve above ALREADY returned — free. Only when that field is empty and the
+  company is plausibly venture-backed, fall back to the live `crunchbase/search` by name
+  (20cr, fuzzy — verify name+domain before trusting it):
+  ```
+  # crunchbase_link: "https://www.crunchbase.com/organization/acme" → alias "acme"
+  execute crunchbase/company {company: "acme"}
+  ```
+  Only when the profile maps such fields. Normalize `contacts.email` before use — trailing
+  dots observed ("founders@reducto.ai."), and a match key with a trailing dot matches nothing.
 
 ### 4. Write back
 
