@@ -36,10 +36,14 @@ Audit scope: whole portal if small; else the working list + a stated sample. Say
 - **Duplicate candidates:** same normalized email; same domain with several company records;
   same person name + company. Candidates only — never auto-merge.
 - **Email ↔ employer mismatch:** contact's email domain vs their linked company's domain.
-  A mismatch means a stale email OR an outdated company link — both found in live testing.
-  FLAG ONLY, never auto-fix in either direction: "correcting" the company from the email
-  domain overwrites good data with stale. Hand the list to anysite-crm-champions (job-change
-  check tells which side is wrong).
+  A mismatch has THREE causes needing different handling (all seen live): the person changed
+  jobs; the COMPANY rebranded/changed domain (old domain usually still receives mail — the
+  contact is fine); or the email is genuinely stale. Free discriminator already in the data:
+  if crunchbase under the domain-derived alias returns a different company NAME than the
+  LinkedIn page of that same domain — that's a rebrand, not a departure. FLAG ONLY, never
+  auto-fix in either direction — in two causes out of three there is nothing to "fix", and
+  "correcting" the company from the email domain overwrites good data with stale. Job-change
+  suspects go to anysite-crm-champions.
 - **Staleness:** if `anysite_last_enriched_at` (or similar) is mapped — age distribution;
   contacts with no activity fields; companies with dead domains (spot-check a few via
   `webparser/parse` only if the user asks).

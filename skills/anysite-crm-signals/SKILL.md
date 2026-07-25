@@ -40,8 +40,9 @@ Run the cheap universal chain for every account; add optional probes when releva
 execute crunchbase/search {keywords: "<company name>", count: 3}   # 20cr/50 — last resort
 execute crunchbase/company {company: "<alias>"}
   → funding_rounds[] (date, type, amount, lead investors)
-  → leadership_hires[] (date, role, description) — often EMPTY for smaller companies;
-    empty ≠ "no hires", don't report it as a negative signal
+  → leadership_hires[] (date, role, description) — measured live: EMPTY on 6 of 6
+    SMB/startup accounts (incl. a 281-person, 10-year-old company; sample: US tech/AI).
+    Never build the Act-now tier on its presence for that ICP; empty ≠ "no hires"
   → news[] (title, date, publisher)
   → layoffs[]
   → bombora_surges[] (free intent bonus: topics the account's staff is researching.
@@ -91,9 +92,15 @@ records is NOT news. Without it, a funding round from three months ago gets re-a
 fresh on every sweep and the user stops trusting the report. Previously-known signals go
 into a collapsed "already reported" section, never into Act now.
 
-Then, per account, count NEW signals in the last 30/90 days, weighted by conversion value:
-exec hire in buyer function > funding round > hiring surge in relevant roles > news >
-mentions. Layoffs = negative budget signal for expansion, positive for cost-saving pitches —
+Then, per account, count NEW signals in the last 30/90 days, weighted by conversion value —
+and the weights are ICP-dependent, because signal AVAILABILITY is:
+- **SMB/startup ICP:** lead with funding rounds and job postings in the buyer function —
+  both filled on every account measured; treat `leadership_hires[]` as a bonus when present
+  (it was empty on the whole live sample), catching exec changes via job postings and
+  company_posts instead.
+- **Enterprise/press-covered ICP:** exec hire in buyer function > funding round > hiring
+  surge in relevant roles > news > mentions (appointments there do reach the press feeds
+  that fill leadership_hires). Layoffs = negative budget signal for expansion, positive for cost-saving pitches —
 interpret against the user's product.
 
 Output tiers: **Act now** (2+ fresh signals), **Watch** (1 signal), **Quiet**.
