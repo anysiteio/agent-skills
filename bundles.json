@@ -1,0 +1,19 @@
+{
+  "gtm": {
+    "description": "GTM package: CRM enrichment, signals, prospecting and account intelligence workflows for the anysite MCP + CRM integration",
+    "next_step": "Restart your agent session, then say: /anysite-crm-setup — it connects your CRM and configures field mapping.",
+    "skills": [
+      "anysite-mcp",
+      "anysite-crm-setup",
+      "anysite-crm-enrich",
+      "anysite-crm-signals",
+      "anysite-crm-champions",
+      "anysite-crm-prospect",
+      "anysite-crm-audit",
+      "anysite-crm-score",
+      "anysite-crm-competitor-intel",
+      "anysite-crm-account-brief",
+      "anysite-crm-lookalikes"
+    ]
+  }
+}
