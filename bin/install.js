@@ -30,10 +30,11 @@ const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, "package.json"), "utf
 
 const HOME = process.env.HOME || homedir();
 const CLAUDE_DIR = join(HOME, ".claude");
-const CLAUDE_SKILLS_DIR = join(CLAUDE_DIR, "skills");
 const CODEX_DIR = join(HOME, ".codex");
 const CODEX_CONFIG = join(CODEX_DIR, "config.toml");
-const MANIFEST_PATH = join(CLAUDE_SKILLS_DIR, ".anysite-skills.json");
+// Both agents use the same skills convention: <dir>/skills/<name>/SKILL.md
+const SKILLS_DST = { claude: join(CLAUDE_DIR, "skills"), codex: join(CODEX_DIR, "skills") };
+const manifestPath = (dstRoot) => join(dstRoot, ".anysite-skills.json");
 
 const MCP_NAME = "anysite";
 const MCP_URL = "https://mcp.anysite.io/mcp";
@@ -73,8 +74,8 @@ function skillDescription(name) {
   } catch { return ""; }
 }
 
-function readManifest() {
-  try { return JSON.parse(readFileSync(MANIFEST_PATH, "utf8")); } catch { return null; }
+function readManifest(dstRoot) {
+  try { return JSON.parse(readFileSync(manifestPath(dstRoot), "utf8")); } catch { return null; }
 }
 
 function detectTargets() {
@@ -91,21 +92,21 @@ function hasClaudeCli() {
 
 // ── skills install / uninstall ──────────────────────────────────────────────
 
-function installSkills(names) {
-  mkdirSync(CLAUDE_SKILLS_DIR, { recursive: true });
+function installSkills(names, dstRoot) {
+  mkdirSync(dstRoot, { recursive: true });
   const installed = [];
   const missing = [];
   for (const name of names) {
     const src = join(SKILLS_SRC, name);
     if (!existsSync(join(src, "SKILL.md"))) { missing.push(name); continue; }
-    const dst = join(CLAUDE_SKILLS_DIR, name);
+    const dst = join(dstRoot, name);
     rmSync(dst, { recursive: true, force: true });
     cpSync(src, dst, { recursive: true });
     installed.push(name);
   }
-  const prev = readManifest();
+  const prev = readManifest(dstRoot);
   const all = [...new Set([...(prev?.skills ?? []), ...installed])].sort();
-  writeFileSync(MANIFEST_PATH, JSON.stringify({
+  writeFileSync(manifestPath(dstRoot), JSON.stringify({
     version: PKG_VERSION,
     bundle: flags.bundle ?? prev?.bundle ?? null,
     installedAt: new Date().toISOString(),
@@ -114,21 +115,21 @@ function installSkills(names) {
   return { installed, missing };
 }
 
-function uninstallSkills() {
-  const manifest = readManifest();
+function uninstallSkills(dstRoot) {
+  const manifest = readManifest(dstRoot);
   const tracked = new Set(manifest?.skills ?? []);
   const removed = [];
-  if (existsSync(CLAUDE_SKILLS_DIR)) {
-    for (const d of readdirSync(CLAUDE_SKILLS_DIR, { withFileTypes: true })) {
+  if (existsSync(dstRoot)) {
+    for (const d of readdirSync(dstRoot, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
       // remove tracked skills plus legacy anysite-* installs; never touch anything else
       if (tracked.has(d.name) || d.name.startsWith("anysite-")) {
-        rmSync(join(CLAUDE_SKILLS_DIR, d.name), { recursive: true, force: true });
+        rmSync(join(dstRoot, d.name), { recursive: true, force: true });
         removed.push(d.name);
       }
     }
   }
-  rmSync(MANIFEST_PATH, { force: true });
+  rmSync(manifestPath(dstRoot), { force: true });
   return removed;
 }
 
@@ -170,8 +171,7 @@ if (flags.help) {
 }
 
 if (flags.list) {
-  const manifest = readManifest();
-  const installed = new Set(manifest?.skills ?? []);
+  const installed = new Set(detectTargets().flatMap((t) => readManifest(SKILLS_DST[t])?.skills ?? []));
   console.log("\nBundles:");
   for (const [name, b] of Object.entries(BUNDLES)) {
     console.log(`  ${name} (${b.skills.length} skills) — ${b.description}`);
@@ -186,21 +186,27 @@ if (flags.list) {
 }
 
 if (flags.status) {
-  const manifest = readManifest();
-  if (!manifest) { console.log("\nNo anysite skills installed (no manifest found).\n"); process.exit(0); }
-  console.log(`\nInstalled: ${manifest.skills.length} skills (package v${manifest.version}, ${manifest.installedAt})`);
-  if (manifest.bundle) console.log(`Bundle: ${manifest.bundle}`);
-  for (const s of manifest.skills) console.log(`  ✓ ${s}`);
-  console.log(`\nUpdate: npx @anysiteio/agent-skills@latest ${manifest.bundle ?? ""}\n`);
+  let any = false;
+  for (const t of detectTargets()) {
+    const manifest = readManifest(SKILLS_DST[t]);
+    if (!manifest) { console.log(`\n[${t}] no anysite skills installed.`); continue; }
+    any = true;
+    console.log(`\n[${t}] ${manifest.skills.length} skills (package v${manifest.version}, ${manifest.installedAt})${manifest.bundle ? `, bundle: ${manifest.bundle}` : ""}`);
+    for (const s of manifest.skills) console.log(`  ✓ ${s}`);
+    if (any) console.log(`\nUpdate: npx @anysiteio/agent-skills@latest ${manifest.bundle ?? ""}`);
+  }
+  console.log("");
   process.exit(0);
 }
 
 if (flags.uninstall) {
-  const removed = uninstallSkills();
-  console.log(removed.length
-    ? `\nRemoved ${removed.length} skills from ${CLAUDE_SKILLS_DIR}:\n  ${removed.join("\n  ")}\n`
-    : "\nNothing to remove.\n");
-  console.log(`The MCP entry is kept. To remove it: claude mcp remove ${MCP_NAME}\n`);
+  for (const t of detectTargets()) {
+    const removed = uninstallSkills(SKILLS_DST[t]);
+    console.log(removed.length
+      ? `\n[${t}] removed ${removed.length} skills from ${SKILLS_DST[t]}`
+      : `\n[${t}] nothing to remove.`);
+  }
+  console.log(`\nThe MCP entries are kept. To remove: claude mcp remove ${MCP_NAME} / edit ~/.codex/config.toml\n`);
   process.exit(0);
 }
 
@@ -218,9 +224,13 @@ if (!targets.length) {
   process.exit(1);
 }
 
-const { installed, missing } = installSkills(names);
-console.log(`\nSkills → ${CLAUDE_SKILLS_DIR}: ${installed.length} installed${missing.length ? `, unknown: ${missing.join(", ")}` : ""}`);
-if (!installed.length) {
+let installedTotal = 0;
+for (const t of targets) {
+  const { installed, missing } = installSkills(names, SKILLS_DST[t]);
+  installedTotal += installed.length;
+  console.log(`\nSkills [${t}] → ${SKILLS_DST[t]}: ${installed.length} installed${missing.length ? `, unknown: ${missing.join(", ")}` : ""}`);
+}
+if (!installedTotal) {
   console.error("Nothing was installed — check skill names with --list.");
   process.exit(1);
 }
