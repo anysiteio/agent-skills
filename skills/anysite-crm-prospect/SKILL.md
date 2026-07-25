@@ -37,9 +37,11 @@ Estimate volume and confirm before running anything large.
 
 1. `execute linkedin/user/user_email` — batches of ≤10 profiles. Warn the user upfront:
    yield is low, a large share of leads will come back email-less.
-2. A higher-yield `find_email_by_url` exists in the API but may be disabled in MCP — check
-   `discover("linkedin", "user")`; if absent, don't promise it. If present, estimate cost
-   (50cr × remainder) before running.
+2. Remainder → `user_find_email_by_url {url: <vanity profile URL>}` — high yield, 50cr
+   each: estimate the cost (50cr × remainder) and confirm before running on large lists.
+   Vanity URLs only (`/in/name/`, not `/in/ACoA...`). Its `valid_email`/`email_status`
+   fields are the deliverability gate: only validated work addresses go into the push;
+   the rest stay "found, unverified".
 3. Still nothing → **keep the lead in the report**, but know the server requires an email
    to CREATE a contact — email-less leads can only update existing records (matched by
    `linkedin_url`). Report them as "found, pending email"; never silently drop them.

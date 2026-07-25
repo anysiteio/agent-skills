@@ -1,6 +1,6 @@
 {
   "name": "@anysiteio/agent-skills",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Official anysite agent skills + one-line setup: installs skills into Claude Code / Codex and registers the anysite remote MCP server. Includes the GTM bundle (CRM enrichment, signals, prospecting).",
   "keywords": [
     "mcp",

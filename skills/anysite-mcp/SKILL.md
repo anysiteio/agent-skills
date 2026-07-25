@@ -135,9 +135,11 @@ profile, needs alias/URL/URN — never guess the alias), `linkedin/user/user_pos
    profile (group by `alias`/`internal_id` or you duplicate contacts), and its `found` field
    is always true (useless as a check). Personal addresses are not work emails — never
    present them as outreach-ready.
-2. `linkedin/user/find_email_by_url` — by vanity URL, high yield but expensive (50cr).
-   **May be disabled on the server** — trust `discover("linkedin", "user")`: if it is not
-   listed there, it does not exist; stop at step 1 and say so honestly.
+2. `linkedin/user/user_find_email_by_url {url}` — high yield but expensive (50cr), run only
+   on the remainder after step 1. Takes a VANITY profile URL (`/in/satyanadella/`);
+   URN-style URLs (`/in/ACoA...`) are rejected — get the vanity URL from `linkedin/user`
+   first. Response includes `email_status` and `valid_email` — check them and pass only
+   valid work emails onward; an address with a bad status is a bounce, not a find.
 3. No work email found → keep the lead anyway; CRM contact upserts match by `linkedin_url`
    too (but note: creating a NEW contact requires an email — no email means update-only).
 

@@ -64,9 +64,10 @@ dry-run and show the diff, even for small batches:
 - Update the old contact: new title/company per profile mapping (these need `overwrite` in
   the profile — job data is volatile by design).
 - New account: `crm_upsert_companies` (match by domain, `allow_create` per profile).
-- New email at the new company: try `user_email`; the higher-yield `find_email_by_url` may
-  be disabled in MCP — check `discover("linkedin", "user")` before promising it. Note that
-  creating a NEW contact record requires an email; without one, update the existing record.
+- New email at the new company: `user_email` first (cheap), then
+  `user_find_email_by_url {url: <vanity profile URL>}` (50cr, high yield; check
+  `valid_email`/`email_status` before trusting). Note that creating a NEW contact record
+  requires an email; without one, update the existing record.
 - Association: pass `associate_company_domain` (or `associate_company_id` from the company
   upsert result) so the contact links to the new company; the server keeps the old
   association unless `overwrite_associations=true` — set it only if the user confirms the

@@ -44,9 +44,10 @@ Page through everything in scope. Locally split records into:
   "value": "<id>"}]}` → usually exactly one match, WITH the profile URN as a bonus.
   Company filter mandatory — bare names return namesakes. Still nothing → leave record,
   report.
-- Needs email → `user_email` (batch ≤10 profiles, low yield — set expectations honestly).
-  A higher-yield `find_email_by_url` exists in the API but may be disabled in MCP — trust
-  `discover("linkedin", "user")`; if absent, stop at `user_email` and report coverage as-is.
+- Needs email → cascade: `user_email` (batch ≤10, cheap, low yield, mostly personal
+  addresses) → remainder via `user_find_email_by_url {url: <vanity profile URL>}` (50cr
+  each — estimate cost on large lists first). Check `valid_email`/`email_status` in its
+  response and write only addresses that pass; report the rest as "found, unverified".
 
 Re-use cache (`query_cache`) instead of re-fetching anything twice.
 
