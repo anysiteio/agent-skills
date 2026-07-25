@@ -36,12 +36,16 @@ explainable and reproducible.
 ```
 crm_query_records(object_type="companies", ...) → record_id, name, domain, existing fields
 ```
-- Base firmographics: `execute linkedin/search/search_sql_companies {website: <domain>}` —
-  batch resolve; industry, employee_count, locations, description.
+- Base firmographics: `search_sql_companies` with OR-DSL batching
+  (`{website: "a.com|b.com|...", count: 10× domains}`) + free exact-match filtering via
+  `query_cache` on `website` — never `count: 1`, the search is substring match and returns
+  wrong companies (see anysite-mcp resolve recipe). Unverified match = no evidence, score
+  that criterion "unknown".
 - Stage/funding (only if the rubric needs it): `crunchbase/search` → alias →
   `crunchbase/company` (cache aliases; skip for obviously non-venture companies).
-- Hiring probe (only if in rubric): `linkedin/search/search_jobs` with
-  `company: [{"type": "company", "value": "<numeric id from fsd_company urn>"}]`.
+- Hiring probe (only if in rubric): `search_companies {keywords: name, count: 5}` → verify
+  the right company by name/industry → its `urn` is already the `{type, value}` object
+  `search_jobs` wants: `search_jobs {company: [<urn object>], count: 20}`.
 
 Skip any evidence source whose rubric weight is zero. State per-company data gaps —
 a company with missing data gets a confidence note, not a silently low score.

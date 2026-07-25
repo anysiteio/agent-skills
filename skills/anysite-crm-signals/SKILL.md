@@ -32,26 +32,36 @@ propose splitting or narrowing.
 
 Run the cheap universal chain for every account; add optional probes when relevant.
 
-**Funding / exec hires / news / layoffs (one lookup covers four signals):**
+**Funding / exec hires / news / layoffs / intent (one lookup covers five signals):**
 ```
 execute crunchbase/search {keywords: "<company name>", count: 3}   # resolve alias, once
 execute crunchbase/company {company: "<alias>"}
   → funding_rounds[] (date, type, amount, lead investors)
-  → leadership_hires[] (date, role, description)
+  → leadership_hires[] (date, role, description) — often EMPTY for smaller companies;
+    empty ≠ "no hires", don't report it as a negative signal
   → news[] (title, date, publisher)
   → layoffs[]
+  → bombora_surges[] (free intent bonus: topics the account's staff is researching.
+    Count it ONLY if a topic matches the user's product category — it reflects what
+    they buy, not that they need you; weak-moderate on its own, good as a stack booster)
 ```
-Alias resolution is case-sensitive and costs credits — if the profile maps a
-`crunchbase_alias` field, read/write it so each account is resolved once, ever.
+Alias resolution is case-sensitive and costs credits (20cr/50 per search) — this is the
+single biggest recurring cost of a sweep, so caching the alias is MANDATORY, not optional:
+if the profile maps a `crunchbase_alias` field, read/write it there; if not, keep a table
+of name → alias in your report and suggest mapping the field at the next re-setup. On a
+412 for a cached alias (rebrand), re-resolve once and update the cache. Verify the resolved
+company by name+domain before trusting it — first search hit is not automatically right.
 
 **Hiring (what they're building):**
 ```
-execute linkedin/search/search_companies {keywords: "<name>", count: 1}
-  → urn like "fsd_company:1441" → numeric id "1441"
-execute linkedin/search/search_jobs {company: [{"type": "company", "value": "1441"}],
-                                     count: 20, sort: "recent"}
+execute linkedin/search/search_companies {keywords: "<name>", count: 5}
+  → pick the RIGHT company by name + industry + alias (first hit is often a namesake:
+    "Notion" returns a Media Production company first, notionhq second)
+  → its urn is already {"type": "company", "value": "<id>"} — pass through as-is
+execute linkedin/search/search_jobs {company: [<that urn object>], count: 20, sort: "recent"}
 ```
-The `company` filter takes typed objects with the numeric id, not raw URN strings.
+A wrong-company URN turns someone else's vacancies into a fake hiring signal — worse than
+no signal. Unsure which company is right → skip the hiring probe for that account, say so.
 Look for roles in the buyer function (e.g. RevOps/Growth/Data roles for a data product).
 
 **Mentions / social activity (optional):**
@@ -61,11 +71,20 @@ execute linkedin/search/search_posts {keywords: "\"<company name>\"",
 execute techmeme/stories/stories_search {keyword: "<company name>", count: 5}
 ```
 Do NOT use gdelt (times out). Filter false positives for generic company names by checking
-the author/context before counting a mention as a signal.
+the author/context before counting a mention as a signal. For SMALL accounts, where keyword
+search finds nothing, the better probe is the company's own feed:
+`linkedin/company/company_posts` (~1cr/10) — hiring announcements there name new people in
+`mentioned[]` with vanity aliases (new-hire signal + a warm contact in one call).
 
-### 3. Score and stack
+### 3. Score and stack — and filter out what was already reported
 
-Per account, count signals in the last 30/90 days, weighted by conversion value:
+**Novelty check first:** if the profile maps signal fields, you pulled `last_signal_date` /
+`last_signal_type` in step 1 — a "signal" older than or equal to what the CRM already
+records is NOT news. Without it, a funding round from three months ago gets re-announced as
+fresh on every sweep and the user stops trusting the report. Previously-known signals go
+into a collapsed "already reported" section, never into Act now.
+
+Then, per account, count NEW signals in the last 30/90 days, weighted by conversion value:
 exec hire in buyer function > funding round > hiring surge in relevant roles > news >
 mentions. Layoffs = negative budget signal for expansion, positive for cost-saving pitches —
 interpret against the user's product.

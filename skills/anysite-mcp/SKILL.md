@@ -30,8 +30,13 @@ is the map: how to call them, which sources cover which GTM need, and how to not
    and paging of that result is free. Never re-run `execute` to look at the same data twice.
 4. **Cheap-first cascade.** When several endpoints can answer, call the cached/DB one first
    (`*/db/*`, `*sql*` endpoints, ~1 credit) and the live one only for the remainder.
-5. **Estimate volume before bulk runs.** `N targets × credits-per-call`. Say the number to the
-   user before launching anything above ~100 calls.
+5. **Estimate volume before bulk runs — plan-aware.** First know the user's plan (the CRM
+   profile stores it after setup; if unknown, ask once: MCP Unlimited or credit-based?).
+   - **Credit-based plan:** before anything above ~100 calls, state the estimate
+     (`N targets × credits-per-call`) and get a nod. Prefer cheap DB endpoints, batch hard.
+   - **MCP Unlimited:** credit warnings off, but keep batch sizes sane anyway — the real
+     limits are latency and upstream rate limits, so cap sweeps the same way and say
+     "this will take ~N minutes" instead of a price.
 6. **Avoid `gdelt`** — it has repeatedly timed out in practice. Use techmeme or google news
    instead.
 
@@ -40,8 +45,17 @@ is the map: how to call them, which sources cover which GTM need, and how to not
 **Company discovery (bulk):**
 - `linkedin/search/search_sql_companies` — the workhorse. Up to 1000 companies per call with
   DSL filters (keywords, industry_name, employee_count_min/max, country_hq, founded_on_min/max,
-  has_website). Also does batch lookup by `urn` list and search by `website` — use it to
-  resolve domains from a CRM into LinkedIn company records.
+  has_website). Also does batch lookup by `urn` list and search by `website`.
+  ⚠️ **`website` search is SUBSTRING match, ordered by last_modified — never trust it blindly
+  and never call it with `count: 1`** (verified: `{website: "stripe.com", count: 1}` returns
+  Soundstripe, not Stripe). The correct domain-resolve recipe:
+  1) batch domains with OR-DSL: `{website: "stripe.com|figma.com|notion.so", count: <10× the
+     number of domains>}` — one paid call for many domains;
+  2) filter the cached result exactly and for free:
+     `query_cache {conditions: [{"field": "website", "op": "=", "value": "<domain>"}]}`
+     (normalize first: lowercase, strip protocol/`www.`/path);
+  3) a domain with no exact match is **unresolved** — never write anything to the CRM for it,
+     report it instead. Wrong-company data lands in blank fields where nobody will catch it.
 - `crunchbase/db/db_search` — filters by funding stage, last funding date, investors,
   employee range; count ≤100, dates as Unix timestamps. 1 credit/result. Response includes
   `funding_rounds[]`, `leadership_hires[]`, `layoffs[]`, `news[]`, `technologies[]`,
@@ -53,8 +67,29 @@ is the map: how to call them, which sources cover which GTM need, and how to not
   early-stage supplements (check discover for exact endpoint names before calling).
 
 **Company detail:** `crunchbase/company` (by alias — resolve via `crunchbase/search` first),
-`linkedin/company`. Note: `owler` endpoints need an owler alias and its search has no
-name/keyword parameter — not usable for looking up a named account.
+`linkedin/company`. One `crunchbase/company` call also carries free extras worth reading:
+`bombora_surges[]` (B2B intent topics — but they show what THAT company's staff researches,
+i.e. what they BUY; treat as a signal only when a topic matches what the user sells),
+`related.competitors[]`, `predictions.funding_score`, `awards[]`. Coverage caveat:
+`leadership_hires[]` is often EMPTY for smaller companies — absence of the field is not
+absence of hires. Normalize `contacts.email` (trailing dots observed: "x@y.ai.").
+A third resolve path when crunchbase is already fetched: `contacts.linkedin_url` →
+`linkedin/company` → exact URN (verified; bypasses both fuzzy searches).
+Note: `owler` endpoints need an owler alias and its search has no name/keyword parameter —
+not usable for looking up a named account.
+
+**Engagement graph (who interacted with content):** `linkedin/post/post_comments`,
+`post_reactions`, `post_reposts` and `linkedin/company/company_posts` (~1cr/10) — answers
+"who paid attention to this content", incl. people outside your title filters. Honest
+scaling: volume follows the SEED's audience, not the target's importance (large brand post
+→ dozens of engagers; 80-person company → 0–2 per post). For small accounts the reliable
+nugget is `company_posts` → `mentioned[]`: hiring announcements name new people with their
+vanity aliases. `linkedin/company/company_employee_stats` (1cr) gives function/skill
+breakdown — counts include former employees, use shares not absolutes.
+
+**Ads as a budget signal:** the `ad-transparency` sources (incl. LinkedIn Ad Library) are
+untapped — a company running B2B ads is telling you it has budget and who its ICP is.
+Listing is cheap; per-ad detail is a separate call each (N+1) — budget accordingly.
 
 **People:** `linkedin/search/search_users` (use `job_title` + `current_company` or
 `company_keywords`; never bare `keywords` alone — returns empty), `linkedin/user` (full
@@ -74,8 +109,12 @@ profile, needs alias/URL/URN — never guess the alias), `linkedin/user/user_pos
 
 **Hiring signals:**
 - `linkedin/search/search_jobs` — by company; works for any company. The `company` param
-  takes `[{"type": "company", "value": "<numeric id>"}]` — extract the id from the
-  `fsd_company:<id>` URN returned by `search_companies` (raw URN strings are not accepted).
+  takes `[{"type": "company", "value": "<numeric id>"}]`. `linkedin/search/search_companies`
+  returns `urn` ALREADY in that object form — pass it through as-is. Only `search_sql_companies`
+  returns string URNs (`fsd_company:<id>`) — there, extract the numeric id yourself. And
+  verify the company before using its URN: the first search hit is often a namesake
+  (verified: "Notion" → NOTION Media Production first, the real notionhq second) — check
+  name + industry + alias.
 - `greenhouse/jobs/jobs_search {board_token, count}` — full descriptions via `content=true`;
   `ashby/jobs/jobs_search {board_name, count}` — descriptions always included. Both need the
   company slug; 412 = wrong token, fall back to linkedin jobs.

@@ -61,6 +61,8 @@ Ask ONLY about ambiguous or high-stakes decisions, one compact block, not an int
 - Overwrite policy for volatile fields: "Job titles: overwrite on change or fill blanks only?"
 - Working list: "Which list do you enrich most — 'Inbound' or 'Outbound Q3'?" (only if lists exist)
 - Creation policy: "May agents create new contacts, or update existing only?"
+- Plan: "Are you on MCP Unlimited or a credit-based plan?" — future sessions use this to
+  decide between credit estimates (credit plans) and time estimates (Unlimited) before bulk runs
 
 Confirm the full mapping as ONE list for approval, then save.
 
@@ -97,6 +99,8 @@ Generated <date> by anysite-crm-setup from live schema. Do not edit manually.
 - allow_create: <true/false, as agreed>
 - Never write (user protected, on top of server-enforced): <list or "-">
 - Enum properties and their valid values: <property>: <values>
+- MCP plan: <unlimited | credits>; bulk-run policy: <credit estimates | time estimates>
+- crunchbase aliases cache: <name → alias, append as resolved — saves ~20cr/account/sweep>
 ```
 
 Only include rows that were actually agreed or auto-mapped. Never invent mappings for data types

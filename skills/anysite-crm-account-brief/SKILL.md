@@ -21,16 +21,22 @@ an update candidate for `anysite-crm-enrich`/`anysite-crm-champions`.
 
 ### 2. Company snapshot
 
-- `execute crunchbase/search {keywords: name}` → alias → `crunchbase/company` →
-  funding history, `leadership_hires[]`, `news[]`, `layoffs[]`, employee range, investors.
-- `execute linkedin/search/search_sql_companies {website: domain}` → description,
+- `execute crunchbase/search {keywords: name}` → alias (verify name+domain, first hit may
+  be a namesake) → `crunchbase/company` → funding history, `leadership_hires[]` (often empty
+  for smaller companies — not a negative), `news[]`, `layoffs[]`, employee range, investors.
+  Same response, free extras for the brief: `related.competitors[]` (their competitive set),
+  `bombora_surges[]` (what their team is researching — mention only if relevant to the
+  meeting), `predictions.funding_score` (likelihood of a next round).
+- `search_sql_companies {website: "<domain>", count: 10}` + exact `website` match check
+  (substring search returns look-alike domains — verify before trusting) → description,
   specialities, locations, employee_count.
 
 ### 3. What's happening now
 
-- Hiring: `linkedin/search/search_jobs {company: [{"type": "company", "value": "<id>"}],
-  sort: "recent", count: 20}` (numeric id from the `fsd_company:<id>` URN) — what functions
-  they're growing (that's their current priorities, use in talking points).
+- Hiring: `search_companies {keywords: "<name>", count: 5}` → pick the right company by
+  name/industry/alias (first hit is often a namesake), its `urn` comes back already as the
+  `{type, value}` object → `search_jobs {company: [<urn object>], sort: "recent", count: 20}`
+  — what functions they're growing (that's their current priorities, use in talking points).
 - News: crunchbase `news[]` first (already fetched); add
   `techmeme/stories/stories_search {keyword: "<name>", count: 5}` for tech companies.
 - Employer sentiment (optional, for bigger companies): resolve the employer id first via

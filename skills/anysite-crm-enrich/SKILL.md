@@ -46,8 +46,16 @@ Re-use cache (`query_cache`) instead of re-fetching anything twice.
 
 ### 3. Resolve companies
 
-- By domain: `execute linkedin/search/search_sql_companies {website: "<domain>", count: 1}` —
-  batch by looping domains; gives industry, employee_count, description, locations.
+- By domain — batched, with mandatory exact verification (the `website` search is substring
+  match; `count: 1` returns the wrong company, e.g. stripe.com → Soundstripe):
+  ```
+  execute linkedin/search/search_sql_companies
+      {website: "acme.com|globex.io|initech.com", count: 30}   # OR-DSL, count ≈ 10× domains
+  query_cache {conditions: [{"field": "website", "op": "=", "value": "acme.com"}]}  # free, per domain
+  ```
+  Only an exact-website match (normalized: lowercase, no protocol/www/path) counts as
+  resolved; unresolved domains are reported, never written. Gives industry, employee_count,
+  description, locations.
 - Deeper firmographics (funding, size range): `crunchbase/search` by name → alias →
   `crunchbase/company` — only when profile maps such fields (cost-aware: 20cr each).
 

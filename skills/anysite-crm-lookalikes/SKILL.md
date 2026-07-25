@@ -21,10 +21,15 @@ explicit pick of 10–30 names. Fewer than ~8 seeds → warn that the pattern wi
 
 ### 2. Profile the seeds
 
-Resolve each seed to structured firmographics:
+Resolve each seed to structured firmographics — batched with exact verification (the
+`website` search is substring match; `count: 1` grabs the wrong company and poisons the
+whole ICP pattern downstream):
 ```
-execute linkedin/search/search_sql_companies {website: "<domain>", count: 1}   # per seed
+execute linkedin/search/search_sql_companies
+    {website: "seed1.com|seed2.io|seed3.com", count: <10× seeds>}
+query_cache {conditions: [{"field": "website", "op": "=", "value": "seed1.com"}]}  # free, per seed
 ```
+A seed with no exact website match is excluded from profiling (say so), not guessed.
 Plus `crunchbase/company` for stage/funding on a subset (venture-relevant seeds only).
 Derive the pattern in-session and SHOW it:
 

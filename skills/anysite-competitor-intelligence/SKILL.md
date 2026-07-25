@@ -1,6 +1,6 @@
 ---
 name: anysite-competitor-intelligence
-description: Competitive intelligence gathering using anysite MCP server across LinkedIn, social media, Y Combinator, and the web. Track competitor activities, analyze hiring patterns, monitor content strategies, benchmark market positioning, research startup competitors, and gather strategic intelligence. Supports LinkedIn (companies, employees, posts), Instagram, Twitter/X, Reddit, YouTube, Y Combinator, and web scraping. Use when users need to analyze competitors, track competitive movements, research market positioning, monitor hiring velocity, or gather strategic market intelligence.
+description: Competitive intelligence gathering using anysite MCP server across LinkedIn, social media, Y Combinator, and the web. Track competitor activities, analyze hiring patterns, monitor content strategies, benchmark market positioning, research startup competitors, and gather strategic intelligence. Supports LinkedIn (companies, employees, posts), Instagram, Twitter/X, Reddit, YouTube, Y Combinator, and web scraping. Use for tracking a LANDSCAPE of several competitors over time - competitive movements, hiring velocity, content strategies, market positioning across a set of companies. For a deep dossier on one named competitor use anysite-competitor-analyzer; for CRM-tied displacement lists use anysite-crm-competitor-intel.
 ---
 
 # anysite Competitor Intelligence

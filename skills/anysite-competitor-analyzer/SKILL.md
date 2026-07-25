@@ -1,6 +1,6 @@
 ---
 name: anysite-competitor-analyzer
-description: Deep competitive intelligence combining web scraping, LinkedIn data, social media monitoring, leadership analysis, GitHub activity, Glassdoor sentiment, and community insights. Analyzes founders/C-level profiles, tracks real-time signals vs quarterly reports, and creates comprehensive competitor profiles. Use when asked to analyze competitors, research leadership teams, investigate market positioning, compare products/pricing, assess strategic threats, or gather intelligence on founders and key executives.
+description: Deep competitive intelligence combining web scraping, LinkedIn data, social media monitoring, leadership analysis, GitHub activity, Glassdoor sentiment, and community insights. Analyzes founders/C-level profiles, tracks real-time signals vs quarterly reports, and creates comprehensive competitor profiles. Use for a DEEP DOSSIER ON ONE named competitor - leadership/founder profiling, product/pricing teardown, strategic threat assessment of a single company. For tracking a landscape of several competitors over time use anysite-competitor-intelligence; for CRM-tied displacement lists use anysite-crm-competitor-intel.
 ---
 
 # Competitor Analyzer
