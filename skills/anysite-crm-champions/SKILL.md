@@ -35,8 +35,13 @@ Cap a run at ~100 contacts (one profile call each); more → propose batching by
 
 Per contact:
 - `linkedin_url` → `execute linkedin/user/user {user: <url>}` → current experience.
-- email only → `execute linkedin/email/email_sql_user {email}` → profile (live `email_user`
-  for the remainder).
+- email only → try `execute linkedin/email/email_sql_user {email}` (→ live `email_user`),
+  but expect misses; the reliable path uses what the CRM already knows: email domain →
+  resolve company → `organizational_urn` → `search_users {first_name, last_name,
+  current_company: [{"type": "company", "value": "<id>"}]}`. NOTE: for champion tracking
+  search by the CRM company tells you where they WERE — a zero-result search there is
+  itself a move signal; re-search without the company filter and disambiguate by
+  headline/history before concluding.
 
 Compare the profile's **current company** against the CRM company. Normalize before
 comparing (legal suffixes, casing, known rebrands); when unsure, treat as "same" — false

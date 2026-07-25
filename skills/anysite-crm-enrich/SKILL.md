@@ -35,9 +35,15 @@ Page through everything in scope. Locally split records into:
 ### 2. Resolve identities (contacts)
 
 - Has `linkedin_url` → `execute linkedin/user/user` (full profile: title, company, location).
-- Only email → reverse lookup: `execute linkedin/email/email_sql_user` (cached, cheap) →
-  remainder via `email_user` (live). Both take ONE email per call — loop, don't batch.
-  No profile found → leave record, report.
+- Only email → try reverse lookup first: `execute linkedin/email/email_sql_user` (cached,
+  cheap) → remainder via `email_user` (live). Both take ONE email per call — loop, don't
+  batch, and expect misses (verified to return empty even for people who are on LinkedIn).
+  Then the cascade that actually works, because the CRM knows the name: email domain →
+  resolve company (verified, per anysite-mcp recipe) → `organizational_urn` →
+  `search_users {first_name, last_name, current_company: [{"type": "company",
+  "value": "<id>"}]}` → usually exactly one match, WITH the profile URN as a bonus.
+  Company filter mandatory — bare names return namesakes. Still nothing → leave record,
+  report.
 - Needs email → `user_email` (batch ≤10 profiles, low yield — set expectations honestly).
   A higher-yield `find_email_by_url` exists in the API but may be disabled in MCP — trust
   `discover("linkedin", "user")`; if absent, stop at `user_email` and report coverage as-is.
@@ -46,12 +52,15 @@ Re-use cache (`query_cache`) instead of re-fetching anything twice.
 
 ### 3. Resolve companies
 
-- By domain — batched, with mandatory exact verification (the `website` search is substring
-  match; `count: 1` returns the wrong company, e.g. stripe.com → Soundstripe):
+- By domain — with MANDATORY exact verification on every resolve (the `website` search is
+  substring match: stripe.com → Soundstripe; stlabs.com → five other *labs.com companies).
+  Default one domain per call; OR-DSL batching is an optimization with a tax — any domain
+  that didn't come back exact-matched gets re-queried individually:
   ```
-  execute linkedin/search/search_sql_companies
-      {website: "acme.com|globex.io|initech.com", count: 30}   # OR-DSL, count ≈ 10× domains
-  query_cache {conditions: [{"field": "website", "op": "=", "value": "acme.com"}]}  # free, per domain
+  execute linkedin/search/search_sql_companies {website: "acme.com", count: 5}
+  # batched variant: {website: "acme.com|globex.io", count: 10× domains}, then per domain:
+  query_cache {conditions: [{"field": "website", "op": "=", "value": "acme.com"}],
+               limit: <fetched count>}          # limit is REQUIRED — its default is 10
   ```
   Only an exact-website match (normalized: lowercase, no protocol/www/path) counts as
   resolved; unresolved domains are reported, never written. Gives industry, employee_count,

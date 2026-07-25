@@ -34,7 +34,10 @@ Run the cheap universal chain for every account; add optional probes when releva
 
 **Funding / exec hires / news / layoffs / intent (one lookup covers five signals):**
 ```
-execute crunchbase/search {keywords: "<company name>", count: 3}   # resolve alias, once
+# The domain-resolve you already did (search_sql_companies) returns `crunchbase_link` —
+# extract the alias from it for FREE. Only when crunchbase_link is empty AND the company
+# is plausibly venture-backed, fall back to the expensive live search:
+execute crunchbase/search {keywords: "<company name>", count: 3}   # 20cr/50 — last resort
 execute crunchbase/company {company: "<alias>"}
   → funding_rounds[] (date, type, amount, lead investors)
   → leadership_hires[] (date, role, description) — often EMPTY for smaller companies;
@@ -45,20 +48,24 @@ execute crunchbase/company {company: "<alias>"}
     Count it ONLY if a topic matches the user's product category — it reflects what
     they buy, not that they need you; weak-moderate on its own, good as a stack booster)
 ```
-Alias resolution is case-sensitive and costs credits (20cr/50 per search) — this is the
-single biggest recurring cost of a sweep, so caching the alias is MANDATORY, not optional:
-if the profile maps a `crunchbase_alias` field, read/write it there; if not, keep a table
-of name → alias in your report and suggest mapping the field at the next re-setup. On a
-412 for a cached alias (rebrand), re-resolve once and update the cache. Verify the resolved
-company by name+domain before trusting it — first search hit is not automatically right.
+Alias hygiene: aliases are case-sensitive (412 on miss → re-resolve once, likely rebrand).
+Keep a name → alias table in the local profile file so future sweeps skip resolution
+entirely — the profile is a local file, it works even when CRM custom fields can't be
+created. Coverage honesty: `crunchbase_link` is filled mostly for venture-backed companies
+(≈3/10 in a live batch); bootstrapped/service companies often have NO Crunchbase record —
+for them skip the crunchbase probe entirely instead of fuzzy-searching a wrong match.
 
 **Hiring (what they're building):**
 ```
+# Preferred: the domain-resolve response already carries `organizational_urn`
+# ("company:1441") — take the numeric id from it, no extra search needed:
+execute linkedin/search/search_jobs {company: [{"type": "company", "value": "1441"}],
+                                     count: 20, sort: "recent"}
+# Only for accounts that were never domain-resolved:
 execute linkedin/search/search_companies {keywords: "<name>", count: 5}
   → pick the RIGHT company by name + industry + alias (first hit is often a namesake:
     "Notion" returns a Media Production company first, notionhq second)
   → its urn is already {"type": "company", "value": "<id>"} — pass through as-is
-execute linkedin/search/search_jobs {company: [<that urn object>], count: 20, sort: "recent"}
 ```
 A wrong-company URN turns someone else's vacancies into a fake hiring signal — worse than
 no signal. Unsure which company is right → skip the hiring probe for that account, say so.

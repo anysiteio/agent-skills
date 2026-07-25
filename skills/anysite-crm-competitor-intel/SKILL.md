@@ -47,6 +47,14 @@ only). Filter low-rating reviews with `query_cache` (free), then extract with th
 recurring pains, switching triggers, praised alternatives, verbatim quotes worth reusing.
 Keep 3–7 pains with quote + source URL each — this is the personalization ammunition.
 
+Second ammunition source — the competitor's own ads (`ad-transparency` sources, incl.
+LinkedIn Ad Library): their current claims and positioning in their own words. Scope it to
+the 1–3 competitors under analysis (NOT per-account sweeps — per-ad detail is a separate
+call each); use server filters (`impressions_min`, `countries`, `date_option`) and open
+only the cards that matter. ~10–15cr for a whole competitor analysis. Their engagement
+graph (`post_comments`/`post_reactions` on the competitor's page — a seed with a real
+audience) adds who's actively following them.
+
 ### 3. Cross-reference with the CRM
 
 ```

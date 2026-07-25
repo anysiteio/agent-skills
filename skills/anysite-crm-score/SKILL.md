@@ -36,16 +36,25 @@ explainable and reproducible.
 ```
 crm_query_records(object_type="companies", ...) → record_id, name, domain, existing fields
 ```
-- Base firmographics: `search_sql_companies` with OR-DSL batching
-  (`{website: "a.com|b.com|...", count: 10× domains}`) + free exact-match filtering via
-  `query_cache` on `website` — never `count: 1`, the search is substring match and returns
-  wrong companies (see anysite-mcp resolve recipe). Unverified match = no evidence, score
-  that criterion "unknown".
+- Base firmographics: `search_sql_companies` by `website` — default one domain per call;
+  OR-DSL batching (`{website: "a.com|b.com|...", count: 10× domains}`) is an optimization
+  with a verification tax (see the anysite-mcp resolve recipe). Never `count: 1` — the search
+  is substring match, and a common-token domain comes back with only look-alikes even in a
+  single-domain call. Verify the exact `website` match per domain via `query_cache` with an
+  explicit `limit` (default is 10 — a 20-domain batch needs more). Unverified match = no
+  evidence, score that criterion "unknown"; a domain that never comes back exact-matched is
+  resolved via `webparser/parse` on the site itself, per the same recipe.
 - Stage/funding (only if the rubric needs it): `crunchbase/search` → alias →
   `crunchbase/company` (cache aliases; skip for obviously non-venture companies).
-- Hiring probe (only if in rubric): `search_companies {keywords: name, count: 5}` → verify
-  the right company by name/industry → its `urn` is already the `{type, value}` object
-  `search_jobs` wants: `search_jobs {company: [<urn object>], count: 20}`.
+- Hiring probe (only if in rubric): prefer the numeric id from `organizational_urn` of the
+  domain-resolve you already did → `search_jobs {company: [{"type": "company", "value":
+  "<id>"}], count: 20}`. No resolve → `search_companies {keywords: name, count: 5}` +
+  verify by name/industry (its `urn` is already the `{type, value}` object).
+- Team-shape evidence (great for "engineering-led vs sales-led" criteria):
+  `linkedin/company/company_employee_stats` (1cr, needs company URN) — absolute headcounts
+  by function (verified: Engineering 26 / Sales 14 on a 79-person company). Don't sum its
+  `locations` array (nested buckets: US ⊃ state ⊃ metro); cross-check totals against
+  `employee_count`.
 
 Skip any evidence source whose rubric weight is zero. State per-company data gaps —
 a company with missing data gets a confidence note, not a silently low score.

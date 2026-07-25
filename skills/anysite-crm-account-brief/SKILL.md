@@ -54,9 +54,12 @@ execute linkedin/user/user_posts {urn, count: 10,
 ```
 Caveat: `user` called with a URL may omit the `urn` in its response, and `user_posts`
 accepts ONLY a URN. If the urn is missing, recover it via
-`search_users {first_name, last_name, company_keywords, count: 3}` → pick the match →
-use its urn. Posts are personalization gold: real interests, stated problems, conference
-activity.
+`search_users {first_name, last_name, current_company: [<company urn object>], count: 3}`
+— the company-filtered search returns the URN directly (same cascade crm-enrich uses for
+email-only contacts). Posts are personalization gold: real interests, stated problems,
+conference activity. Quiet posters: `user_comments` and `user_reactions` (posts they
+engaged with) reveal what a lurker actually reads — often better meeting fuel than their
+own posts.
 No posts ≠ no signal — check `user_comments` for lurker activity if it matters.
 
 ### 5. The brief

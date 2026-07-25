@@ -35,6 +35,11 @@ Audit scope: whole portal if small; else the working list + a stated sample. Say
   "neither" group is unenrichable and un-dedupable — flag it).
 - **Duplicate candidates:** same normalized email; same domain with several company records;
   same person name + company. Candidates only — never auto-merge.
+- **Email ↔ employer mismatch:** contact's email domain vs their linked company's domain.
+  A mismatch means a stale email OR an outdated company link — both found in live testing.
+  FLAG ONLY, never auto-fix in either direction: "correcting" the company from the email
+  domain overwrites good data with stale. Hand the list to anysite-crm-champions (job-change
+  check tells which side is wrong).
 - **Staleness:** if `anysite_last_enriched_at` (or similar) is mapped — age distribution;
   contacts with no activity fields; companies with dead domains (spot-check a few via
   `webparser/parse` only if the user asks).

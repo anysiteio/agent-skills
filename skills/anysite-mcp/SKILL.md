@@ -46,16 +46,33 @@ is the map: how to call them, which sources cover which GTM need, and how to not
 - `linkedin/search/search_sql_companies` — the workhorse. Up to 1000 companies per call with
   DSL filters (keywords, industry_name, employee_count_min/max, country_hq, founded_on_min/max,
   has_website). Also does batch lookup by `urn` list and search by `website`.
-  ⚠️ **`website` search is SUBSTRING match, ordered by last_modified — never trust it blindly
-  and never call it with `count: 1`** (verified: `{website: "stripe.com", count: 1}` returns
-  Soundstripe, not Stripe). The correct domain-resolve recipe:
-  1) batch domains with OR-DSL: `{website: "stripe.com|figma.com|notion.so", count: <10× the
-     number of domains>}` — one paid call for many domains;
-  2) filter the cached result exactly and for free:
-     `query_cache {conditions: [{"field": "website", "op": "=", "value": "<domain>"}]}`
-     (normalize first: lowercase, strip protocol/`www.`/path);
-  3) a domain with no exact match is **unresolved** — never write anything to the CRM for it,
-     report it instead. Wrong-company data lands in blank fields where nobody will catch it.
+  ⚠️ **`website` search is SUBSTRING match, ordered by last_modified. Verification is
+  MANDATORY on every resolve — position in the results means nothing.** Verified live:
+  `{website: "stripe.com", count: 1}` → Soundstripe; `{website: "stlabs.com", count: 5}` →
+  five *labs.com companies, none of them stlabs.com (common tokens flood the result even in
+  a single-domain call). The domain-resolve rules:
+  1) **Verify exact `website` match** (normalize both sides: lowercase, strip
+     protocol/`www.`/path) on EVERY resolve, single or batched. No exact match =
+     **unresolved** — never write anything to the CRM for it; wrong-company data lands in
+     blank fields where nobody will catch it.
+  2) Default: one domain per call, small count. OR-DSL batching
+     (`{website: "a.com|b.io", count: 10× domains}`) is an optimization with a verification
+     tax: a domain with a common token can be flooded out of the batch entirely — every
+     domain that didn't come back exact-matched must be re-queried individually.
+  3) `query_cache` filters over the WHOLE cached set (verified) but returns at most `limit`
+     rows (default 10) — pass an explicit `limit` when you expect more matches back. Sanity
+     rule: `aggregate {op: "count"}` should equal the `total` from execute; if not, page
+     with `get_page` before concluding anything.
+  4) A whole class of domains never appears in its own substring results (common-token
+     domains like stlabs.com) — so the website's own page is the STANDARD second step, not
+     an emergency: `webparser/parse {url: "https://<domain>", extract_minimal: true}` →
+     `title` says who they are, `links[]` usually carries their own
+     linkedin.com/company/... URL → `linkedin/company` for the exact URN (verified, ~1cr).
+     Secondary fallback: `crunchbase/search` by name → `contacts.linkedin_url`. Name search
+     alone is never a source of truth.
+  Bonus from a successful resolve: the `search_sql_companies` row already carries
+  `crunchbase_link` (free crunchbase alias — skip the live 20cr search) and
+  `organizational_urn` (`company:<id>` — the numeric id goes straight into `search_jobs`).
 - `crunchbase/db/db_search` — filters by funding stage, last funding date, investors,
   employee range; count ≤100, dates as Unix timestamps. 1 credit/result. Response includes
   `funding_rounds[]`, `leadership_hires[]`, `layoffs[]`, `news[]`, `technologies[]`,
@@ -80,12 +97,20 @@ not usable for looking up a named account.
 
 **Engagement graph (who interacted with content):** `linkedin/post/post_comments`,
 `post_reactions`, `post_reposts` and `linkedin/company/company_posts` (~1cr/10) — answers
-"who paid attention to this content", incl. people outside your title filters. Honest
-scaling: volume follows the SEED's audience, not the target's importance (large brand post
-→ dozens of engagers; 80-person company → 0–2 per post). For small accounts the reliable
-nugget is `company_posts` → `mentioned[]`: hiring announcements name new people with their
-vanity aliases. `linkedin/company/company_employee_stats` (1cr) gives function/skill
-breakdown — counts include former employees, use shares not absolutes.
+"who paid attention to this content", incl. people outside your title filters. Identifiers:
+comments/reposts carry a vanity alias; reactions give only an obfuscated `/in/ACoAA...` URL
+plus `internal_id` — `user_email` accepts the `internal_id`, never the obfuscated URL.
+Honest scaling: volume follows the SEED's audience, not the target's importance (large brand
+post → dozens of engagers; 80-person company → 0–2 per post), and on a small account those
+few are mostly the company's OWN staff plus engagement farmers (verified: 3 of 4 commenters
+were employees) — filter by the author's company first and expect nothing left. Use this on
+seeds with a real audience (a competitor's page), not on SMB target lists. For small accounts
+the reliable nugget is `company_posts` → `mentioned[]`: hiring announcements name new people
+with their vanity aliases. `linkedin/company/company_employee_stats` (1cr) gives
+function/skill/location breakdown — cross-check totals against `employee_count` from
+`linkedin/company` before trusting absolutes, and never sum the `locations` array: its
+buckets are nested (US ⊃ California ⊃ SF Bay Area), so summing double-counts badly. Its
+`llm_hint` promises seniority and growth trends that the response does not contain.
 
 **Ads as a budget signal:** the `ad-transparency` sources (incl. LinkedIn Ad Library) are
 untapped — a company running B2B ads is telling you it has budget and who its ICP is.
@@ -97,15 +122,25 @@ profile, needs alias/URL/URN — never guess the alias), `linkedin/user/user_pos
 `user_experience`, `user_comments`.
 
 **Email finding (cascade, cheap → expensive):**
-1. `linkedin/user/user_email` — batch up to 10 profiles, cheap, low yield.
+1. `linkedin/user/user_email` — batch up to 10 profiles, cheap, low yield. Truths from live
+   testing: it returns mostly PERSONAL addresses (gmail/yahoo), one row per EMAIL — not per
+   profile (group by `alias`/`internal_id` or you duplicate contacts), and its `found` field
+   is always true (useless as a check). Personal addresses are not work emails — never
+   present them as outreach-ready.
 2. `linkedin/user/find_email_by_url` — by vanity URL, high yield but expensive (50cr).
    **May be disabled on the server** — trust `discover("linkedin", "user")`: if it is not
    listed there, it does not exist; stop at step 1 and say so honestly.
-3. No email found → keep the lead anyway; CRM contact upserts match by `linkedin_url` too
-   (but note: creating a NEW contact requires an email — no email means update-only).
+3. No work email found → keep the lead anyway; CRM contact upserts match by `linkedin_url`
+   too (but note: creating a NEW contact requires an email — no email means update-only).
 
-**Reverse lookup (email → person):** `linkedin/email/email_sql_user` (cached DB) →
-`linkedin/email/email_user` (live) for the remainder.
+**Reverse lookup (email → person), reliability order:**
+1. `linkedin/email/email_sql_user` (cached DB) → `email_user` (live) — cheap, but verified
+   to return empty even for people who are definitely on LinkedIn. Try, don't rely.
+2. The cascade that works when you know the name (a CRM does): email domain → resolve the
+   company (verified, see above) → `organizational_urn` → `search_users {first_name,
+   last_name, current_company: [{"type": "company", "value": "<id>"}]}` → usually exactly
+   one match, delivered WITH the `fsd_profile` URN needed for `user_posts`. The company
+   filter is mandatory — a bare name returns namesakes.
 
 **Hiring signals:**
 - `linkedin/search/search_jobs` — by company; works for any company. The `company` param
@@ -150,12 +185,14 @@ Covers any URL when no named source fits. Web search: `duckduckgo/search`, `brav
 The standard pattern for account signals (used by the crm-signals skill):
 
 ```
-company name/domain
-  → crunchbase/search (resolve alias, once; cache it)
-  → crunchbase/company → funding_rounds, leadership_hires, news, layoffs
-  → linkedin search_jobs(company urn) → what they hire for
-  → linkedin search_posts(company name, past-month) → mentions
+company domain
+  → search_sql_companies {website} + exact verify        (firmographics
+     ↳ crunchbase_link → alias FREE   ↳ organizational_urn)
+  → crunchbase/company {alias} → funding_rounds, leadership_hires, news, layoffs, bombora
+  → search_jobs {company: [{type, value from organizational_urn}]} → what they hire for
+  → search_posts (company name, past-month) → mentions
 ```
+Three paid calls per account instead of four — the live crunchbase/search drops out.
 
 Stack signals: one signal is a guess, 2–3 signals within ~30 days is a pattern worth acting on.
 

@@ -65,9 +65,12 @@ crm_upsert_contacts(records=[{email | linkedin_url,
                               associate_company_domain: <domain>}],
                     allow_create=true, dry_run=true)             → confirm → write
 ```
-Server requires email to create a contact; contacts without email that don't match an
-existing record will be skipped with a warning — report them as "found, pending email",
-don't retry blindly. When associating to companies created in the same run, prefer
+Before pushing, split found emails by domain: personal addresses (gmail/yahoo/outlook and
+similar — `user_email` returns mostly these) are NOT work emails — never feed them into a
+work-email sequence; keep those leads in a "personal email only" bucket alongside
+"pending email", and say so in the report. Server requires email to create a contact;
+contacts without email that don't match an existing record will be skipped with a
+warning — report them as "found, pending email", don't retry blindly. When associating to companies created in the same run, prefer
 `associate_company_id` from the company upsert result. Save `run_id`s.
 
 Note: crm_* tools cannot add records to CRM lists (list_id is read-only in queries). If
