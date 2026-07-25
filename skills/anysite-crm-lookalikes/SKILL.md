@@ -40,6 +40,11 @@ Industries: X (60%), Y (25%) · Size: 11-200 dominant · Geo: US+UK 80%
 Stage: seed-B · Common traits: has API docs page, hiring in data roles, ...
 ```
 
+Build the size band from `employee_count`, never from `employee_count_range` — the two can
+contradict each other in one record (verified: `employee_count: 1465` with
+`employee_count_range: "201-500"`), and a wrong band here propagates into every search
+below. Bucket the exact counts yourself.
+
 The user confirms/edits the pattern — it's their ICP, the data only proposes it.
 
 ### 3. Search for lookalikes

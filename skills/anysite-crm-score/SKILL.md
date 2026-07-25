@@ -56,6 +56,10 @@ crm_query_records(object_type="companies", ...) → record_id, name, domain, exi
   `locations` array (nested buckets: US ⊃ state ⊃ metro); cross-check totals against
   `employee_count`.
 
+Company size in the rubric: use `employee_count`, never `employee_count_range` — the two
+can contradict each other in one record (verified: 1465 vs "201-500"), and the range would
+misfile the size band silently. Range only as fallback when the count is empty, noted.
+
 Skip any evidence source whose rubric weight is zero. State per-company data gaps —
 a company with missing data gets a confidence note, not a silently low score.
 
