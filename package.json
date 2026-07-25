@@ -1,7 +1,7 @@
 {
   "name": "@anysiteio/agent-skills",
-  "version": "1.4.0",
-  "description": "Official anysite agent skills for LinkedIn intelligence, social media analysis, data extraction, and security auditing",
+  "version": "2.0.0",
+  "description": "Official anysite agent skills + one-line setup: installs skills into Claude Code / Codex and registers the anysite remote MCP server. Includes the GTM bundle (CRM enrichment, signals, prospecting).",
   "keywords": [
     "mcp",
     "claude-code",
@@ -32,6 +32,7 @@
     "skills/",
     ".claude-plugin/",
     "bin/",
+    "bundles.json",
     "README.md",
     "LICENSE"
   ],

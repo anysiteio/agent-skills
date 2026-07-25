@@ -32,55 +32,45 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `customer-pain-mining` | Extract verbatim customer complaints about competitors for landing-page copy, custdev prep, and product strategy. Returns pain clusters with exact quotes plus a white-space section of unmet feature requests. | [SKILL.md](skills/customer-pain-mining/SKILL.md) |
 | `positioning-map` | Build a positioning map for 3–5 competitors and identify the empty quadrant to own. Maps 5 signal axes and returns a comparison table, candidate positioning moves, and a one-sentence positioning statement. | [SKILL.md](skills/positioning-map/SKILL.md) |
 | `anysite-crm-setup` | Connect the user's CRM (HubSpot) and configure safe AI enrichment: guided discovery, deterministic local field mapping, dry-run previews, fill-blank policy and undo. | [SKILL.md](skills/anysite-crm-setup/SKILL.md) |
+| `anysite-mcp` | Usage guide for the anysite MCP: meta-tools, GTM source map (funding, hiring, tech stack, reviews, news), email cascades, and cost-aware calling patterns. | [SKILL.md](skills/anysite-mcp/SKILL.md) |
+| `anysite-crm-enrich` | Enrich existing CRM records with fresh data - titles, LinkedIn profiles, firmographics, emails. Fill-blank policy, dry-run previews, undo. | [SKILL.md](skills/anysite-crm-enrich/SKILL.md) |
+| `anysite-crm-signals` | Sweep CRM target accounts for buying signals - funding, exec hires, hiring surges, news, mentions - and prioritize who to reach out to today. | [SKILL.md](skills/anysite-crm-signals/SKILL.md) |
+| `anysite-crm-champions` | Detect job changes among CRM contacts, flag past champions at new accounts, propose re-engagement plays. | [SKILL.md](skills/anysite-crm-champions/SKILL.md) |
+| `anysite-crm-prospect` | Find net-new leads and push them into the CRM deduplicated - companies first, then contacts with associations. | [SKILL.md](skills/anysite-crm-prospect/SKILL.md) |
+| `anysite-crm-audit` | Read-only CRM data quality audit: field completeness, duplicate candidates, stale records, enrichability estimate. | [SKILL.md](skills/anysite-crm-audit/SKILL.md) |
+| `anysite-crm-score` | Score CRM companies against your ICP with an explicit rubric and write the score into the mapped field. | [SKILL.md](skills/anysite-crm-score/SKILL.md) |
+| `anysite-crm-competitor-intel` | Displacement hunting: who uses a competitor (technographics), what their users complain about (review mining), tagged into the CRM. | [SKILL.md](skills/anysite-crm-competitor-intel/SKILL.md) |
+| `anysite-crm-account-brief` | Pre-meeting one-pager for a CRM account: CRM context + funding, exec changes, news, key people's recent activity. | [SKILL.md](skills/anysite-crm-account-brief/SKILL.md) |
+| `anysite-crm-lookalikes` | Derive your real ICP from closed-won customers and find lookalike companies across 70M+ company records. | [SKILL.md](skills/anysite-crm-lookalikes/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
 ## Installation
 
-### Quick Start
+One line — installs skills into Claude Code / Codex and registers the anysite remote MCP server (sign-in happens in your browser on first use):
 
 ```bash
+# GTM package (recommended for sales/growth teams): CRM workflows + MCP
+npx @anysiteio/agent-skills gtm
+
+# Everything: all skills + MCP
 npx @anysiteio/agent-skills
 ```
 
-This will display installation instructions and list all available skills.
+You can also just send this line to your agent (Claude Code / Codex) — it will run it for you.
 
-### Step 1: Install anysite MCP Server
-
-First, install the anysite MCP server following the instructions at [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server).
-
-### Step 2: Add Skills Marketplace
-
-#### Option 1: Using npx (Recommended)
+Other commands:
 
 ```bash
-npx @anysiteio/agent-skills
+npx @anysiteio/agent-skills --list        # list bundles and skills
+npx @anysiteio/agent-skills --status      # what is installed
+npx @anysiteio/agent-skills --skill NAME  # install specific skill(s)
+npx @anysiteio/agent-skills --uninstall   # remove anysite skills
+npx @anysiteio/agent-skills --no-mcp      # skills only, skip MCP registration
 ```
 
-Then in Claude Code, run:
-```bash
-/plugin marketplace add https://github.com/anysiteio/agent-skills
-```
+After installing the GTM package, restart your agent session and say `/anysite-crm-setup` — it connects your HubSpot and configures safe field mapping.
 
-#### Option 2: Manual Installation
-
-In Claude Code:
-```bash
-# Add the marketplace
-/plugin marketplace add https://github.com/anysiteio/agent-skills
-
-# Install a skill
-/plugin install anysite-lead-generation@anysite-skills
-```
-
-#### Cursor / Windsurf
-
-Add to your project's `.cursor/settings.json` or use the same Claude Code plugin format.
-
-#### Other AI Tools
-
-Any AI tool that supports markdown context can use the skills by pointing to:
-- `skills/*/SKILL.md` - Individual skill documentation
-- `.claude-plugin/marketplace.json` - Skill metadata
+To update, re-run the same command: `npx` always fetches the latest published version.
 
 ## Prerequisites
 
