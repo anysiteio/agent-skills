@@ -19,6 +19,9 @@ future enrichment write deterministic: the same data always lands in the same CR
 
 The `crm_*` tools are visible only when the user has enabled CRM integration in their Anysite
 dashboard (Profile → CRM Integration). If the tools are missing, ask the user to enable it there.
+After they enable it, the tools do NOT appear instantly: the server flag takes up to a minute to
+propagate, and the agent's tool list is cached per session — ask the user to reconnect the MCP
+server (or start a new session), then retry. This is expected behavior, not an error.
 
 ## Setup flow
 
