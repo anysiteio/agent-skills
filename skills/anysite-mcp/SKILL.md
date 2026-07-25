@@ -73,6 +73,11 @@ is the map: how to call them, which sources cover which GTM need, and how to not
   Bonus from a successful resolve: the `search_sql_companies` row already carries
   `crunchbase_link` (free crunchbase alias — skip the live 20cr search) and
   `organizational_urn` (`company:<id>` — the numeric id goes straight into `search_jobs`).
+  ⚠️ For company SIZE use `employee_count`, never `employee_count_range` — the two fields
+  can contradict each other in the same record (verified: Clay returns `employee_count:
+  1465` alongside `employee_count_range: "201-500"`). The range field looks like the natural
+  key for size segmentation and would misfile that company by ~3x, silently. Fall back to
+  the range only when the exact count is empty, and say that you did.
 - `crunchbase/db/db_search` — filters by funding stage, last funding date, investors,
   employee range; count ≤100, dates as Unix timestamps. 1 credit/result. Response includes
   `funding_rounds[]`, `leadership_hires[]`, `layoffs[]`, `news[]`, `technologies[]`,
