@@ -78,8 +78,10 @@ execute linkedin/search/search_posts {keywords: "\"<company name>\"",
                                       date_posted: "past-month", count: 20}
 execute techmeme/stories/stories_search {keyword: "<company name>", count: 5}
 ```
-Do NOT use gdelt (times out). Filter false positives for generic company names by checking
-the author/context before counting a mention as a signal. For SMALL accounts, where keyword
+Do NOT use gdelt in sweep loops — not broken, but 10–50s per call by design, which
+multiplied by N accounts wrecks the sweep; techmeme/google news answer in seconds. Filter
+false positives for generic company names by checking the author/context before counting
+a mention as a signal. For SMALL accounts, where keyword
 search finds nothing, the better probe is the company's own feed:
 `linkedin/company/company_posts` (~1cr/10) — hiring announcements there name new people in
 `mentioned[]` with vanity aliases (new-hire signal + a warm contact in one call).

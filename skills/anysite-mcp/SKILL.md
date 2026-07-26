@@ -37,8 +37,11 @@ is the map: how to call them, which sources cover which GTM need, and how to not
    - **MCP Unlimited:** credit warnings off, but keep batch sizes sane anyway — the real
      limits are latency and upstream rate limits, so cap sweeps the same way and say
      "this will take ~N minutes" instead of a price.
-6. **Avoid `gdelt`** — it has repeatedly timed out in practice. Use techmeme or google news
-   instead.
+6. **`gdelt` is slow by design, not broken** — 10–50s per call is its normal range
+   (per-IP throttling upstream), and worst cases can exceed the MCP client's silent-call
+   timeout, which looks like a hang. Keep it OUT of per-account sweep loops (use techmeme
+   / google news there — they answer in seconds); it is fine for a one-off deep media
+   dive when you warn the user it takes a minute.
 
 ## GTM source map
 
