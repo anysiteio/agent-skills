@@ -57,6 +57,15 @@ npx @anysiteio/agent-skills gtm
 npx @anysiteio/agent-skills
 ```
 
+Supported agents (auto-detected; in an interactive terminal you get a picker, `--target` forces):
+
+- **Claude Code** — skills into `~/.claude/skills`, MCP via `claude mcp add`
+- **Codex** — skills into `~/.codex/skills`, MCP via `config.toml` (mcp-remote)
+- **Claude Desktop + Cowork** — one app: MCP merged into `claude_desktop_config.json`
+  (restart the app); skills are account-level, so the installer prepares ready-to-upload
+  zips in `~/Downloads/anysite-skills/` — upload once at Settings → Skills and they work
+  in Desktop, Cowork and claude.ai simultaneously.
+
 You can also just send this line to your agent (Claude Code / Codex) — it will run it for you.
 
 Other commands:
