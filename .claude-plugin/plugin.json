@@ -64,5 +64,11 @@
     "./skills/anysite-crm-competitor-intel",
     "./skills/anysite-crm-account-brief",
     "./skills/anysite-crm-lookalikes"
-  ]
+  ],
+  "mcpServers": {
+    "anysite": {
+      "type": "http",
+      "url": "https://mcp.anysite.io/mcp"
+    }
+  }
 }
