@@ -1,7 +1,7 @@
 {
   "name": "anysite-skills",
-  "version": "1.1.0",
-  "description": "Professional skills for data extraction and analysis using anysite MCP server. Covers LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC, and web scraping for lead generation, competitive intelligence, market research, social media analytics, person intelligence, VC analysis, and competitor research.",
+  "version": "2.2.0",
+  "description": "Professional skills for GTM and data work on the anysite MCP server. Includes the GTM/CRM package (CRM setup, enrichment, buying signals, champion tracking, prospecting, scoring, inbound lead verdicts, account briefs, lookalikes, competitor displacement) plus research skills for LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC and web scraping. Ships the anysite MCP connector - one install, skills + data access together.",
   "author": {
     "name": "Anysite Skills Contributors",
     "email": "support@anysite.io"
@@ -27,7 +27,13 @@
     "sec-filings",
     "person-intelligence",
     "vc-analysis",
-    "investor-research"
+    "investor-research",
+    "gtm",
+    "crm",
+    "hubspot",
+    "pipedrive",
+    "sales-signals",
+    "enrichment"
   ],
   "skills": [
     "./skills/anysite-lead-generation",
@@ -46,6 +52,17 @@
     "./skills/competitor-discovery",
     "./skills/customer-pain-mining",
     "./skills/positioning-map",
-    "./skills/anysite-crm-setup"
+    "./skills/anysite-crm-setup",
+    "./skills/anysite-mcp",
+    "./skills/anysite-crm-inbound",
+    "./skills/anysite-crm-enrich",
+    "./skills/anysite-crm-signals",
+    "./skills/anysite-crm-champions",
+    "./skills/anysite-crm-prospect",
+    "./skills/anysite-crm-audit",
+    "./skills/anysite-crm-score",
+    "./skills/anysite-crm-competitor-intel",
+    "./skills/anysite-crm-account-brief",
+    "./skills/anysite-crm-lookalikes"
   ]
 }

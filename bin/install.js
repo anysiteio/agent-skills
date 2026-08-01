@@ -320,10 +320,13 @@ for (const t of targets) {
   if (t === "desktop") {
     const { built, failed } = buildSkillZips(names);
     installedTotal += built.length;
-    console.log(`\nSkills [desktop] → ${ZIPS_DST}: ${built.length} zips prepared${failed.length ? `, failed: ${failed.join(", ")}` : ""}`);
-    console.log(`  Desktop/Cowork skills are account-level: upload the zips once at claude.ai →`);
-    console.log(`  Settings → Skills (or Claude Desktop → Settings → Skills) — they then work`);
-    console.log(`  in Desktop, Cowork and claude.ai at the same time.`);
+    console.log(`\nSkills [desktop/cowork] — two ways, plugin marketplace is the good one:`);
+    console.log(`  1. RECOMMENDED (30 sec, auto-updates): in Claude Desktop/Cowork open`);
+    console.log(`     Customize → Plugins → Add marketplace → enter: anysiteio/agent-skills`);
+    console.log(`     → Install "anysite-skills". It brings the skills AND the anysite MCP`);
+    console.log(`     connector in one step; toggle individual skills after install.`);
+    console.log(`  2. Fallback (per-skill zips for claude.ai web): ${built.length} zips prepared in`);
+    console.log(`     ${ZIPS_DST}${failed.length ? ` (failed: ${failed.join(", ")})` : ""} — upload at Settings → Skills.`);
     continue;
   }
   const { installed, missing } = installSkills(names, SKILLS_DST[t]);
