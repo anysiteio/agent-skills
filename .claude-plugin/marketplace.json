@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "anysite-skills-marketplace",
+  "name": "anysite",
   "version": "2.2.0",
   "description": "Anysite plugin: GTM/CRM skills + research skills, bundled with the anysite MCP connector",
   "owner": {

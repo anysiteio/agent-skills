@@ -320,13 +320,16 @@ for (const t of targets) {
   if (t === "desktop") {
     const { built, failed } = buildSkillZips(names);
     installedTotal += built.length;
-    console.log(`\nSkills [desktop/cowork] — two ways, plugin marketplace is the good one:`);
-    console.log(`  1. RECOMMENDED (30 sec, auto-updates): in Claude Desktop/Cowork open`);
-    console.log(`     Customize → Plugins → Add marketplace → enter: anysiteio/agent-skills`);
-    console.log(`     → Install "anysite-skills". It brings the skills AND the anysite MCP`);
-    console.log(`     connector in one step; toggle individual skills after install.`);
-    console.log(`  2. Fallback (per-skill zips for claude.ai web): ${built.length} zips prepared in`);
-    console.log(`     ${ZIPS_DST}${failed.length ? ` (failed: ${failed.join(", ")})` : ""} — upload at Settings → Skills.`);
+    console.log(`\nSkills [desktop/cowork] — install the plugin (skills + MCP connector in one step):`);
+    console.log(`  A. From a terminal (fastest, also works for Claude Code):`);
+    console.log(`       claude plugin marketplace add anysiteio/agent-skills`);
+    console.log(`       claude plugin install anysite-skills@anysite`);
+    console.log(`     Inside a Claude Code session: /plugin marketplace add anysiteio/agent-skills`);
+    console.log(`  B. In the Claude app UI: Customize → Plugins → + → Add marketplace →`);
+    console.log(`     anysiteio/agent-skills → Install "anysite-skills"`);
+    console.log(`     (Cowork itself has no /plugin slash command — there it is UI-only.)`);
+    console.log(`  Toggle individual skills after install. Per-skill zips for claude.ai web:`);
+    console.log(`  ${built.length} prepared in ${ZIPS_DST}${failed.length ? ` (failed: ${failed.join(", ")})` : ""}.`);
     continue;
   }
   const { installed, missing } = installSkills(names, SKILLS_DST[t]);

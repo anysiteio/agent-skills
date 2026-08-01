@@ -57,6 +57,20 @@ npx @anysiteio/agent-skills gtm
 npx @anysiteio/agent-skills
 ```
 
+### Claude Desktop / Cowork / claude.ai — install the plugin
+
+The plugin ships the skills **and** the anysite MCP connector in one step:
+
+```bash
+claude plugin marketplace add anysiteio/agent-skills
+claude plugin install anysite-skills@anysite
+```
+
+Inside a Claude Code session use `/plugin marketplace add anysiteio/agent-skills` instead.
+In Cowork there is no `/plugin` slash command — install from the UI: **Customize → Plugins →
++ → Add marketplace → `anysiteio/agent-skills` → Install "anysite-skills"**. Toggle individual
+skills after install; type `/` in a session to see what a plugin exposes.
+
 Supported agents (auto-detected; in an interactive terminal you get a picker, `--target` forces):
 
 - **Claude Code** — skills into `~/.claude/skills`, MCP via `claude mcp add`
