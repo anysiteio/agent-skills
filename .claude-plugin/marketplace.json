@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "anysite",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Anysite plugin: GTM/CRM skills + research skills, bundled with the anysite MCP connector",
   "owner": {
     "name": "Anysite Skills Contributors",
@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 28 anysite skills incl. the GTM/CRM package (setup, enrich, signals, champions, prospect, audit, score, inbound, account-brief, lookalikes, competitor displacement) + research skills. Bundles the anysite MCP connector - skills and data access install together; toggle individual skills after install.",
-      "version": "2.2.0",
+      "description": "Complete suite of 29 anysite skills incl. anysite-monitor (recurring change monitoring with a seen-ledger) incl. the GTM/CRM package (setup, enrich, signals, champions, prospect, audit, score, inbound, account-brief, lookalikes, competitor displacement) + research skills. Bundles the anysite MCP connector - skills and data access install together; toggle individual skills after install.",
+      "version": "2.3.0",
       "author": {
         "name": "Anysite Skills Contributors",
         "email": "support@anysite.io"

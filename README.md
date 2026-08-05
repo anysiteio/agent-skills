@@ -41,6 +41,7 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `anysite-crm-score` | Score CRM companies against your ICP with an explicit rubric and write the score into the mapped field. | [SKILL.md](skills/anysite-crm-score/SKILL.md) |
 | `anysite-crm-competitor-intel` | Displacement hunting: who uses a competitor (technographics), what their users complain about (review mining), tagged into the CRM. | [SKILL.md](skills/anysite-crm-competitor-intel/SKILL.md) |
 | `anysite-crm-account-brief` | Pre-meeting one-pager for a CRM account: CRM context + funding, exec changes, news, key people's recent activity. | [SKILL.md](skills/anysite-crm-account-brief/SKILL.md) |
+| `anysite-monitor` | Recurring monitoring that reports only what's NEW or changed since last run - discovers sources per goal, diffs against a persistent seen-ledger, runs on a schedule. | [SKILL.md](skills/anysite-monitor/SKILL.md) |
 | `anysite-crm-inbound` | Instant read-only verdict on one inbound lead - identity, company reality check, ICP fit, route and talking points in 2-5 calls. | [SKILL.md](skills/anysite-crm-inbound/SKILL.md) |
 | `anysite-crm-lookalikes` | Derive your real ICP from closed-won customers and find lookalike companies across 70M+ company records. | [SKILL.md](skills/anysite-crm-lookalikes/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
