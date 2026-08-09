@@ -97,6 +97,13 @@ After installing the GTM package, restart your agent session and say `/anysite-c
 
 To update, re-run the same command: `npx` always fetches the latest published version.
 
+**Updating the plugin (Claude Desktop / Cowork / Claude Code):** updates are two-stage —
+the plugin's Update button compares against the *marketplace's local catalog*, not GitHub.
+If it says "On latest version" right after a release, first press **Update on the
+marketplace row** (Plugins → Personal plugins → agent-skills) to pull the fresh catalog,
+then the plugin's Update button activates. "Sync automatically" on the marketplace does
+this on a schedule; the manual path always works.
+
 ## Prerequisites
 
 1. **anysite MCP Server** - [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server)
