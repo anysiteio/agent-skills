@@ -88,9 +88,10 @@ response is authoritative — it lists every endpoint of that category with:
 - `llm_hint` and `errors` — resolution requirements (many endpoints need an id
   resolved from a search endpoint first) and what a miss looks like.
 
-Note: `discover` does **not** enumerate the categories of a source — a wrong
-category returns a bare "not found". That is why step 1 (catalog grep) exists;
-the path in the catalog line is the category.
+Note: `discover` itself does not enumerate a source's categories (a wrong
+category returns a bare "not found") — category enumeration goes through the
+`execute` probe from the Path A table. On Path B the catalog line's path already
+carries the category.
 
 **3. Probe once (cheap, costs credits).** First check `search_requests` (free):
 if an identical call ran in the last 7 days, its cache_key already holds a probe
