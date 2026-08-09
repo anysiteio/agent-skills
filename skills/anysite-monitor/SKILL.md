@@ -37,8 +37,12 @@ Two things make a monitor good, and both are decided at setup, not at runtime:
    cache_keys with the free `search_requests`), but it is a cache of fetches, not
    a report state — 7-day retention is shorter than the ledger's rolling window,
    and it can't record what was already *reported*. So the ledger must sit in
-   external storage a headless run can reach by token; the request cache is a
-   cost-saver and a recovery aid, not a backend.
+   external storage a headless run can reach by token — OR, for daily-or-faster
+   monitors with stable-id sources, run **ledgerless** (`ledger_mode:
+   "cache_diff"`): diff each fetch against the prior runs' fetches still in that
+   7-day cache. Zero storage and no persist step, at the price of no long memory
+   and silent loss after a failed delivery — mode selection rules in
+   `references/storage-backends.md`.
 
 ## Two modes
 
@@ -82,10 +86,13 @@ Follow `references/onboarding.md` — it is the playbook, not a summary. The arc
    `date_posted`, `time_filter`…) and use it when present.
 4. **Size it out loud.** `targets × signals` calls per run, × cadence × 30 for the
    month. Trim here, before the schedule exists.
-5. **Check the run surface.** Before registering: can the scheduled run reach a
-   shell, Python, and this skill's `scripts/` directory? Test it during the dry
-   run. If not, record `"diff_mode": "in_session"` in the config so the run
-   doesn't discover it at 7 a.m.
+5. **Pick the state mode, then check the run surface.** Cadence ≤ 2 days +
+   stable-id sources + digest-tolerance → offer `ledger_mode: "cache_diff"`
+   (no storage, no persist; state the trade-off out loud). Otherwise ledger,
+   backend per `storage-backends.md`. For ledger mode also verify: can the
+   scheduled run reach a shell, Python, and this skill's `scripts/`? Test during
+   the dry run; if not, record `"diff_mode": "in_session"` so the run doesn't
+   discover it at 7 a.m.
 6. **Agree, dry-run, register, baseline.** Show the monitor in plain language,
    invite correction, optionally execute one pass to show the real digest, then
    register the task and seed the ledger.
@@ -109,6 +116,13 @@ the ledger JSON as a **separate block**. Store the returned id in
 `monitor.trigger_id`. Set the task's `notifications` per the chosen delivery.
 
 ## Run workflow
+
+**`ledger_mode: "cache_diff"`?** Different loop, no ledger and no persist:
+find prior fetches via `search_requests` (match endpoint + target handle, last
+7 days), union their id sets via `query_cache`, diff the current fetch against
+the union in-session, deliver; the current fetch's cache entry is next run's
+history. No prior fetches → baseline (fetch + one-line init). Full recipe in
+`references/storage-backends.md`. Everything below is the ledger-mode loop.
 
 1. **Load** config and ledger (backend per `references/storage-backends.md`). No
    ledger → baseline run.
@@ -179,6 +193,9 @@ be rich markdown, Telegram/Slack should be tighter. Honour `focus` when set.
   unstable fingerprint turns the monitor into a spam machine on run two.
 - **Hash meaning, not markup.** For pages, hash the extracted plan names/prices
   or feature list — never raw HTML (nav, banners and tokens change constantly).
+- **cache_diff discipline.** Ledgerless mode is only as good as the cache
+  window: if the gap since the last fetch approaches 7 days, re-seed quietly
+  instead of flooding, and never sell this mode for must-not-miss monitoring.
 - **No dead ends on discovery.** If the shell or the docs fetch is unavailable,
   the MCP self-enumeration path (`available_sources` / `available_categories` /
   `available_endpoints`) covers the same ground for free — never abandon a signal

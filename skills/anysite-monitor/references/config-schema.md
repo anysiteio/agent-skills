@@ -20,6 +20,7 @@ runs cheap and repeatable.
     "retention_days": 45,
     "delivery": "email",
     "focus": null,
+    "ledger_mode": "ledger",
     "storage": { "backend": "embedded" },
     "diff_mode": "script",
     "targets": [
@@ -79,7 +80,11 @@ Other fields: `baseline` = `silent` (default) or `initial_snapshot`; `delivery` 
 `focus` = optional string prioritizing some signals in the digest;
 `storage.backend` = `embedded` | `gdrive` | `db` (see `storage-backends.md`);
 `diff_mode` = `script` (default, runs `scripts/ledger.py`) or `in_session` when the
-scheduled surface has no shell/Python — decided and tested at setup, not at run time.
+scheduled surface has no shell/Python — decided and tested at setup, not at run time;
+`ledger_mode` = `ledger` (default) or `cache_diff` — the ledgerless mode for
+daily-or-faster monitors that diffs against prior fetches in Anysite's 7-day request
+cache (selection rules and run recipe in `storage-backends.md`; when `cache_diff`,
+`storage` and `diff_mode` are ignored and there is no persist step).
 
 ## Ledger schema
 
