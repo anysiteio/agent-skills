@@ -1,7 +1,11 @@
 # Storage Backends
 
 The ledger must survive between headless scheduled runs. Each run is a fresh
-session, so state lives outside the session. Pick the highest tier that is
+session, so state lives outside the session. (Anysite's own request cache does
+persist 7 days across sessions — `search_requests` finds old cache_keys — but it
+is a fetch cache with a shorter life than the ledger window, not a state store;
+use it to save credits and to recover a failed run's fetches, never as the
+ledger backend.) Pick the highest tier that is
 actually reachable by a token-authenticated headless run.
 
 ## Selection algorithm (run at setup)

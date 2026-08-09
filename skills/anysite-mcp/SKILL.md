@@ -5,10 +5,10 @@ description: How to use the anysite MCP server effectively - the universal meta-
 
 # Anysite MCP — usage guide
 
-The anysite MCP exposes hundreds of data sources through five universal meta-tools. This skill
+The anysite MCP exposes hundreds of data sources through six universal meta-tools. This skill
 is the map: how to call them, which sources cover which GTM need, and how to not waste credits.
 
-## The five meta-tools
+## The six meta-tools
 
 | Tool | Purpose | Credits |
 |---|---|---|
@@ -17,6 +17,7 @@ is the map: how to call them, which sources cover which GTM need, and how to not
 | `get_page(cache_key, offset, limit)` | Page through a cached result | free |
 | `query_cache(cache_key, conditions, sort_by, sort_order, aggregate, group_by, limit, offset)` | Filter/sort/aggregate cached data with SQL-like ops | free |
 | `export_data(cache_key, format)` | Export cached data (CSV/JSON) | free |
+| `search_requests(source, category, endpoint, query, since, until, limit, offset)` | Find past execute() calls and their cache_keys — 7-day history, works across sessions | free |
 
 ### Rules that prevent 90% of failures
 
@@ -26,8 +27,13 @@ is the map: how to call them, which sources cover which GTM need, and how to not
    never a REST path segment (`reviews`) — resolution is an exact-match lookup.
 2. **Never guess identifiers.** LinkedIn aliases, URNs, Crunchbase aliases, Greenhouse board
    tokens are unpredictable. Resolve them through the search endpoint of the same source first.
-3. **Re-use the cache.** `execute` returns a `cache_key`; further filtering, sorting, counting
-   and paging of that result is free. Never re-run `execute` to look at the same data twice.
+3. **Re-use the cache — it outlives the session.** `execute` returns a `cache_key`; further
+   filtering, sorting, counting and paging of that result is free, and the cache lives for
+   **7 days across sessions**. Before any paid `execute`, check `search_requests` (free) for
+   a recent identical call — same endpoint, matching params — and reuse its `cache_key` via
+   `query_cache`/`get_page` instead of refetching (verified live: a two-day-old cache_key
+   from another session served in full). Freshness rule: reuse when the data's age is fine
+   for the task (enrichment firmographics — usually yes; "what's new today" — no).
 4. **Cheap-first cascade.** When several endpoints can answer, call the cached/DB one first
    (`*/db/*`, `*sql*` endpoints, ~1 credit) and the live one only for the remainder.
 5. **Estimate volume before bulk runs — plan-aware.** First know the user's plan (the CRM

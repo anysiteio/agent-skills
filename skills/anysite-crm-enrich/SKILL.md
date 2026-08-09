@@ -49,7 +49,7 @@ Page through everything in scope. Locally split records into:
   each — estimate cost on large lists first). Check `valid_email`/`email_status` in its
   response and write only addresses that pass; report the rest as "found, unverified".
 
-Re-use cache (`query_cache`) instead of re-fetching anything twice.
+Re-use cache instead of re-fetching anything twice — including across sessions: `search_requests` (free) finds cache_keys of identical calls from the last 7 days (a company resolved yesterday doesn't need a paid re-resolve today).
 
 ### 3. Resolve companies
 

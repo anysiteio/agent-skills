@@ -32,9 +32,13 @@ Two things make a monitor good, and both are decided at setup, not at runtime:
    endpoints that no longer do what their name suggests. Instead, onboarding
    searches the live catalog for the user's actual goal, verifies each candidate
    with `discover` + one probe call, and compiles verified specs into the config.
-2. **State that survives.** Each scheduled run is a fresh session with no memory,
-   and Anysite's `query_cache` only lives inside one run — so the ledger must sit
-   in external storage a headless run can reach by token.
+2. **State that survives.** Each scheduled run is a fresh session with no memory.
+   Anysite's request cache does persist for 7 days across sessions (find old
+   cache_keys with the free `search_requests`), but it is a cache of fetches, not
+   a report state — 7-day retention is shorter than the ledger's rolling window,
+   and it can't record what was already *reported*. So the ledger must sit in
+   external storage a headless run can reach by token; the request cache is a
+   cost-saver and a recovery aid, not a backend.
 
 ## Two modes
 
@@ -135,7 +139,10 @@ the ledger JSON as a **separate block**. Store the returned id in
 4. **Persist, then deliver.** Write the ledger back *before* sending the digest:
    a run that reports deltas and then fails to save them repeats them next time.
    Stamp `last_ok_run` only on a successful write; if it lags `last_run`, say so
-   in the digest so repeats are explained.
+   in the digest so repeats are explained. Recovery aid: `search_requests` (free)
+   can locate the previous run's fetches and their cache_keys for up to 7 days —
+   useful to reconstruct what a failed-persist run had already reported, or to
+   skip refetching a source this run already pulled.
 5. **Deliver** per the digest format below.
 
 ### Digest format
