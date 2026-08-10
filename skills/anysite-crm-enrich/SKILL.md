@@ -42,8 +42,10 @@ Page through everything in scope. Locally split records into:
   resolve company (verified, per anysite-mcp recipe) → `organizational_urn` →
   `search_users {first_name, last_name, current_company: [{"type": "company",
   "value": "<id>"}]}` → usually exactly one match, WITH the profile URN as a bonus.
-  Company filter mandatory — bare names return namesakes. Still nothing → leave record,
-  report.
+  Company filter mandatory — bare names return namesakes. On BIG batches, do the same
+  cheaper in one call: `search_sql_users {last_name: [...], current_company_domain:
+  [<email domains>], count}` resolves many name+domain pairs at DB cost (then live-verify
+  what you'll write). Still nothing → leave record, report.
 - Needs email → cascade: `user_email` (batch ≤10, cheap, low yield, mostly personal
   addresses) → remainder via `user_find_email_by_url {url: <vanity profile URL>}` (50cr
   each — estimate cost on large lists first). Check `valid_email`/`email_status` in its

@@ -29,9 +29,15 @@ Estimate volume and confirm before running anything large.
   filters (20cr/50 — use for precision, not volume).
 
 **People at those companies:**
-- `execute linkedin/search/search_users {job_title, current_company: [urn] |
-  company_keywords, location, count}` — never bare `keywords` alone (empty results).
-  Company URNs come from the company search results.
+- Bulk (default): `execute linkedin/search/search_sql_users` — filter by
+  `current_company_id`/`current_company_domain` (straight from the company results),
+  `seniority_min`/`function` (derived — better recall than title text), country.
+  Craft + coverage caveats: `anysite-people-sourcing` skill. >1000 matches → walk
+  `bucket_total`/`bucket_index`, not repeated calls.
+- Point lookups / disambiguation: `execute linkedin/search/search_users {job_title,
+  current_company: [urn] | company_keywords, location, count}` — never bare `keywords`.
+- Live-verify the outreach shortlist via `linkedin/user` before pushing — the DB is
+  fresh but not realtime.
 
 ### 2. Emails (cheap-first cascade)
 

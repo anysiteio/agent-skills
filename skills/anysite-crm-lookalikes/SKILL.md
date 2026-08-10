@@ -8,6 +8,10 @@ description: Derive the actual ICP from the CRM's closed-won/best customers and 
 Your real ICP is written in your closed-won list, not in your pitch deck. Extract the
 pattern, then search 70M+ companies for more of it.
 
+Works for PEOPLE too, not only companies: `search_sql_users` has a lookalike graph —
+`similar_to: [<best customer contact aliases>]` (tight) / `also_viewed` (loose) plus
+normal filters. Same discipline: the user confirms the seed set, candidates get scored.
+
 ## Flow
 
 ### 1. Collect the seed set

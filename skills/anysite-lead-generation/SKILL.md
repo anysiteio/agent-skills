@@ -5,6 +5,11 @@ description: Lead generation and prospecting using anysite MCP server for Linked
 
 # anysite Lead Generation
 
+> Query craft for the two big SQL databases now lives in dedicated skills:
+> `anysite-company-sourcing` (70M companies) and `anysite-people-sourcing`
+> (856M profiles, `search_sql_users`). Prefer them for bulk list building;
+> this skill remains the end-to-end research workflow.
+
 Professional lead generation and prospecting using the anysite MCP server. Find prospects on LinkedIn, discover verified emails, extract contacts from websites, and build comprehensive lead lists for sales, recruiting, and business development.
 
 ## Overview

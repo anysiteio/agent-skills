@@ -14,7 +14,9 @@
       "anysite-crm-score",
       "anysite-crm-competitor-intel",
       "anysite-crm-account-brief",
-      "anysite-crm-lookalikes"
+      "anysite-crm-lookalikes",
+      "anysite-company-sourcing",
+      "anysite-people-sourcing"
     ]
   }
 }

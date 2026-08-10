@@ -55,6 +55,8 @@ is the map: how to call them, which sources cover which GTM need, and how to not
 - `linkedin/search/search_sql_companies` — the workhorse. Up to 1000 companies per call with
   DSL filters (keywords, industry_name, employee_count_min/max, country_hq, founded_on_min/max,
   has_website). Also does batch lookup by `urn` list and search by `website`.
+  Query craft (naive keywords return wrong-country token soup — measured 1/5 relevant vs
+  5/5 structured): the `anysite-company-sourcing` skill.
   ⚠️ **`website` search is SUBSTRING match, ordered by last_modified. Verification is
   MANDATORY on every resolve — position in the results means nothing.** Verified live:
   `{website: "stripe.com", count: 1}` → Soundstripe; `{website: "stlabs.com", count: 5}` →
@@ -133,10 +135,18 @@ buckets are nested (US ⊃ California ⊃ SF Bay Area), so summing double-counts
 untapped — a company running B2B ads is telling you it has budget and who its ICP is.
 Listing is cheap; per-ad detail is a separate call each (N+1) — budget accordingly.
 
-**People:** `linkedin/search/search_users` (use `job_title` + `current_company` or
-`company_keywords`; never bare `keywords` alone — returns empty), `linkedin/user` (full
-profile, needs alias/URL/URN — never guess the alias), `linkedin/user/user_posts`,
-`user_experience`, `user_comments`.
+**People:**
+- `linkedin/search/search_sql_users` — the 856M-profile DB, the bulk workhorse: derived
+  seniority/function filters, company domain/id (incl. past employers = alumni),
+  career-shape (months_in_role, tenure, promotions), lookalike graph (`similar_to`),
+  deterministic buckets for >1000. Craft guide: the `anysite-people-sourcing` skill.
+  Key semantics: over-`count` result is an unbiased SAMPLE (repeat = same people; walk
+  `bucket_total`/`bucket_index` instead), and `has_*` flags make coverage narrowing
+  explicit — set them when filtering by fields not every profile states.
+- `linkedin/search/search_users` (live) — one-off lookups and namesake disambiguation
+  (`job_title` + `current_company`/`company_keywords`; never bare `keywords` alone).
+- `linkedin/user` (full profile, needs alias/URL/URN — never guess the alias),
+  `linkedin/user/user_posts`, `user_experience`, `user_comments`.
 
 **Email finding (cascade, cheap → expensive):**
 1. `linkedin/user/user_email` — batch up to 10 profiles, cheap, low yield. Truths from live

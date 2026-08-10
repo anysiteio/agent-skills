@@ -31,6 +31,14 @@ crm_query_records(object_type="contacts", list_id=... | search=...,
 
 Cap a run at ~100 contacts (one profile call each); more → propose batching by tier.
 
+### 1b. Cheap pre-filter on big lists (optional)
+
+For hundreds of contacts, don't live-check everyone: `search_sql_users` with
+`urn: [<contact urns>]` (batch) or `past_company_id: [<your CRM company ids>]` +
+`months_since_change_max: 6` surfaces LIKELY movers from the 856M DB at DB cost.
+It's a pre-filter, not evidence: the DB is fresh but not realtime, so every
+flagged mover still goes through the live check below before any CRM write or play.
+
 ### 2. Detect moves
 
 Per contact:
