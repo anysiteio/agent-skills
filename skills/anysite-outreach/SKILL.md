@@ -1,94 +1,154 @@
 ---
 name: anysite-outreach
-description: Write first-touch and follow-up outreach (cold email, LinkedIn DM) grounded in a REAL detail collected by the other anysite skills - a funding round, a job change, a recent post, a competitor switch, a hiring signal - not generic personalization. Turns "we found the contact" into "here's the message". Use when the user wants to draft outreach, a cold email, a DM, a follow-up sequence, subject lines, or personalize a message to a prospect - "напиши письмо", "cold email", "аутрич", "сообщение лиду". Pairs with anysite-crm-signals/champions/prospect/account-brief (the detail) and the email cascade (the address). Drafts text; sending is the operator's own tool.
+description: Write COLD first-touch and follow-up outreach (email, LinkedIn DM) grounded in a real, dated detail collected by the other anysite skills - a funding round, a job change, a recent post, a competitor switch. Not generic personalization. Turns "we found the contact" into "here's the message". Use when the user wants to draft cold outreach, a first-touch email/DM, a follow-up sequence, or subject lines - "напиши письмо", "cold email", "аутрич", "холодное сообщение". NOT for replying to an inbound lead or an existing thread (that needs a real answer, not this cold formula - see anysite-crm-inbound). Drafts text only; the operator sends via their own tool.
 ---
 
 # Outreach
 
 The other skills end at "found the contact, here's the email". This one writes
-the message — and its whole value is that the message rides a **specific fact you
+the message — and its value is that the message rides a **specific, dated fact you
 already collected**, not a generic template every competitor also sends.
 
-The rule that decides everything: **could this exact message be sent to another
-company?** If yes, it's generic — rewrite it or don't send it. If no, it's ready.
+The rule behind everything: **could this exact message be sent to another
+company?** Yes → generic, rewrite or don't send. No → ready. This "mental test"
+is the skill's core; run it literally on every draft.
 
-## Where the detail comes from (don't invent it)
+## Step 0 — the offer (once per user, before any draft)
 
-A good first touch names one concrete, non-transferable thing. You already have
-these from the sourcing/signal skills — use them, in rough order of strength:
+The message has three slots: `[their detail] — [your offer, one line] — [question]`.
+The middle slot is about the SENDER, and no other skill in the pack knows it.
+Establish it once and reuse:
 
-| Source skill | The detail to open on |
-|---|---|
-| `anysite-crm-champions` | they just changed jobs / were your champion at <old co> |
-| `anysite-crm-signals` | fresh funding round, exec hire, hiring surge, layoff, news |
-| `anysite-crm-competitor-intel` | they use <competitor>, and a pain from its reviews |
-| `anysite-account-brief` / `people-sourcing` | a recent post/comment, a stated priority, tenure milestone |
-| `anysite-company-sourcing` | a homepage quote, a product name, a specific metric |
+- what you sell, in one plain line;
+- one number that matters (a price, a metric) — optional but strong;
+- 1–2 proof points (a named customer, a hard figure) for touches 3–4;
+- words to avoid (competitor names in touch 1, internal jargon).
 
-**No specific detail found → do NOT manufacture one.** Manufactured insight
-("AI agents fail more on stale data than bad logic") reads as mansplaining and is
-worse than no touch. Either fall back to a plainly-labelled category template, or
-mark the lead "weak data, skip" and tell the user.
+Ask the user if it isn't already saved. Store it next to the CRM profile
+(`~/.claude/skills/anysite-crm-profile/`) so future sessions skip the question.
+(Do not import anysite's own pitch — "$1 per 1k", "don't mention LinkedIn" are
+that internal playbook's rules, not yours; see the gold examples file only for
+STYLE, not content.)
+
+## Where the detail comes from — and it must be fresh
+
+You already have these from the sourcing/signal skills. A detail without a date
+is not a detail — stale facts are worse than none ("congrats on the round" about a
+2021 raise reads as a bot). Freshness gates:
+
+| Source skill | Detail | Fresh if |
+|---|---|---|
+| `anysite-crm-champions` | job change / were your champion at <old co> | ≤180 days |
+| `anysite-crm-signals` | funding round, exec hire, hiring surge, layoff, news | ≤90 days, and DATED |
+| `anysite-crm-competitor-intel` | uses <competitor> + a pain from its reviews | pain quote is timeless; usage claim must be PROVEN |
+| `anysite-crm-account-brief` / `anysite-people-sourcing` | a recent post/comment, a stated priority | post ≤30 days |
+| `anysite-company-sourcing` | homepage quote, product name, a specific metric | timeless |
+
+Two traps proven on live data:
+- **`secondary_market` / `post_ipo` funding rows are NOT a raise** — don't
+  congratulate. Take the newest row whose type is a real round AND whose amount is
+  non-null AND whose date is within the gate. (Fireflies' newest `funding_rounds`
+  row was a 2025 secondary with `money_raised_usd: null`; the real raise was 2021.)
+- **Competitor usage from technographics is a SAMPLE, not proof.** Claim "you use
+  X" only with direct evidence (their job post requiring it, their review, a case
+  study). Otherwise phrase as a hypothesis or drop it.
+
+**No fresh, specific detail → do NOT manufacture one.** Manufactured insight reads
+as mansplaining. Either ask the user for a category angle to use as a plainly
+generic template, or mark the lead "weak data, skip" and say so. (There is no
+built-in template library — don't promise one.)
 
 ## The formula (first touch)
 
 ```
-[one detail about THEM] — [what you offer, one line] — [one simple question]?
+[one detail about THEM] — [your offer, one line] — [one simple question]?
 ```
 
-Hard constraints (violate none):
-- **≤2 sentences, ~25–40 words** (a DM ≤ ~250 chars). Five seconds to read.
-- **Exactly one detail about them** — not three.
-- **Exactly one number** (your price/metric) — never two competing figures.
-- **End on a question, not a CTA.** "worth a look?" / "open to a test?" — never
-  "book a 15-min demo".
-- **Plain language.** No analyst-speak ("compounding savings", "unit economics"),
-  no sycophancy ("you say X — agreed"), no "Saw…/I noticed…" openers (mass-mail
-  tell).
+Constraints (violate none):
+- **≤2 sentences, ~25–40 words.** Five seconds to read. This holds for enterprise
+  too — short cold copy converts on every segment.
+- **One detail** — but a detail can be a single COMPOUND thesis built from a few
+  facts (anchor + competitor + pain is ONE displacement angle, not three details;
+  it passes the mental test precisely because the combination is non-transferable).
+- **One number of YOURS.** A number inside the detail ("across 4 channels", "back
+  after 5 years") doesn't count against this — it's theirs.
+- **End on a question, not a CTA.** "worth a look?" / "open to a test?"
+- **Plain language.** No analyst-speak, no sycophancy ("you say X — agreed"), no
+  "Saw…/I noticed…" openers (mass-mail tell).
+
+## Modulate by seniority (ATL vs BTL)
+
+`search_sql_users` returns `seniority` — use it. To a CXO/VP, the offer line is a
+business outcome or risk ("keeps data cost invisible as you scale"); to an IC/
+manager, it's the workflow specifics they own ("fresh records into your sequence
+without the monthly credit cliff"). Same detail, different value slot. This is the
+highest-leverage upgrade over a one-size message.
 
 ## Channel differences
 
-- **Email:** needs a subject line — 2–4 words, lower-case, curiosity or the
-  detail itself ("stale lists", "your Series B"); never the pitch. Run copy
-  through a spam-word check (avoid "free", "guarantee", "act now", "$$$",
-  ALL-CAPS, many exclamation points) — they wreck deliverability. Verify the
-  address is a WORK email and validated (per the email cascade in `anysite-mcp`);
-  never send to a personal or unverified address.
-- **LinkedIn DM:** lower-case start, no subject, and **do not mention "LinkedIn"
-  in the text** (moderation risk). Even tighter — one detail, one question.
+- **Email:** give 2–3 subject options (2–4 words, lower-case, the detail itself —
+  "your series b", "stale lists" — never the pitch; run the mental test on the
+  subject too). But opens follow the subject while REPLIES follow the first line —
+  make the first line carry the detail, not a greeting. Deliverability today is
+  domain reputation + SPF/DKIM/DMARC + warmup, not word-filters — so the real
+  advice is "confirm domain auth and warmup" and "keep trigger words ('free',
+  'guarantee') out of the SUBJECT and avoid links in touch 1". Legal: cold
+  commercial email needs a working opt-out, sender identity and a physical address
+  (CAN-SPAM; EU/UK also a legitimate-interest basis) — the unsubscribe line sits
+  OUTSIDE the 25–40 word count.
+- **LinkedIn DM:** lower-case start, no subject, and don't write the word
+  "linkedin" in the body (moderation). Even tighter.
+
+## Email address gate
+
+Send only to a WORK email confirmed against the person's CURRENT company domain.
+Note which cascade step it came from (`anysite-mcp` → Email finding): only step 2
+(`user_find_email_by_url`) returns `valid_email`/`email_status`; step 1
+(`user_email`) has no validation and its `found` is always true — treat step-1
+addresses as unverified (send at own risk or run them through step 2 first).
 
 ## The sequence (4 touches, one idea each)
 
 | # | Job | Length | Contents |
 |---|---|---|---|
-| 1 Hook | catch them with the detail | 25–40 w | 1 detail + 1 line of value + simple question |
+| 1 Hook | catch them with the detail | 25–40 w | detail + offer line + simple question |
 | 2 Math/Fit | the value in THEIR numbers | 30–45 w | their scale × the stakes + "worth comparing?" |
-| 3 Proof | one relevant proof point | 30–50 w | similar customer + one figure + soft CTA |
+| 3 Proof | one proof point | 30–50 w | a named customer + one figure + soft CTA |
 | 4 Break-up | close, door open | 20–30 w | "no worries" + a low-friction offer if ever useful |
 
-Space them; each carries a single new idea. Incentives (a free trial, a credit
-grant) belong in touch 3–4, never touch 1 — the first message is only a question.
+Incentives (a trial, a credit grant) belong in touch 3–4, never touch 1.
+
+## Voice-of-customer: quote, don't paraphrase
+
+When `anysite-crm-competitor-intel` has a verbatim review line, use it verbatim —
+a real "after your credits are gone it's a brick tool" beats any paraphrase. Keep
+the source; never invent a quote.
 
 ## Self-check before it ships (all must pass)
 
-- [ ] One detail, and it's concrete (product name / quote / metric / event) — not
-      "your outbound", "your AI".
-- [ ] Mental test passes: this message can't be sent to another company.
-- [ ] One number only. Ends on a question. ≤2 sentences.
+- [ ] One detail (or one compound thesis), concrete AND dated within its gate.
+- [ ] Mental test passes on the body AND the subject.
+- [ ] One number of yours (a number inside the detail is fine). Ends on a
+      question. ≤2 sentences.
 - [ ] No "Saw…", no analyst-speak, no forced agreement.
-- [ ] Email: subject present, spam-word-clean, address is verified work email.
-- [ ] DM: lower-case, no "linkedin" in the text.
-- [ ] Nothing invented — every claim about them traces to collected data.
+- [ ] Offer line matches the recipient's seniority.
+- [ ] Email: 2–3 subjects, first line carries the detail, opt-out present (uncounted),
+      address is a domain-matched work email (step-2 validated, or flagged unverified).
+- [ ] DM: lower-case, no "linkedin" in the body.
+- [ ] Nothing invented — every claim traces to dated collected data; competitor
+      usage only if directly proven.
 
-Fail one → rewrite. This is deterministic; run it on every draft, like the
-`validate_hook` discipline it's ported from.
+Fail one → rewrite. Deterministic, ported from the `validate_hook` discipline.
 
-## Boundaries
+## Boundaries & routing
 
-- **Drafts only.** This skill produces text; the operator sends via their own
-  tool. If they want the copy stored, `anysite-crm-*` can write it to a mapped
-  field (e.g. `hook_text`) via the profile — dry-run first, per the Writing rules.
-- Compliance: personalize from facts, not from private inference; respect that a
-  personal inbox and an unconsented contact are not fair game for a work sequence.
-- Anti-patterns live in `sales_agent/anysite_hook_style_guide.md` (5 gold
-  examples + the four failure modes) — consult it when a draft feels off.
+- **Cold only, drafts only.** For an inbound lead or a live thread, answer the
+  question and offer a slot — don't apply this formula; `anysite-crm-inbound`
+  scopes the inbound case. This skill produces text; the operator sends.
+- Supersedes the ad-hoc outreach lines in `anysite-lead-generation` and
+  `anysite-vc-analyst` — when the task is "write the cold message", use this skill's
+  rules, not theirs.
+- Storing the copy: `anysite-crm-*` can write it to a mapped field (e.g.
+  `hook_text`) via the profile — dry-run first, per the Writing rules.
+- Style reference (gold examples + four failure modes):
+  `sales_agent/anysite_hook_style_guide.md` — for STYLE, not for anysite's offer.

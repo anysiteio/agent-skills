@@ -72,6 +72,9 @@ One page, this order:
    history in CRM, competitor relationship).
 5. **Sources** — links for every claim. No link → don't claim it.
 
+When the next step is a cold message, hand a single dated fact + its angle to
+`anysite-outreach`.
+
 ## Writes
 
 None by default. If the user asks to save the brief: a note via the CRM UI is their

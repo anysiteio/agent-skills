@@ -110,7 +110,8 @@ Output tiers: **Act now** (2+ fresh signals), **Watch** (1 signal), **Quiet**.
 ### 4. Report (and optionally write back)
 
 Always produce the human report first: account → signals → suggested angle ("congratulate
-on Series B, reference the new VP Sales hire").
+on Series B, reference the new VP Sales hire"). Hand a dated signal + the angle to
+`anysite-outreach` to draft the first touch.
 
 If the profile maps signal fields (e.g. `last_signal_type`, `last_signal_date`,
 `signal_summary`) and the user wants them stored:
