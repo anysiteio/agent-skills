@@ -1,6 +1,6 @@
 {
   "name": "anysite-skills",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Professional skills for GTM and data work on the anysite MCP server. Includes the GTM/CRM package (CRM setup, enrichment, buying signals, champion tracking, prospecting, scoring, inbound lead verdicts, account briefs, lookalikes, competitor displacement) plus research skills for LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC and web scraping. Ships the anysite MCP connector - one install, skills + data access together.",
   "author": {
     "name": "Anysite Skills Contributors",
@@ -40,7 +40,10 @@
     "sourcing",
     "prospecting",
     "people-search",
-    "company-search"
+    "company-search",
+    "outreach",
+    "cold-email",
+    "copywriting"
   ],
   "skills": [
     "./skills/anysite-lead-generation",
@@ -73,7 +76,8 @@
     "./skills/anysite-crm-lookalikes",
     "./skills/anysite-monitor",
     "./skills/anysite-company-sourcing",
-    "./skills/anysite-people-sourcing"
+    "./skills/anysite-people-sourcing",
+    "./skills/anysite-outreach"
   ],
   "mcpServers": {
     "anysite": {

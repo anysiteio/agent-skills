@@ -87,4 +87,5 @@ Save `run_id`s; mention `crm_undo`.
 
 Table: contact → old → new → play. Lead with movers into ICP accounts. Include suggested
 opener anchored on the shared history ("you used X at <old company>...") — personalization
-from facts, never invented familiarity.
+from facts, never invented familiarity. Hand the mover + the shared-history fact to
+`anysite-outreach` to draft the actual re-engagement message.

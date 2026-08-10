@@ -99,5 +99,6 @@ Created / updated / already-known / pending-email / manual-review. Never call da
   without CRM push, hand off to `anysite-lead-generation`.
 - Don't set owner, lifecycle stage, or any protected field — routing belongs to the CRM's
   own automation.
-- ICP scoring of the found leads → `anysite-crm-score`; lookalike seeding → 
-  `anysite-crm-lookalikes`.
+- ICP scoring of the found leads → `anysite-crm-score`; lookalike seeding →
+  `anysite-crm-lookalikes`; writing the first-touch message → `anysite-outreach`
+  (it opens on a detail you collected here, not a generic template).
