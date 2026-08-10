@@ -38,7 +38,8 @@ Take the user's ICP sentence apart and map each fragment to its OWN field:
 |---|---|---|
 | "based in X" | `country_hq: ["US"]` + `headquarter_location: "\"san francisco\""` | token-aware; NEVER the `locations` field — that matches branch offices |
 | "present in X" (offices count too) | `country_any` | this is the only right use of the locations array |
-| "does AI / fintech / logistics" | `specialities` first — self-declared tags, highest signal; then `industry_name`; `description` phrases last | `industry` array wants URNs; `industry_name` resolves labels |
+| "does AI / fintech / logistics" | `specialities` OR `industry_name` OR `description` together, not specialities alone | `industry` array wants URNs; `industry_name` resolves labels — see the specialities caveat below |
+| "in the orbit of company X" | `similar_organizations: "\"fsd_company:<id>\""` | queryable filter, not just an output field — the reverse-graph expander; see below |
 | "startup / SMB / enterprise" | `employee_count_min` / `employee_count_max` | integers; ignore `employee_count_range` entirely |
 | "founded recently" | `founded_on_min` | year |
 | named company lookup | `name` or `alias` DSL + exact verification | never trust first hit; resolve by domain via the anysite-mcp resolve recipe |
@@ -47,6 +48,14 @@ Take the user's ICP sentence apart and map each fragment to its OWN field:
 DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
 `"phrase"` = exact phrase, `-token` = NOT. Example:
 `specialities: "\"artificial intelligence\"|\"machine learning\" -agency"`.
+(`hashtags` is the exception — exact element match, not substring.)
+
+**Specialities caveat:** self-declared tags are the highest-signal field WHEN
+present, but hot young startups often leave them blank — measured: 2/10 in a
+US/Software slice had empty `specialities[]`, one of them Hebbia ($160M-funded,
+empty short_description too). So `specialities` is a widening OR alongside
+`industry_name` and `description`, never the sole gate, or you silently drop
+exactly the fresh-funded targets a list is built for.
 
 ## The loop (never skip step 3)
 
@@ -63,6 +72,23 @@ DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
 5. **Free re-cuts**: `query_cache` on the result for sorting, counting,
    sub-segmenting — don't re-execute.
 
+## Two hard limits to state up front (TAM planning)
+
+Unlike people search, company search has **no `bucket_total` and no count-only
+mode**. That means:
+
+- **You cannot ask "how big is my ICP universe" cheaply** — there's no total
+  count without pulling rows. Size the split blind, or probe representative
+  sub-slices and extrapolate; tell the user the number is an estimate.
+- **Results are ordered `last_modified_at` desc, so a >1000 match is a
+  recency-HEAD, not a sample** — and card freshness lags (a US/Software/11–200
+  slice topped out at pages ~13 months old, which is also why `employee_count`
+  drifts from reality). Splitting by size/country/founded is the only way to full
+  coverage, and each sub-query must itself be < 1000 or you're back to a recency
+  head inside the band. Use `last_modified_after` both as a freshness lever and as
+  the basis for a "new since last run" sweep. Dedup on the band boundaries by
+  `urn` (`query_cache uniq`).
+
 ## Read the bonus fields — they're the handoff
 
 Every row carries, at no extra cost:
@@ -71,9 +97,27 @@ Every row carries, at no extra cost:
   (`current_company_id`) and `search_jobs` directly;
 - `website` → domain for CRM matching and `current_company_domain` people filters;
 - `crunchbase_link` → free crunchbase alias, skip the live 20cr search;
-- `similar_organizations[]` → expansion seed: batch-fetch them by `urn: [...]`
-  as a second-ring candidate pool (validate — quality is mixed);
+- `similar_organizations[]` → both an output list AND a **queryable filter** (the
+  bigger lever — see below);
 - `specialities[]` → the company's own vocabulary, reuse it to widen synonyms.
+
+## similar_organizations as a filter — the reverse-orbit expander
+
+Verified live: `similar_organizations: "\"fsd_company:1441\""` (Salesforce) +
+`country_hq:["US"]` + size band returned 8 companies, all 8 carrying Salesforce in
+their own similar-orgs graph. This is "who sits in the orbit of company X" — the
+right tool for two jobs no keyword query does well:
+
+- **ICP expansion from a seed account** — feed your best customer's `fsd_company`
+  id, get its competitive/adjacent set.
+- **Competitor-adjacency lists** — the closest this skill gets to "companies like
+  my competitor". (It is NOT the competitor's customers — for that,
+  `anysite-crm-competitor-intel` via wappalyzer/reviews.)
+
+Noisy — roughly 3/8 were on-target in the test — so always combine with
+`industry_name`/`specialities` and run the probe-validate loop. Batch-fetching the
+output `similar_organizations[]` by `urn:[...]` (≤12 at a time) is the weaker,
+one-hop version; the filter is the scalable one.
 
 ## When a different tool is right
 

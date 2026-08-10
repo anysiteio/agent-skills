@@ -1,12 +1,13 @@
 ---
 name: anysite-mcp
-description: How to use the anysite MCP server effectively - the universal meta-tools (discover, execute, get_page, query_cache, export_data), the source map for GTM signals (funding, hiring, tech stack, reviews, news, launches), email finding cascades, and cost-aware calling patterns. Consult this before any anysite data work. Use when unsure which source or endpoint covers a data need, how to paginate or re-filter cached results, or how to combine sources into a signal chain.
+description: How to use the anysite MCP server effectively - the six meta-tools (discover, execute, get_page, query_cache, export_data, search_requests), the source map for GTM signals (funding, hiring, tech stack, reviews, news, launches), email finding cascades, domain->company resolution, and cost-aware calling patterns. Consult this before any anysite data work. Use when unsure which source or endpoint covers a data need, how much a call costs / how many credits, why an endpoint is 'not found', how to reuse a cache_key, how to paginate or re-filter cached results, or how to combine sources into a signal chain.
 ---
 
 # Anysite MCP — usage guide
 
-The anysite MCP exposes hundreds of data sources through six universal meta-tools. This skill
-is the map: how to call them, which sources cover which GTM need, and how to not waste credits.
+The anysite MCP exposes hundreds of data sources through six universal meta-tools (plus the
+`crm_*` family, see Working with CRM). This skill is the map: how to call them, which sources
+cover which GTM need, and how to not waste credits.
 
 ## The six meta-tools
 
@@ -16,7 +17,7 @@ is the map: how to call them, which sources cover which GTM need, and how to not
 | `execute(source, category, endpoint, params)` | Run an endpoint; returns first 10 items + `cache_key` | paid |
 | `get_page(cache_key, offset, limit)` | Page through a cached result | free |
 | `query_cache(cache_key, conditions, sort_by, sort_order, aggregate, group_by, limit, offset)` | Filter/sort/aggregate cached data with SQL-like ops | free |
-| `export_data(cache_key, format)` | Export cached data (CSV/JSON) | free |
+| `export_data(cache_key, output_format, list_unpack)` | Export cached data — `output_format` json (default) / csv / jsonl; `list_unpack` = how many nested-array elements to expand into CSV columns (default 1) | free |
 | `search_requests(source, category, endpoint, query, since, until, limit, offset)` | Find past execute() calls and their cache_keys — 7-day history, works across sessions | free |
 
 ### Rules that prevent 90% of failures
@@ -43,11 +44,18 @@ is the map: how to call them, which sources cover which GTM need, and how to not
    - **MCP Unlimited:** credit warnings off, but keep batch sizes sane anyway — the real
      limits are latency and upstream rate limits, so cap sweeps the same way and say
      "this will take ~N minutes" instead of a price.
-6. **`gdelt` is slow by design, not broken** — 10–50s per call is its normal range
-   (per-IP throttling upstream), and worst cases can exceed the MCP client's silent-call
-   timeout, which looks like a hang. Keep it OUT of per-account sweep loops (use techmeme
-   / google news there — they answer in seconds); it is fine for a one-off deep media
-   dive when you warn the user it takes a minute.
+6. **Live LinkedIn search fails as an empty list, not an error.** `search_users` and
+   `search_companies` return `{"results":[]}` on queries that just don't hit ("stripe",
+   "databar" both came back empty live, while "microsoft" worked) — it is not a broken key.
+   On empty, switch to the `search_sql_*` DB endpoints; do NOT retry with broader keywords.
+   (This is why reverse-lookup via live `search_users` is best-effort, not "usually one
+   match".)
+7. **`gdelt` is slow by design, not broken** — 10–50s per call is normal (upstream per-IP
+   throttling), and worst cases exceed the MCP client's silent-call timeout, which looks
+   like a hang. Endpoints: `gdelt/articles/articles_search` and `articles_context`
+   (`timespan` like 3d/1w or `start_datetime` YYYYMMDDHHMMSS; count ≤250). Keep it OUT of
+   per-account sweep loops (use techmeme / google news — seconds); fine for a one-off deep
+   media dive with a "takes a minute" warning.
 
 ## GTM source map
 
@@ -66,7 +74,9 @@ is the map: how to call them, which sources cover which GTM need, and how to not
      protocol/`www.`/path) on EVERY resolve, single or batched. No exact match =
      **unresolved** — never write anything to the CRM for it; wrong-company data lands in
      blank fields where nobody will catch it.
-  2) Default: one domain per call, small count. OR-DSL batching
+  2) **Never `count: 1`** on a website resolve — the substring flood means the one row you
+     get is very likely the wrong company. Default one domain per call at a small count (5+).
+     OR-DSL batching
      (`{website: "a.com|b.io", count: 10× domains}`) is an optimization with a verification
      tax: a domain with a common token can be flooded out of the batch entirely — every
      domain that didn't come back exact-matched must be re-queried individually.
@@ -93,17 +103,24 @@ is the map: how to call them, which sources cover which GTM need, and how to not
   key for size segmentation and would misfile that company by ~3x, silently. Fall back to
   the range only when the exact count is empty, and say that you did.
 - `crunchbase/db/db_search` — filters by funding stage, last funding date, investors,
-  employee range; count ≤100, dates as Unix timestamps. 1 credit/result. Response includes
-  `funding_rounds[]`, `leadership_hires[]`, `layoffs[]`, `news[]`, `technologies[]`,
-  `employees[]`.
+  employee range; count ≤100, dates as Unix timestamps. `employee_count_min/max` are
+  ENUM bands, not free integers (min ∈ {1,11,51,101,251,501,1001,5001,10001}, max ∈
+  {10,50,100,250,500,1000,5000,10000,10001}) — passing 20 errors out. 1 credit/result.
+  Response includes `funding_rounds[]`, `leadership_hires[]`, `layoffs[]`, `news[]`,
+  `technologies[]`, `employees[]`.
 - `crunchbase/search` (live, 20cr/50) — adds `hiring`, `event`, `spotlight`,
   `shares_investors_with`, `it_spend_*`, `revenue_*`, `valuation_*` filters. Check discover
   for its date format — it differs from db_search.
-- `yc/search/search_companies`, `betalist`, `tracxn/companies/companies_search` —
-  early-stage supplements (check discover for exact endpoint names before calling).
+- Early-stage supplements: `yc/search/search_companies` (keyword search, works) and
+  `betalist/startups/startups_search {keyword, count}`. NOT `tracxn/companies/companies_search`
+  — it has no name/keyword input, only an `explore` param (a URL/id of a ready-made Tracxn
+  list) and returns guests only a truncated slice; usable solely if you already hold such a
+  list URL.
 
-**Company detail:** `crunchbase/company` (by alias — resolve via `crunchbase/search` first),
-`linkedin/company`. One `crunchbase/company` call also carries free extras worth reading:
+**Company detail:** `crunchbase/company` — get its alias for free from the `crunchbase_link`
+that `search_sql_companies` already returned (live `crunchbase/search` is the fallback, not
+the first step). ⚠️ The alias is CASE-SENSITIVE ('Google' ≠ 'google') — take it verbatim
+from the URL slug. Also `linkedin/company`. One `crunchbase/company` call carries free extras:
 `bombora_surges[]` (B2B intent topics — but they show what THAT company's staff researches,
 i.e. what they BUY; treat as a signal only when a topic matches what the user sells),
 `related.competitors[]`, `predictions.funding_score`, `awards[]`. Coverage caveat:
@@ -131,9 +148,11 @@ function/skill/location breakdown — cross-check totals against `employee_count
 buckets are nested (US ⊃ California ⊃ SF Bay Area), so summing double-counts badly. Its
 `llm_hint` promises seniority and growth trends that the response does not contain.
 
-**Ads as a budget signal:** the `ad-transparency` sources (incl. LinkedIn Ad Library) are
-untapped — a company running B2B ads is telling you it has budget and who its ICP is.
-Listing is cheap; per-ad detail is a separate call each (N+1) — budget accordingly.
+**Tech stack & adoption signals:** `stackshare/companies` (a company's declared stack by
+slug — the forward direction wappalyzer can't do); `producthunt/products/products_customers`
+(reverse stack: who uses a product, with a testimonial quote — a budget/intent tell).
+There is NO `ad-transparency` source in the catalog (verified: not among the 591 sources,
+and `linkedin` has no `ads` category) — do not reach for ad-library data, it isn't here.
 
 **People:**
 - `linkedin/search/search_sql_users` — the 856M-profile DB, the bulk workhorse: derived
@@ -150,10 +169,13 @@ Listing is cheap; per-ad detail is a separate call each (N+1) — budget accordi
 
 **Email finding (cascade, cheap → expensive):**
 1. `linkedin/user/user_email` — batch up to 10 profiles, cheap, low yield. Truths from live
-   testing: it returns mostly PERSONAL addresses (gmail/yahoo), one row per EMAIL — not per
-   profile (group by `alias`/`internal_id` or you duplicate contacts), and its `found` field
-   is always true (useless as a check). Personal addresses are not work emails — never
-   present them as outreach-ready.
+   testing: it returns a MIX of personal and work addresses (roughly half and half), one row
+   per EMAIL — not per profile — and a single person can come back with several rows,
+   including emails at PAST employers (measured: one alias → 4 rows spanning current and
+   former company domains). Its `found` field is always true (useless as a check). So: group
+   by `alias`/`internal_id`, then match the domain against the person's CURRENT company; if
+   more than one work address survives, treat it as unverified and pass to step 2. Personal
+   addresses are not outreach-ready.
 2. `linkedin/user/user_find_email_by_url {url}` — high yield but expensive (50cr), run only
    on the remainder after step 1. Takes a VANITY profile URL (`/in/satyanadella/`);
    URN-style URLs (`/in/ACoA...`) are rejected — get the vanity URL from `linkedin/user`
@@ -193,8 +215,9 @@ sample, not an exhaustive site list.
 `capterra/products/products_reviews` (includes `switched_from[]` and `switching_reason` —
 direct competitor-switch evidence), `trustradius` and `getapp` `products_reviews`,
 `gartner/products` — competitor review mining. Employer sentiment:
-`glassdoor/companies/companies_ratings` (employer id via `companies_search`), `kununu`,
-`comparably`, `blind/companies/companies_reviews`.
+`glassdoor/companies/companies_ratings` (employer id via `companies_search`), `kununu`
+(DACH only — country ∈ de/at/ch), `comparably`, `blind/companies/companies_reviews`
+(+ `companies_salaries` comp percentiles, `companies_posts` anonymous chatter).
 
 **News & mentions:** `techmeme/stories/stories_search {keyword, count}` (archive) and
 `stories_front_page`; `google/news/news_articles_search`;
@@ -221,7 +244,9 @@ company domain
   → search_jobs {company: [{type, value from organizational_urn}]} → what they hire for
   → search_posts (company name, past-month) → mentions
 ```
-Three paid calls per account instead of four — the live crunchbase/search drops out.
+Four paid calls per account instead of five — the live crunchbase/search drops out (the
+alias comes free from `crunchbase_link`); five if the domain doesn't resolve and webparser
+is needed.
 
 Stack signals: one signal is a guess, 2–3 signals within ~30 days is a pattern worth acting on.
 

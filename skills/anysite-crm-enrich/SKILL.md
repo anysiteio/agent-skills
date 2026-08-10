@@ -46,8 +46,9 @@ Page through everything in scope. Locally split records into:
   cheaper in one call: `search_sql_users {last_name: [...], current_company_domain:
   [<email domains>], count}` resolves many name+domain pairs at DB cost (then live-verify
   what you'll write). Still nothing → leave record, report.
-- Needs email → cascade: `user_email` (batch ≤10, cheap, low yield, mostly personal
-  addresses) → remainder via `user_find_email_by_url {url: <vanity profile URL>}` (50cr
+- Needs email → cascade: `user_email` (batch ≤10, cheap, low yield, a MIX of personal and
+  work addresses incl. past employers — group by profile, match domain to current company)
+  → remainder via `user_find_email_by_url {url: <vanity profile URL>}` (50cr
   each — estimate cost on large lists first). Check `valid_email`/`email_status` in its
   response and write only addresses that pass; report the rest as "found, unverified".
 
