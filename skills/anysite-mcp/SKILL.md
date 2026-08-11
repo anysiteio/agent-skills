@@ -62,7 +62,8 @@ cover which GTM need, and how to not waste credits.
 **Company discovery (bulk):**
 - `linkedin/search/search_sql_companies` — the workhorse. Up to 1000 companies per call with
   DSL filters (keywords, industry_name, employee_count_min/max, country_hq, founded_on_min/max,
-  has_website). Also does batch lookup by `urn` list and search by `website`.
+  has_website) and a `sort` param (`relevance` — default for filtered queries — or
+  `last_modified` for freshness/monitoring). Also batch lookup by `urn` and search by `website`.
   Query craft (naive keywords return wrong-country token soup — measured 1/5 relevant vs
   5/5 structured): the `anysite-company-sourcing` skill.
   ⚠️ **`website` search is SUBSTRING match, ordered by last_modified. Verification is

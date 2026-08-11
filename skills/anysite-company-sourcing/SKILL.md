@@ -23,8 +23,14 @@ The difference is the whole skill. Never ship results from a naive query.
 1. `keywords` token-matches across ALL text fields — name, description,
    specialities, hashtags, **and the locations array** — so "San Francisco"
    matches a Hanoi company with a two-person SF sales office.
-2. Results are ordered by `last_modified_at` desc: **recently edited first, not
-   most relevant**. Page one is whoever touched their page this month.
+2. **Sort doesn't rescue a naive query — it only changes the flavour of the
+   noise.** There's a `sort` param (`relevance` | `last_modified`; see below).
+   For a bare `keywords` query, `last_modified` puts recently-edited off-ICP
+   companies on top (Tel-Aviv/Sydney firms with an SF office); `relevance` puts
+   literal phrase-matches on top instead — "AI startup San Francisco" surfaces
+   *Startup Weekend AI*, *Bitcoin AI Startup Lab*, 1-employee shops and a
+   Phoenix-HQ company (all measured). Neither is an ICP list. The fix is the
+   per-field decomposition below, not a sort flag.
 3. Millions of company pages are stubs. Without hygiene filters they dominate.
 4. `employee_count_range` can contradict `employee_count` in the same record
    (measured: 305 employees with range "11-50"). Never filter or segment by the
@@ -44,6 +50,7 @@ Take the user's ICP sentence apart and map each fragment to its OWN field:
 | "founded recently" | `founded_on_min` | year |
 | named company lookup | `name` or `alias` DSL + exact verification | never trust first hit; resolve by domain via the anysite-mcp resolve recipe |
 | always, every query | `is_active: true, has_website: true, min_description_length: 100` | the hygiene trio kills stubs and dead pages |
+| ranking | `sort` = `relevance` (default for filtered queries) or `last_modified` | relevance ranks by match quality — use it for sourcing; `last_modified` for "what's new since last run" (monitoring). Verified: with per-field filters the default is already relevance, so a good structured query returns a clean top-10 without a sort flag |
 
 DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
 `"phrase"` = exact phrase, `-token` = NOT. Example:
@@ -79,15 +86,15 @@ mode**. That means:
 
 - **You cannot ask "how big is my ICP universe" cheaply** — there's no total
   count without pulling rows. Size the split blind, or probe representative
-  sub-slices and extrapolate; tell the user the number is an estimate.
-- **Results are ordered `last_modified_at` desc, so a >1000 match is a
-  recency-HEAD, not a sample** — and card freshness lags (a US/Software/11–200
-  slice topped out at pages ~13 months old, which is also why `employee_count`
-  drifts from reality). Splitting by size/country/founded is the only way to full
-  coverage, and each sub-query must itself be < 1000 or you're back to a recency
-  head inside the band. Use `last_modified_after` both as a freshness lever and as
-  the basis for a "new since last run" sweep. Dedup on the band boundaries by
-  `urn` (`query_cache uniq`).
+  sub-slices and extrapolate; tell the user the number is an estimate. (Still
+  true regardless of `sort`.)
+- **A >1000 match returns only the top 1000 by rank**, so full coverage still
+  needs splitting by size/country/founded into sub-queries each < 1000. With the
+  relevance default the top is at least relevance-ordered rather than a pure
+  recency head, but you still don't see rows 1001+. Note card freshness lags
+  (`employee_count` drifts from reality on some records). Dedup on band
+  boundaries by `urn` (`query_cache uniq`). `last_modified_after` +
+  `sort: last_modified` is the right combo for a "new since last run" sweep.
 
 ## Read the bonus fields — they're the handoff
 
