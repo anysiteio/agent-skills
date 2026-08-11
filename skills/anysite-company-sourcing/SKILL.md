@@ -20,17 +20,17 @@ The difference is the whole skill. Never ship results from a naive query.
 
 ## Why naive queries fail (mechanics, not opinion)
 
-1. `keywords` token-matches across ALL text fields — name, description,
-   specialities, hashtags, **and the locations array** — so "San Francisco"
-   matches a Hanoi company with a two-person SF sales office.
-2. **Sort doesn't rescue a naive query — it only changes the flavour of the
-   noise.** There's a `sort` param (`relevance` | `last_modified`; see below).
-   For a bare `keywords` query, `last_modified` puts recently-edited off-ICP
-   companies on top (Tel-Aviv/Sydney firms with an SF office); `relevance` puts
-   literal phrase-matches on top instead — "AI startup San Francisco" surfaces
-   *Startup Weekend AI*, *Bitcoin AI Startup Lab*, 1-employee shops and a
-   Phoenix-HQ company (all measured). Neither is an ICP list. The fix is the
-   per-field decomposition below, not a sort flag.
+1. `keywords` matches whole words across ALL text fields — name, description,
+   specialities, hashtags **and the locations array** — so "San Francisco" as a
+   keyword still matches a Hanoi company that lists an SF sales office in
+   `locations`. (Whole-word matching removed the inner-substring noise, but not
+   the wrong-FIELD problem — HQ is a separate field, use it.)
+2. **`sort` changes ordering, not the candidate set — a naive keyword query is
+   still not an ICP list.** With relevance (the default), "AI startup San
+   Francisco" surfaces *Startup Weekend AI*, *Bitcoin AI Startup Lab*, 1-employee
+   shops and a Phoenix-HQ company (all measured) — they score high because the
+   words sit in their NAME. The fix is per-field decomposition below, not a sort
+   flag.
 3. Millions of company pages are stubs. Without hygiene filters they dominate.
 4. `employee_count_range` can contradict `employee_count` in the same record
    (measured: 305 employees with range "11-50"). Never filter or segment by the
@@ -50,12 +50,30 @@ Take the user's ICP sentence apart and map each fragment to its OWN field:
 | "founded recently" | `founded_on_min` | year |
 | named company lookup | `name` or `alias` DSL + exact verification | never trust first hit; resolve by domain via the anysite-mcp resolve recipe |
 | always, every query | `is_active: true, has_website: true, min_description_length: 100` | the hygiene trio kills stubs and dead pages |
-| ranking | `sort` = `relevance` (default for filtered queries) or `last_modified` | relevance ranks by match quality — use it for sourcing; `last_modified` for "what's new since last run" (monitoring). Verified: with per-field filters the default is already relevance, so a good structured query returns a clean top-10 without a sort flag |
+| ranking | `sort` = `relevance` (default) or `last_modified` | relevance for sourcing; `last_modified` for "what's new since last run" (monitoring). Scoring weights a term by field: name 5× > specialities/hashtags 3× > short_description 2× > long description 1×, length-normalized; ties broken by recency. **Caveat:** the score is built only from `keywords`/`name`/`specialities`/`description` — a query filtered ONLY by non-text fields (e.g. just `industry` + `employee_count_min`) has nothing to score, so it falls back to recency order |
 
 DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
-`"phrase"` = exact phrase, `-token` = NOT. Example:
+`"phrase"` = exact phrase / substring, `-token` = NOT. Example:
 `specialities: "\"artificial intelligence\"|\"machine learning\" -agency"`.
-(`hashtags` is the exception — exact element match, not substring.)
+
+**Matching semantics (changed — this is now the biggest lever):**
+- **A bare word matches as a WHOLE WORD, not a substring** (verified live:
+  `keywords: "sdr"` returns "SDR Academy", "SDR Foundry", "Vida SDR" — companies
+  with the standalone word, and no longer "adviseur"-style inner hits). Case
+  doesn't matter.
+- **No stemming.** `integration` does NOT find `integrations` — write both:
+  `integration|integrations`. Same for singular/plural and verb forms.
+- **Quotes = substring** (the old behaviour, kept). `"integr"` matches both
+  `integration` and `integrations`; `"machine learning"` matches that exact
+  sequence. Use quotes deliberately when you WANT a fragment.
+- Terms with separators (`b2b-saas`, `S.E.E.D.`, `x.com`) and Cyrillic are
+  auto-substring — nothing to change for them.
+- `alias` and `website` are untouched — still substring (`alias: "openai"` finds
+  `openai-inc`); `hashtags` is exact element match.
+
+Practical consequence: short single-word queries used to be the WORST case (inner
+substring noise); they are now precise. If you actually need "a piece of a word",
+reach for quotes.
 
 **Specialities caveat:** self-declared tags are the highest-signal field WHEN
 present, but hot young startups often leave them blank — measured: 2/10 in a
