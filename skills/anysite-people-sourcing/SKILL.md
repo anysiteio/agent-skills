@@ -48,9 +48,18 @@ The derived fields you filter on are **not in the response**: no `seniority`,
 
 - **Batch identity:** `alias[]`, `urn[]`, `member_id[]`; `last_name[]`
   (diacritics/case/spacing-folded) + `first_initial[]` for "J. Smith".
-- **Text DSL** (whitespace=AND, `|`=OR, `"phrase"`, `-not`): `name`, `headline`,
-  `summary`, `current_title`, `any_title` (past roles included), `skills`,
-  `languages`, `location`.
+- **Text DSL** (whitespace=AND, `|`=OR no spaces around it, `"phrase"`, `-not`):
+  `name`, `headline`, `summary`, `current_title`, `any_title` (past roles
+  included), `skills`, `languages`, `location`, `keywords`, `edu_*`.
+  **IRON RULE — quote every multi-word alternative in an OR chain.** Whitespace
+  binds tighter than `|`, so an unquoted phrase SHATTERS the chain into
+  impossible AND groups: `current_company_name: "Tencent|Tencent Games|Level
+  Infinite|Proxima Beta"` parses as `(Tencent|Tencent) AND (Games|Level) AND
+  (Infinite|Proxima) AND Beta` → **0 results on Tencent-scale companies**
+  (verified live — this exact failure burned a real user session). Correct:
+  `"Tencent"|"Tencent Games"|"Level Infinite"|"Proxima Beta"|Krafton`.
+  Lint before EVERY send: any token containing a space inside an OR chain
+  without quotes → do not send, fix first.
 - **Derived seniority/function — start here for recall.** `seniority` /
   `seniority_min` (entry→ic→senior_ic→manager→head→vp→founder→cxo), `function` /
   `any_function` (sales, marketing, engineering, product, data, finance, hr, ops,
@@ -64,8 +73,20 @@ The derived fields you filter on are **not in the response**: no `seniority`,
     "…President's Club 2020…" (an award on a rank-and-file AE) scored ≥vp.
     Precision on a vp+sales slice was 9/10 — good, not perfect; verify the
     shortlist against `experience[]`.
-- **Company:** `current_company_id[]` / `current_company_domain[]` (bare domains)
-  / `current_company_name` DSL; `any_company_id/domain` (ever worked);
+- **Company — a ladder, pick the rung deliberately:**
+  1. `current_company_name` DSL with QUOTED brand variants — the default. A bare
+     token like `Tencent` also matches subsidiaries ("Tencent Korea", "Fintech at
+     Tencent") — a feature for brand families, a bug if you need one legal entity.
+  2. `current_company_id[]` (numeric LinkedIn page ids, resolve via company
+     search first) — when strictness matters: separating Level Infinite from the
+     rest of Tencent, excluding brand-name lookalikes.
+  3. `current_company_domain[]` (bare domains) — when domains are what you have
+     (e.g. a CRM list).
+  4. `keywords` — LAST resort, only WITH ≥1 selective filter (company/title/
+     seniority/country) and never as the employer filter itself: it's full-text
+     across all fields, and an unselective keywords query is a DB scan
+     (measured: 140s → HTTP 500).
+  Also: `any_company_id/domain` (ever worked);
   **`past_company_id[]` (worked and LEFT — alumni)**; `employee_count_min/max` of
   the current company. **Do NOT use `employee_range[]`** — the band string
   contradicts the true headcount often (measured ~35%: a 104-person company
@@ -77,6 +98,14 @@ The derived fields you filter on are **not in the response**: no `seniority`,
   "SaaS" and the like, filter on the company side (`anysite-company-sourcing`
   specialities) or on `headline`/`skills` DSL instead.
 - **Geo:** `country[]` ISO2 (reliable); `location` DSL for cities/metros.
+  **"Responsible for a market" ≠ "located in it."** When the user wants people
+  FOCUSED on a region (CIS/MENA/emerging markets), do NOT filter `country` by
+  that region — BD/publishing teams of global companies sit in HQ (KR/CN/US/NL/
+  SG). Search the market mention in the profile instead:
+  `headline`/`summary`: `CIS|Russia|Kazakhstan|MENA|"emerging markets"|"Middle
+  East"`. Measured on a live case: `country:[RU,KZ,UZ,AE,SA,…]` → 2 profiles;
+  the headline variant → 84. Use `country` only when the person must physically
+  BE in the region — and warn the user the pool will be narrow.
 - **Education:** `edu_slug[]`, `edu_institution`, `edu_field`,
   `edu_ended_year_min/max` (graduation cohort ≈ age proxy).
 - **Career shape:** `months_in_role_max` (new in role), `months_in_role_min`,
@@ -84,9 +113,12 @@ The derived fields you filter on are **not in the response**: no `seniority`,
   radar), `experience_years_min`, `n_roles_*`, `n_companies_*` (stability vs
   hopping), `promotion_count_min` (promoted without changing employer),
   `avg_tenure_months_*`.
-- **Quality & coverage:** `profile_score_min` (0–8; 5+ for outreach-grade), and
-  the `has_*` family (`has_current_role`, `has_role_dates`, `has_education`,
-  `has_company_size`, `has_engagement`…).
+- **Quality & coverage:** `profile_score_min` (0–8) — do NOT set it by default:
+  it silently drops sparse-but-on-target profiles (a real user's default of 5
+  cut exactly the people they were hunting). Add it only when the user asks for
+  "complete/outreach-grade profiles" (then 5+), or as a tie-breaker on an
+  over-1000 pool. Plus the `has_*` family (`has_current_role`, `has_role_dates`,
+  `has_education`, `has_company_size`, `has_engagement`…).
 - **Badges/engagement:** `open_to_work`, `hiring`, `verified`, `is_premium`,
   `is_top_voice`, `follower_count_min`, `connection_count_min`. (`is_creator` /
   `is_influencer` filter but are NOT returned — you can't confirm them.)
@@ -130,12 +162,31 @@ but URN-keyed handoffs (`user/posts`) need the live `linkedin/user` step first.
 4. **Free re-cuts** with `query_cache` (only on returned fields); export with
    `export_data`.
 
+**Zero results — debug in this order, don't flail:**
+1. Re-read your own DSL for unquoted multi-word phrases in OR chains (the #1
+   cause by far — see the IRON RULE).
+2. Loosen ONE filter per step (drop `profile_score_min`, widen `seniority`,
+   drop `industry`) — never jump straight to a bare `keywords` full-text.
+3. Sanity check: 0 results for a Tencent-scale employer is almost certainly a
+   query bug, not missing data — go back to step 1, don't report "not found".
+
+**500/408 on a broad query:** don't retry as-is — narrow it (add a selective
+filter) or raise `timeout` (≤1500). An unselective query is a scan; retrying a
+scan just times out again.
+
 ## Recipes
 
 - *"VPs of Sales at US SaaS 50–500"*: `seniority:["vp","cxo"], function:["sales"],
   country:["US"], employee_count_min:50, employee_count_max:500,
-  industry:["Software Development"], profile_score_min:5`. (SaaS ≠ a taxonomy
-  label — narrow via the company-side list or headline DSL.)
+  industry:["Software Development"]`. (SaaS ≠ a taxonomy label — narrow via the
+  company-side list or headline DSL. `profile_score_min` only if asked.)
+- *"BD/partnerships across a brand family"* (verified live, 99 profiles):
+  `current_company_name: "\"Tencent\"|\"Tencent Games\"|\"Level Infinite\"|
+  \"Proxima Beta\"|Krafton", current_title: "\"business development\"|bizdev|
+  partnership|partnerships|licensing|monetization|payments|commercial",
+  seniority:["manager","head","vp","cxo"], has_current_role:true` — every
+  multi-word alternative quoted; regional focus goes in `headline`, not
+  `country` (see Geo).
 - *"New decision-makers"* (best-converting timing): add `months_in_role_max:6`.
 - *"Grew up inside the company"* (internal champion / stable ABM contact):
   `promotion_count_min:2` + `avg_tenure_months_min:24`.
@@ -153,6 +204,9 @@ but URN-keyed handoffs (`user/posts`) need the live `linkedin/user` step first.
 - Company lists IN (`current_company_id`/`domain`) come from
   **`anysite-company-sourcing`**; people OUT go to **`anysite-crm-prospect`**
   (dedup + CRM push).
+- For "up to N contacts across a few companies", 2–3 focused queries (base +
+  regional + function-specific) deduped by `alias` beat one mega-query — each
+  stays selective and each angle surfaces people the others rank low.
 - **Emails have a real cost and yield — don't hand-wave it.** The result's
   `alias` is the vanity URL, ready for the email cascade (`anysite-mcp` →
   Email finding): `user_email` first (cheap, ~half personal addresses, low

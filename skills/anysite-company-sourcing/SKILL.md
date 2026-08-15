@@ -55,6 +55,11 @@ Take the user's ICP sentence apart and map each fragment to its OWN field:
 DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
 `"phrase"` = exact phrase / substring, `-token` = NOT. Example:
 `specialities: "\"artificial intelligence\"|\"machine learning\" -agency"`.
+**IRON RULE: quote every multi-word alternative in an OR chain.** Whitespace
+binds tighter than `|` — `name: "Level Infinite|Proxima Beta"` parses as
+`(Level) AND (Infinite|Proxima) AND (Beta)` and returns 0 (verified live on the
+sibling people endpoint, same parser). Lint before sending: a space inside an
+OR alternative without quotes → fix first.
 
 **Matching semantics (changed — this is now the biggest lever):**
 - **A bare word matches as a WHOLE WORD, not a substring** (verified live:
