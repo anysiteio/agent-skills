@@ -145,7 +145,7 @@ npx @anysiteio/agent-skills --no-mcp      # skills only, skip MCP registration
 ### Other MCP clients
 
 Connect the remote MCP server `https://mcp.anysite.io/mcp` (OAuth sign-in on first use) —
-setup guides for each client: [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server).
+setup guides for each client: [app.anysite.io/docs/mcp/connect](https://app.anysite.io/docs/mcp/connect).
 
 ## GTM onboarding
 
@@ -206,7 +206,7 @@ Privacy policy: [app.anysite.io/docs/legal/privacy-policy](https://app.anysite.i
 ## Support
 
 - **Issues:** [github.com/anysiteio/agent-skills/issues](https://github.com/anysiteio/agent-skills/issues)
-- **MCP server docs:** [docs.anysite.io/mcp-server](https://docs.anysite.io/mcp-server)
+- **MCP server docs:** [app.anysite.io/docs/mcp/overview](https://app.anysite.io/docs/mcp/overview)
 - **Email:** support@anysite.io
 
 ## License

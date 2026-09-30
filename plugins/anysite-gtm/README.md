@@ -54,4 +54,8 @@ where you can filter, enrich and go through leads one by one (Yes / No / Skip).
 
 The full anysite suite, including research, social and monitoring skills, is the
 `anysite-skills` plugin in the same marketplace. Install one of the two, not both.
-Source and issues: https://github.com/anysiteio/agent-skills. License: MIT.
+- Website: [anysite.io](https://anysite.io)
+- Documentation: [app.anysite.io/docs/mcp/overview](https://app.anysite.io/docs/mcp/overview)
+- Support: support@anysite.io
+- Source and issues: [github.com/anysiteio/agent-skills](https://github.com/anysiteio/agent-skills)
+- License: MIT
