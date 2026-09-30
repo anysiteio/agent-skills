@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "anysite",
-  "version": "2.6.1",
-  "description": "Anysite plugin: GTM/CRM skills + research skills, bundled with the anysite MCP connector",
+  "version": "2.7.0",
+  "description": "Anysite plugins: the full skills suite, or the GTM-only pack with guided onboarding - both bundled with the anysite MCP connector",
   "owner": {
     "name": "Anysite Skills Contributors",
     "email": "support@anysite.io"
@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 31 anysite skills incl. people/company sourcing on the 856M-profile and 70M-company DBs, anysite-monitor (recurring change monitoring with a seen-ledger) incl. the GTM/CRM package (setup, enrich, signals, champions, prospect, audit, score, inbound, account-brief, lookalikes, competitor displacement) + research skills. Bundles the anysite MCP connector - skills and data access install together; toggle individual skills after install.",
-      "version": "2.6.1",
+      "description": "Complete suite of 33 anysite skills incl. people/company sourcing on the 856M-profile and 70M-company DBs, anysite-monitor (recurring change monitoring with a seen-ledger) incl. the GTM/CRM package (onboarding, setup, enrich, signals, champions, prospect, audit, score, inbound, account-brief, lookalikes, competitor displacement) + research skills. Bundles the anysite MCP connector - skills and data access install together; toggle individual skills after install. Install only one of anysite-skills and anysite-gtm - the GTM pack is a subset of this suite.",
+      "version": "2.7.0",
       "author": {
         "name": "Anysite Skills Contributors",
         "email": "support@anysite.io"
@@ -25,6 +25,26 @@
         "enrichment",
         "data-extraction",
         "linkedin"
+      ]
+    },
+    {
+      "name": "anysite-gtm",
+      "displayName": "Anysite GTM",
+      "description": "GTM-only pack (16 skills): start with /anysite-gtm-onboarding - a 5-10 minute interview, pre-filled from your website, that saves your offer, ICP, buyer personas, competitors and best customers so every GTM skill uses them. Then: company and people sourcing on the 70M-company and 856M-profile databases, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champions, prospecting, scoring, inbound verdicts, account briefs, lookalikes, competitor displacement and cold outreach. Bundles the anysite MCP connector. Install instead of anysite-skills, not alongside it.",
+      "author": {
+        "name": "Anysite Skills Contributors",
+        "email": "support@anysite.io"
+      },
+      "source": "./plugins/anysite-gtm",
+      "category": "sales",
+      "tags": [
+        "gtm",
+        "sales",
+        "crm",
+        "icp",
+        "onboarding",
+        "prospecting",
+        "enrichment"
       ]
     }
   ]

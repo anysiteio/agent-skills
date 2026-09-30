@@ -21,7 +21,9 @@ apply to every write. Cap a scoring run at ~50 companies and state the credit es
 ### 1. Fix the rubric BEFORE fetching data
 
 Get ICP criteria from the user, or derive them with `anysite-crm-lookalikes` logic from
-closed-won records. Turn them into a written rubric with weights, e.g.:
+closed-won records. The saved GTM profile (`anysite-gtm-profile`), when present, is the
+starting draft of the rubric — its ICP section gives the criteria, its disqualifiers the
+zero-score rules. Turn them into a written rubric with weights, e.g.:
 
 ```
 industry match (0-3), size band (0-2), geo (0-1), funding stage (0-2),

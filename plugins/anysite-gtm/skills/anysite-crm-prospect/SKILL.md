@@ -18,6 +18,9 @@ ask). Read Writing rules in `anysite-crm-setup`.
 ### 1. Define the search
 
 Get concrete criteria from the user (persona titles, industry, geography, size, stage).
+If the saved GTM profile (`anysite-gtm-profile`, made by `anysite-gtm-onboarding`) exists,
+its ICP and Personas sections are the default criteria — confirm them in one line and ask
+only for what the request overrides or the profile lacks.
 Estimate volume and confirm before running anything large.
 
 **Companies:**
@@ -27,6 +30,12 @@ Estimate volume and confirm before running anything large.
   (`last_funding_type`, `last_funding_date_after`, `investors`).
 - `execute crunchbase/search` — live, adds `hiring: true`, `it_spend_*`, `valuation_*`
   filters (20cr/50 — use for precision, not volume).
+- **Let the user pick before you spend on people and emails.** Show the company result
+  with `show_entity_table`, or run `review_leads` for a Yes/No pass; only the approved
+  selection (a cache_key in the `[anysite-table]` message) goes on to people, emails and the
+  CRM push. Funding for the list: batch the Crunchbase database and `merge_data(join_on=
+  ["domain","linkedin_url","company_id"], unmatched="drop")` (`anysite-mcp` → Tables, joins
+  and lead review).
 
 **People at those companies:**
 - Bulk (default): `execute linkedin/search/search_sql_users` — filter by

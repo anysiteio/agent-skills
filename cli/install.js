@@ -31,7 +31,8 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 const PKG_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILLS_SRC = join(PKG_ROOT, "skills");
+const SKILL_ROOTS = [join(PKG_ROOT, "skills"), join(PKG_ROOT, "plugins", "anysite-gtm", "skills")];
+const skillRoot = (name) => SKILL_ROOTS.find((root) => existsSync(join(root, name, "SKILL.md")));
 const BUNDLES = JSON.parse(readFileSync(join(PKG_ROOT, "bundles.json"), "utf8"));
 const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, "package.json"), "utf8")).version;
 
@@ -77,16 +78,16 @@ for (let i = 0; i < args.length; i++) {
 const TARGET_LABEL = { claude: "Claude Code", codex: "Codex", desktop: "Claude Desktop + Cowork" };
 
 function availableSkills() {
-  if (!existsSync(SKILLS_SRC)) return [];
-  return readdirSync(SKILLS_SRC, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && existsSync(join(SKILLS_SRC, d.name, "SKILL.md")))
-    .map((d) => d.name)
+  return SKILL_ROOTS.filter((root) => existsSync(root))
+    .flatMap((root) => readdirSync(root, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(join(root, d.name, "SKILL.md")))
+      .map((d) => d.name))
     .sort();
 }
 
 function skillDescription(name) {
   try {
-    const m = readFileSync(join(SKILLS_SRC, name, "SKILL.md"), "utf8")
+    const m = readFileSync(join(skillRoot(name), name, "SKILL.md"), "utf8")
       .match(/^description:\s*(.+)$/m);
     return m ? m[1].trim().replace(/\s+/g, " ").slice(0, 96) : "";
   } catch { return ""; }
@@ -132,8 +133,9 @@ function installSkills(names, dstRoot) {
   const installed = [];
   const missing = [];
   for (const name of names) {
-    const src = join(SKILLS_SRC, name);
-    if (!existsSync(join(src, "SKILL.md"))) { missing.push(name); continue; }
+    const root = skillRoot(name);
+    if (!root) { missing.push(name); continue; }
+    const src = join(root, name);
     const dst = join(dstRoot, name);
     rmSync(dst, { recursive: true, force: true });
     cpSync(src, dst, { recursive: true });
@@ -178,14 +180,15 @@ function buildSkillZips(names) {
   const built = [];
   const failed = [];
   for (const name of names) {
-    if (!existsSync(join(SKILLS_SRC, name, "SKILL.md"))) continue;
+    const root = skillRoot(name);
+    if (!root) continue;
     const out = join(ZIPS_DST, `${name}.zip`);
     try {
       if (process.platform === "win32") {
         execFileSync("powershell", ["-NoProfile", "-Command",
-          `Compress-Archive -Path '${join(SKILLS_SRC, name)}' -DestinationPath '${out}' -Force`], { stdio: "ignore" });
+          `Compress-Archive -Path '${join(root, name)}' -DestinationPath '${out}' -Force`], { stdio: "ignore" });
       } else {
-        execFileSync("zip", ["-rq", out, name], { cwd: SKILLS_SRC, stdio: "ignore" });
+        execFileSync("zip", ["-rq", out, name], { cwd: root, stdio: "ignore" });
       }
       built.push(name);
     } catch { failed.push(name); }
@@ -305,6 +308,7 @@ const names = flags.skills.length ? flags.skills
   : flags.bundle ? BUNDLES[flags.bundle].skills
   : availableSkills();
 const withMcp = flags.mcp && !flags.skills.length;
+const pluginName = (flags.bundle && BUNDLES[flags.bundle].plugin) || "anysite-skills";
 const detected = detectTargets();
 
 console.log(`\nanysite setup v${PKG_VERSION} — ${flags.bundle ? `bundle "${flags.bundle}"` : flags.skills.length ? "selected skills" : "all skills"}`);
@@ -323,10 +327,10 @@ for (const t of targets) {
     console.log(`\nSkills [desktop/cowork] — install the plugin (skills + MCP connector in one step):`);
     console.log(`  A. From a terminal (fastest, also works for Claude Code):`);
     console.log(`       claude plugin marketplace add anysiteio/agent-skills`);
-    console.log(`       claude plugin install anysite-skills@anysite`);
+    console.log(`       claude plugin install ${pluginName}@anysite`);
     console.log(`     Inside a Claude Code session: /plugin marketplace add anysiteio/agent-skills`);
     console.log(`  B. In the Claude app UI: Customize → Plugins → + → Add marketplace →`);
-    console.log(`     anysiteio/agent-skills → Install "anysite-skills"`);
+    console.log(`     anysiteio/agent-skills → Install "${pluginName}"`);
     console.log(`     (Cowork itself has no /plugin slash command — there it is UI-only.)`);
     console.log(`  Toggle individual skills after install. Per-skill zips for claude.ai web:`);
     console.log(`  ${built.length} prepared in ${ZIPS_DST}${failed.length ? ` (failed: ${failed.join(", ")})` : ""}.`);

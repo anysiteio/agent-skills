@@ -24,8 +24,9 @@ Establish it once and reuse:
 - 1–2 proof points (a named customer, a hard figure) for touches 3–4;
 - words to avoid (competitor names in touch 1, internal jargon).
 
-Ask the user if it isn't already saved. Store it next to the CRM profile
-(`~/.claude/skills/anysite-crm-profile/`) so future sessions skip the question.
+Read it from the Offer section of `anysite-gtm-profile` (made by
+`anysite-gtm-onboarding`) when it exists. Otherwise ask the user and offer to save it
+there, so future sessions skip the question.
 (Do not import anysite's own pitch — "$1 per 1k", "don't mention LinkedIn" are
 that internal playbook's rules, not yours; see the gold examples file only for
 STYLE, not content.)

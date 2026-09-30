@@ -152,7 +152,9 @@ but URN-keyed handoffs (`user/posts`) need the live `linkedin/user` step first.
 
 1. **Start from the most selective structural filters** (seniority/function/
    company/country) — never bare `keywords` (it only helps for distinctive words
-   and must ride a selective filter).
+   and must ride a selective filter). No persona in the request → use the titles,
+   seniority and function from the Personas section of `anysite-gtm-profile` when
+   it exists.
 2. **Probe `count:10`, validate against INTENT via `experience[]`** (structural
    filters aren't semantic: "Director of Sales, 51–200, US" returned a coffee
    wholesaler). Precision comes from `current_company_domain[]` (a list from
@@ -160,7 +162,10 @@ but URN-keyed handoffs (`user/posts`) need the live `linkedin/user` step first.
 3. **Tighten/widen, re-probe, fetch;** >1000 → size `bucket_total` so each bucket
    < 1000 and walk it.
 4. **Free re-cuts** with `query_cache` (only on returned fields); export with
-   `export_data`.
+   `export_data`. In clients that render MCP Apps, show the result with
+   `show_entity_table(cache_key, group_by="company_id")` so people are grouped by
+   account; people at approved accounts from `review_leads` start from that
+   selection's company ids.
 
 **Zero results — debug in this order, don't flail:**
 1. Re-read your own DSL for unquoted multi-word phrases in OR chains (the #1

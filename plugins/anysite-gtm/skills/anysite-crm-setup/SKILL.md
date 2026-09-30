@@ -79,7 +79,8 @@ Ask ONLY about ambiguous or high-stakes decisions, one compact block, not an int
 - Working list: "Which list do you enrich most — 'Inbound' or 'Outbound Q3'?" (only if lists exist)
 - Creation policy: "May agents create new contacts, or update existing only?"
 - Plan: "Are you on MCP Unlimited or a credit-based plan?" — future sessions use this to
-  decide between credit estimates (credit plans) and time estimates (Unlimited) before bulk runs
+  decide between credit estimates (credit plans) and time estimates (Unlimited) before bulk runs.
+  Skip it when `anysite-gtm-profile` already records the plan.
 
 Confirm the full mapping as ONE list for approval, then save.
 
