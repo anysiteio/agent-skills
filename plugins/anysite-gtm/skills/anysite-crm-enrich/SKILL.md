@@ -90,6 +90,11 @@ Re-use cache instead of re-fetching anything twice — including across sessions
   # crunchbase_link: "https://www.crunchbase.com/organization/acme" → alias "acme"
   execute crunchbase/company {company: "acme"}
   ```
+  For many companies at once, prefer the Crunchbase database (`crunchbase/db/db_search` by
+  company name, ~3cr, full record) and join the candidates onto the resolved list with
+  `merge_data(join_on=["domain","linkedin_url","company_id"], unmatched="drop")` — wrong-name
+  candidates fall out on the domain/LinkedIn match instead of by hand (`anysite-mcp` →
+  Tables, joins and lead review).
   Only when the profile maps such fields. Normalize `contacts.email` before use — trailing
   dots observed ("founders@reducto.ai."), and a match key with a trailing dot matches nothing.
 

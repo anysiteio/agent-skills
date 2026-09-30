@@ -21,7 +21,8 @@ crm_query_records(object_type="companies", list_id=<customers list> | search=...
                   properties=[record_id, name, domain, industry, <size/stage if mapped>])
 ```
 Need the user's help to identify "best": a customers list, a lifecycle/status field, or an
-explicit pick of 10–30 names. Fewer than ~8 seeds → warn that the pattern will be weak.
+explicit pick of 10–30 names. The "Best customers" line of `anysite-gtm-profile` is a ready
+pick when it exists. Fewer than ~8 seeds → warn that the pattern will be weak.
 
 ### 2. Profile the seeds
 
@@ -79,5 +80,6 @@ flagged "already in CRM, unworked".
 ### 5. Hand off
 
 Output: top-N table (name, domain, why-it-matches, score) + the confirmed ICP pattern for
-reuse. Pushing to CRM → `anysite-crm-prospect` (its dedup/create/working-list rules apply);
+reuse. In clients that render MCP Apps, open the candidates with `show_entity_table` and
+offer `review_leads` for a Yes/No pass — the approved selection is what goes to the CRM. Pushing to CRM → `anysite-crm-prospect` (its dedup/create/working-list rules apply);
 finding people at these companies → same skill. This skill itself writes nothing.

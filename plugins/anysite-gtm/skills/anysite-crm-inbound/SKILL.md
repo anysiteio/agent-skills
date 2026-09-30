@@ -50,7 +50,8 @@ who owns it. Closed-lost history → the verdict must mention it.
 
 One compact block, in this order:
 1. **Real?** — person verified (profile ↔ claimed company match), company verified.
-2. **ICP fit** — against the profile's known criteria (or the user's stated ICP); one line
+2. **ICP fit** — against the ICP and Personas in `anysite-gtm-profile` (or the user's stated
+   ICP); one line
    of evidence per criterion, "unknown" where no data.
 3. **Route** — new/known, suggested owner if CRM history names one, urgency (fresh funding
    or hiring in the buyer function raises it).

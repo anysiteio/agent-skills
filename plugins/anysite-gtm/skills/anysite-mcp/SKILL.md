@@ -1,15 +1,15 @@
 ---
 name: anysite-mcp
-description: How to use the anysite MCP server effectively - the six meta-tools (discover, execute, get_page, query_cache, export_data, search_requests), the source map for GTM signals (funding, hiring, tech stack, reviews, news, launches), email finding cascades, domain->company resolution, and cost-aware calling patterns. Consult this before any anysite data work. Use when unsure which source or endpoint covers a data need, how much a call costs / how many credits, why an endpoint is 'not found', how to reuse a cache_key, how to paginate or re-filter cached results, or how to combine sources into a signal chain.
+description: How to use the anysite MCP server effectively - the meta-tools (discover, execute, get_page, query_cache, export_data, search_requests, merge_data with join_on enrichment), the interactive entity table and lead review (show_entity_table, review_leads), the source map for GTM signals (funding, hiring, tech stack, reviews, news, launches), email finding cascades, domain->company resolution, and cost-aware calling patterns. Consult this before any anysite data work. Use when unsure which source or endpoint covers a data need, how much a call costs / how many credits, why an endpoint is 'not found', how to reuse a cache_key, how to paginate or re-filter cached results, or how to combine sources into a signal chain.
 ---
 
 # Anysite MCP — usage guide
 
-The anysite MCP exposes hundreds of data sources through six universal meta-tools (plus the
-`crm_*` family, see Working with CRM). This skill is the map: how to call them, which sources
-cover which GTM need, and how to not waste credits.
+The anysite MCP exposes hundreds of data sources through universal meta-tools, an interactive
+table with lead review, and the `crm_*` family (see Working with CRM). This skill is the map:
+how to call them, which sources cover which GTM need, and how to not waste credits.
 
-## The six meta-tools
+## The meta-tools
 
 | Tool | Purpose | Credits |
 |---|---|---|
@@ -19,6 +19,9 @@ cover which GTM need, and how to not waste credits.
 | `query_cache(cache_key, conditions, sort_by, sort_order, aggregate, group_by, limit, offset)` | Filter/sort/aggregate cached data with SQL-like ops | free |
 | `export_data(cache_key, output_format, list_unpack)` | Export cached data — `output_format` json (default) / csv / jsonl; `list_unpack` = how many nested-array elements to expand into CSV columns (default 1) | free |
 | `search_requests(source, category, endpoint, query, since, until, limit, offset)` | Find past execute() calls and their cache_keys — 7-day history, works across sessions | free |
+| `merge_data(cache_keys, dedupe_by, join_on, combine, unmatched)` | Stack results (append + `dedupe_by`) or ENRICH the first key's rows with the later keys by `join_on` — see Tables, joins and lead review | free |
+| `show_entity_table(cache_key, title, initial_filters, sort, columns, group_by, inherit_state_from)` | Interactive table of companies/people for the user — only when the result carries `view.type = "entity_table"` | free |
+| `review_leads(cache_key, title)` / `record_review(cache_key, row_ids, decision)` | One-company-at-a-time Yes/No/Skip cards over a companies table; `record_review` saves answers given in chat | free |
 
 ### Rules that prevent 90% of failures
 
@@ -56,6 +59,44 @@ cover which GTM need, and how to not waste credits.
    (`timespan` like 3d/1w or `start_datetime` YYYYMMDDHHMMSS; count ≤250). Keep it OUT of
    per-account sweep loops (use techmeme / google news — seconds); fine for a one-off deep
    media dive with a "takes a minute" warning.
+
+## Tables, joins and lead review
+
+Lists of companies and people come back from `execute()` with `view.type = "entity_table"`.
+In clients that render MCP Apps (claude.ai, Claude Desktop, ChatGPT) show them instead of
+pasting rows into chat; Claude Code renders no apps — there, work with `get_page` /
+`query_cache` / `export_data`.
+
+- **Show, don't re-fetch.** `show_entity_table(cache_key, title=<the user's intent>)`. The user
+  filters, sorts, selects, exports and asks for enrichment inside the table. Pass
+  `group_by="company_id"` for people lists to group them by account.
+- **Table actions come back as a message** whose first line is
+  `[anysite-table] action=... base_cache_key=... selection=... rows=... attributes=...`.
+  `selection` is `ids:<n>`, `all`, or a cache_key holding exactly the chosen rows — use it
+  with `get_page` / `query_cache` / `export_data` / CRM writes; never re-derive the rows.
+- **Enrich = fetch, then join.** For `action=enrich`, state the exact cost and ask first. Run the
+  enrichment `execute` calls, then `merge_data(cache_keys=[base_cache_key, <enrichment keys>],
+  join_on=[...])` and `show_entity_table(<merged key>, inherit_state_from=base_cache_key)` so the
+  user keeps filters and selection and sees the new columns first.
+  - `join_on` keys — companies: `company_id`, `domain`, `linkedin_url`, `crunchbase_alias`,
+    `id`; people: `urn`, `linkedin_url`, `alias`, `internal_id`, `email`, `id`. List several;
+    a row joins when any listed key matches, checked in order.
+  - `combine`: `coalesce` (default, fills empty fields only) or `prefer_later` (fresh data
+    overwrites).
+  - `unmatched`: `append` (default) or `drop` — use `drop` when the enrichment was a SEARCH that
+    returned candidates (e.g. the Crunchbase database searched by company name), so
+    non-matching candidates don't pollute the list. The result reports how many were dropped.
+  - Up to 200 cache_keys in a join (one per enriched company is fine); plain append stays ≤20.
+- **Crunchbase funding for a list:** batch the Crunchbase database (`db_search` by company
+  name, ~3 credits) and join with `join_on=["domain","linkedin_url","company_id"],
+  unmatched="drop"` — cheaper than live per-company Crunchbase profiles.
+- **Lead review.** When the user wants to go through companies one by one ("qualify these",
+  "triage", "swipe through"), call `review_leads(cache_key)` on a companies result. Decisions
+  land in the table's review column. On `action=review_done ... attributes=review=yes`, the
+  `selection` cache_key holds the approved companies — hand them to people sourcing, CRM
+  prospecting or outreach. No cards rendered → ask in chat and save with
+  `record_review(cache_key, row_ids, decision)` (`yes` / `no` / `skip` / `clear`).
+- If no table rendered for the user, do not call `show_entity_table` again for that key.
 
 ## GTM source map
 

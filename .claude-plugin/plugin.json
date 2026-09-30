@@ -1,7 +1,7 @@
 {
   "name": "anysite-skills",
-  "version": "2.6.1",
-  "description": "Professional skills for GTM and data work on the anysite MCP server. Includes the GTM/CRM package (CRM setup, enrichment, buying signals, champion tracking, prospecting, scoring, inbound lead verdicts, account briefs, lookalikes, competitor displacement) plus research skills for LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC and web scraping. Ships the anysite MCP connector - one install, skills + data access together.",
+  "version": "2.7.0",
+  "description": "Professional skills for GTM and data work on the anysite MCP server. Includes the GTM/CRM package (GTM onboarding, CRM setup, enrichment, buying signals, champion tracking, prospecting, scoring, inbound lead verdicts, account briefs, lookalikes, competitor displacement) plus research skills for LinkedIn, Instagram, Twitter/X, Reddit, YouTube, Y Combinator, SEC and web scraping. Ships the anysite MCP connector - one install, skills + data access together.",
   "author": {
     "name": "Anysite Skills Contributors",
     "email": "support@anysite.io"
@@ -62,22 +62,23 @@
     "./skills/competitor-discovery",
     "./skills/customer-pain-mining",
     "./skills/positioning-map",
-    "./skills/anysite-crm-setup",
-    "./skills/anysite-mcp",
-    "./skills/anysite-crm-inbound",
-    "./skills/anysite-crm-enrich",
-    "./skills/anysite-crm-signals",
-    "./skills/anysite-crm-champions",
-    "./skills/anysite-crm-prospect",
-    "./skills/anysite-crm-audit",
-    "./skills/anysite-crm-score",
-    "./skills/anysite-crm-competitor-intel",
-    "./skills/anysite-crm-account-brief",
-    "./skills/anysite-crm-lookalikes",
     "./skills/anysite-monitor",
-    "./skills/anysite-company-sourcing",
-    "./skills/anysite-people-sourcing",
-    "./skills/anysite-outreach"
+    "./plugins/anysite-gtm/skills/anysite-gtm-onboarding",
+    "./plugins/anysite-gtm/skills/anysite-mcp",
+    "./plugins/anysite-gtm/skills/anysite-crm-setup",
+    "./plugins/anysite-gtm/skills/anysite-crm-inbound",
+    "./plugins/anysite-gtm/skills/anysite-crm-enrich",
+    "./plugins/anysite-gtm/skills/anysite-crm-signals",
+    "./plugins/anysite-gtm/skills/anysite-crm-champions",
+    "./plugins/anysite-gtm/skills/anysite-crm-prospect",
+    "./plugins/anysite-gtm/skills/anysite-crm-audit",
+    "./plugins/anysite-gtm/skills/anysite-crm-score",
+    "./plugins/anysite-gtm/skills/anysite-crm-competitor-intel",
+    "./plugins/anysite-gtm/skills/anysite-crm-account-brief",
+    "./plugins/anysite-gtm/skills/anysite-crm-lookalikes",
+    "./plugins/anysite-gtm/skills/anysite-company-sourcing",
+    "./plugins/anysite-gtm/skills/anysite-people-sourcing",
+    "./plugins/anysite-gtm/skills/anysite-outreach"
   ],
   "mcpServers": {
     "anysite": {

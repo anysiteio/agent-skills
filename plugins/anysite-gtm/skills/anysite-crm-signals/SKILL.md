@@ -95,7 +95,8 @@ fresh on every sweep and the user stops trusting the report. Previously-known si
 into a collapsed "already reported" section, never into Act now.
 
 Then, per account, count NEW signals in the last 30/90 days, weighted by conversion value —
-and the weights are ICP-dependent, because signal AVAILABILITY is:
+and the weights are ICP-dependent (the ICP and the user's own ranking of buying signals
+live in `anysite-gtm-profile` when it exists), because signal AVAILABILITY is:
 - **SMB/startup ICP:** lead with funding rounds and job postings in the buyer function —
   both filled on every account measured; treat `leadership_hires[]` as a bonus when present
   (it was empty on the whole live sample), catching exec changes via job postings and

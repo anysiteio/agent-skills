@@ -38,7 +38,9 @@ The difference is the whole skill. Never ship results from a naive query.
 
 ## The method: decompose intent into fields
 
-Take the user's ICP sentence apart and map each fragment to its OWN field:
+Take the user's ICP sentence apart and map each fragment to its OWN field. No ICP in the
+request → take it from the ICP section of `anysite-gtm-profile` when it exists (and say so
+in one line), including its exclusions.
 
 | Intent fragment | Field | Notes |
 |---|---|---|
@@ -101,6 +103,11 @@ exactly the fresh-funded targets a list is built for.
    split by size bands / countries / founded ranges into disjoint queries.
 5. **Free re-cuts**: `query_cache` on the result for sorting, counting,
    sub-segmenting — don't re-execute.
+6. **Show it** (clients that render MCP Apps): `show_entity_table(cache_key,
+   title=<intent>)` instead of pasting rows; when the user wants to qualify the
+   list one by one, `review_leads(cache_key)` — the approved companies come back
+   as a cache_key for people sourcing or CRM push (`anysite-mcp` → Tables, joins
+   and lead review).
 
 ## Two hard limits to state up front (TAM planning)
 

@@ -31,22 +31,23 @@ Get unlimited requests through Remote MCP Server with no request limits. Ideal f
 | `competitor-discovery` | Find a startup's real competitors — the alternatives customers actually compare them to. Maps direct competitors, substitutes, workarounds, and convergence threats across LinkedIn, Reddit, YouTube, Twitter, YC, and SEC. | [SKILL.md](skills/competitor-discovery/SKILL.md) |
 | `customer-pain-mining` | Extract verbatim customer complaints about competitors for landing-page copy, custdev prep, and product strategy. Returns pain clusters with exact quotes plus a white-space section of unmet feature requests. | [SKILL.md](skills/customer-pain-mining/SKILL.md) |
 | `positioning-map` | Build a positioning map for 3–5 competitors and identify the empty quadrant to own. Maps 5 signal axes and returns a comparison table, candidate positioning moves, and a one-sentence positioning statement. | [SKILL.md](skills/positioning-map/SKILL.md) |
-| `anysite-crm-setup` | Connect the user's CRM (HubSpot) and configure safe AI enrichment: guided discovery, deterministic local field mapping, dry-run previews, fill-blank policy and undo. | [SKILL.md](skills/anysite-crm-setup/SKILL.md) |
-| `anysite-mcp` | Usage guide for the anysite MCP: meta-tools, GTM source map (funding, hiring, tech stack, reviews, news), email cascades, and cost-aware calling patterns. | [SKILL.md](skills/anysite-mcp/SKILL.md) |
-| `anysite-crm-enrich` | Enrich existing CRM records with fresh data - titles, LinkedIn profiles, firmographics, emails. Fill-blank policy, dry-run previews, undo. | [SKILL.md](skills/anysite-crm-enrich/SKILL.md) |
-| `anysite-crm-signals` | Sweep CRM target accounts for buying signals - funding, exec hires, hiring surges, news, mentions - and prioritize who to reach out to today. | [SKILL.md](skills/anysite-crm-signals/SKILL.md) |
-| `anysite-crm-champions` | Detect job changes among CRM contacts, flag past champions at new accounts, propose re-engagement plays. | [SKILL.md](skills/anysite-crm-champions/SKILL.md) |
-| `anysite-crm-prospect` | Find net-new leads and push them into the CRM deduplicated - companies first, then contacts with associations. | [SKILL.md](skills/anysite-crm-prospect/SKILL.md) |
-| `anysite-crm-audit` | Read-only CRM data quality audit: field completeness, duplicate candidates, stale records, enrichability estimate. | [SKILL.md](skills/anysite-crm-audit/SKILL.md) |
-| `anysite-crm-score` | Score CRM companies against your ICP with an explicit rubric and write the score into the mapped field. | [SKILL.md](skills/anysite-crm-score/SKILL.md) |
-| `anysite-crm-competitor-intel` | Displacement hunting: who uses a competitor (technographics), what their users complain about (review mining), tagged into the CRM. | [SKILL.md](skills/anysite-crm-competitor-intel/SKILL.md) |
-| `anysite-crm-account-brief` | Pre-meeting one-pager for a CRM account: CRM context + funding, exec changes, news, key people's recent activity. | [SKILL.md](skills/anysite-crm-account-brief/SKILL.md) |
-| `anysite-outreach` | Write first-touch + follow-up (cold email, DM) grounded in a real collected detail - funding, job change, post, competitor switch - not generic. Closes the find→contact→message loop. | [SKILL.md](skills/anysite-outreach/SKILL.md) |
-| `anysite-company-sourcing` | Query craft for the 70M-company DB - per-field DSL filters instead of token soup (measured: naive 1/5 relevant vs structured 5/5). | [SKILL.md](skills/anysite-company-sourcing/SKILL.md) |
-| `anysite-people-sourcing` | Source people from the 856M-profile DB - derived seniority/function, alumni, career-shape, lookalike graph, territory buckets. | [SKILL.md](skills/anysite-people-sourcing/SKILL.md) |
+| `anysite-crm-setup` | Connect the user's CRM (HubSpot) and configure safe AI enrichment: guided discovery, deterministic local field mapping, dry-run previews, fill-blank policy and undo. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-setup/SKILL.md) |
+| `anysite-mcp` | Usage guide for the anysite MCP: meta-tools, GTM source map (funding, hiring, tech stack, reviews, news), email cascades, and cost-aware calling patterns. | [SKILL.md](plugins/anysite-gtm/skills/anysite-mcp/SKILL.md) |
+| `anysite-crm-enrich` | Enrich existing CRM records with fresh data - titles, LinkedIn profiles, firmographics, emails. Fill-blank policy, dry-run previews, undo. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-enrich/SKILL.md) |
+| `anysite-crm-signals` | Sweep CRM target accounts for buying signals - funding, exec hires, hiring surges, news, mentions - and prioritize who to reach out to today. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-signals/SKILL.md) |
+| `anysite-crm-champions` | Detect job changes among CRM contacts, flag past champions at new accounts, propose re-engagement plays. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-champions/SKILL.md) |
+| `anysite-crm-prospect` | Find net-new leads and push them into the CRM deduplicated - companies first, then contacts with associations. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-prospect/SKILL.md) |
+| `anysite-crm-audit` | Read-only CRM data quality audit: field completeness, duplicate candidates, stale records, enrichability estimate. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-audit/SKILL.md) |
+| `anysite-crm-score` | Score CRM companies against your ICP with an explicit rubric and write the score into the mapped field. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-score/SKILL.md) |
+| `anysite-crm-competitor-intel` | Displacement hunting: who uses a competitor (technographics), what their users complain about (review mining), tagged into the CRM. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-competitor-intel/SKILL.md) |
+| `anysite-crm-account-brief` | Pre-meeting one-pager for a CRM account: CRM context + funding, exec changes, news, key people's recent activity. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-account-brief/SKILL.md) |
+| `anysite-outreach` | Write first-touch + follow-up (cold email, DM) grounded in a real collected detail - funding, job change, post, competitor switch - not generic. Closes the find→contact→message loop. | [SKILL.md](plugins/anysite-gtm/skills/anysite-outreach/SKILL.md) |
+| `anysite-company-sourcing` | Query craft for the 70M-company DB - per-field DSL filters instead of token soup (measured: naive 1/5 relevant vs structured 5/5). | [SKILL.md](plugins/anysite-gtm/skills/anysite-company-sourcing/SKILL.md) |
+| `anysite-people-sourcing` | Source people from the 856M-profile DB - derived seniority/function, alumni, career-shape, lookalike graph, territory buckets. | [SKILL.md](plugins/anysite-gtm/skills/anysite-people-sourcing/SKILL.md) |
 | `anysite-monitor` | Recurring monitoring that reports only what's NEW or changed since last run - discovers sources per goal, diffs against a persistent seen-ledger, runs on a schedule. | [SKILL.md](skills/anysite-monitor/SKILL.md) |
-| `anysite-crm-inbound` | Instant read-only verdict on one inbound lead - identity, company reality check, ICP fit, route and talking points in 2-5 calls. | [SKILL.md](skills/anysite-crm-inbound/SKILL.md) |
-| `anysite-crm-lookalikes` | Derive your real ICP from closed-won customers and find lookalike companies across 70M+ company records. | [SKILL.md](skills/anysite-crm-lookalikes/SKILL.md) |
+| `anysite-crm-inbound` | Instant read-only verdict on one inbound lead - identity, company reality check, ICP fit, route and talking points in 2-5 calls. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-inbound/SKILL.md) |
+| `anysite-crm-lookalikes` | Derive your real ICP from closed-won customers and find lookalike companies across 70M+ company records. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-lookalikes/SKILL.md) |
+| `anysite-gtm-onboarding` | Start here for GTM: a short interview, pre-filled from your website, that saves your offer, ICP, personas, competitors and best customers as a profile every GTM skill reads first. | [SKILL.md](plugins/anysite-gtm/skills/anysite-gtm-onboarding/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
 ## Installation
@@ -63,17 +64,37 @@ npx @anysiteio/agent-skills
 
 ### Claude Desktop / Cowork / claude.ai — install the plugin
 
-The plugin ships the skills **and** the anysite MCP connector in one step:
+The marketplace has two plugins; each ships its skills **and** the anysite MCP connector in
+one step. Install one of them, not both — `anysite-gtm` is a subset of `anysite-skills`, and
+installing both duplicates the skills and the connector.
+
+| Plugin | For | Skills |
+|---|---|---|
+| `anysite-gtm` | Sales, growth and RevOps teams | 16 GTM skills, starting with `/anysite-gtm-onboarding` |
+| `anysite-skills` | Everything, incl. research, social and monitoring | all 33 skills |
 
 ```bash
 claude plugin marketplace add anysiteio/agent-skills
-claude plugin install anysite-skills@anysite
+claude plugin install anysite-gtm@anysite      # GTM pack
+# or
+claude plugin install anysite-skills@anysite   # full suite
 ```
 
 Inside a Claude Code session use `/plugin marketplace add anysiteio/agent-skills` instead.
 In Cowork there is no `/plugin` slash command — install from the UI: **Customize → Plugins →
-+ → Add marketplace → `anysiteio/agent-skills` → Install "anysite-skills"**. Toggle individual
-skills after install; type `/` in a session to see what a plugin exposes.
++ → Add marketplace → `anysiteio/agent-skills` → Install "Anysite GTM" or "anysite-skills"**.
+Toggle individual skills after install; type `/` in a session to see what a plugin exposes.
+
+### GTM onboarding
+
+After installing the GTM pack, start a new session and run `/anysite-gtm-onboarding`. It
+reads your website first, then asks you to confirm and complete a short profile: what you
+sell, your ICP, buyer personas, competitors, best customers, buying signals, CRM, outreach
+voice and your goal for the next 30 days. In Claude Code the profile is saved as
+`~/.claude/skills/anysite-gtm-profile/SKILL.md`; in claude.ai, Desktop or Cowork without file
+access you get it as a block to paste into Project instructions. Every GTM skill then uses it
+as the default ICP, personas and offer, so you stop retyping them. Re-run the skill to change
+the profile. If you use HubSpot or Pipedrive, it hands off to `/anysite-crm-setup` next.
 
 Supported agents (auto-detected; in an interactive terminal you get a picker, `--target` forces):
 
@@ -96,7 +117,7 @@ npx @anysiteio/agent-skills --uninstall   # remove anysite skills
 npx @anysiteio/agent-skills --no-mcp      # skills only, skip MCP registration
 ```
 
-After installing the GTM package, restart your agent session and say `/anysite-crm-setup` — it connects your HubSpot and configures safe field mapping.
+After installing the GTM package, restart your agent session and say `/anysite-gtm-onboarding` — it saves your ICP, personas and offer, then hands off to `/anysite-crm-setup` if you use HubSpot or Pipedrive.
 
 To update, re-run the same command: `npx` always fetches the latest published version.
 
