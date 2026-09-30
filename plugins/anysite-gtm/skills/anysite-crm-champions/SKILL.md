@@ -24,6 +24,9 @@ Priority order (ask the user which tier, default to the first available):
 2. **Open/closed-lost opportunity contacts**,
 3. The working list / everyone with a linkedin_url.
 
+Only tier 1 people are **champions** — someone who got real value from the product. A
+contact on a lost or open deal who moves is "warm familiarity", a weaker play; label it so.
+
 ```
 crm_query_records(object_type="contacts", list_id=... | search=...,
                   properties=[record_id, email, linkedin_url, <company field>, jobtitle])
@@ -42,19 +45,41 @@ flagged mover still goes through the live check below before any CRM write or pl
 ### 2. Detect moves
 
 Per contact:
-- `linkedin_url` → `execute linkedin/user/user {user: <url>}` → current experience.
-- email only → try `execute linkedin/email/email_sql_user {email}` (→ live `email_user`),
-  but expect misses; the reliable path uses what the CRM already knows: email domain →
-  resolve company → `organizational_urn` → `search_users {first_name, last_name,
-  current_company: [{"type": "company", "value": "<id>"}]}`. NOTE: for champion tracking
-  search by the CRM company tells you where they WERE — a zero-result search there is
-  itself a move signal; re-search without the company filter and disambiguate by
-  headline/history before concluding.
+- `linkedin_url` → `execute linkedin/user/user {user: <url>, cache_max_age_days: 7}` →
+  current experience. Without the small cache window the profile can be up to 180 days
+  old — exactly the months in which the move happened.
+- email only → `people/by-email {email}` (a stored answer can be a year old — it tells you
+  who the person is, not where they are now); then confirm via the CRM's own knowledge:
+  email domain → `companies/resolve` → `company:<id>` → `search_users {first_name,
+  last_name, current_company: [{"type": "company", "value": "<id>"}]}`. For champion
+  tracking a search by the CRM company tells you where they WERE — a zero-result search
+  there is itself a move hint; re-search without the company filter, then apply the
+  identity guard below before concluding.
 
 Compare the profile's **current company** against the CRM company. Normalize before
 comparing (legal suffixes, casing, known rebrands); when unsure, treat as "same" — false
 move-alarms erode trust. Also catch **promotions** (same company, new title) — a secondary
 but useful signal.
+
+**Identity and move guards** (a false "moved" burns the relationship):
+- **Same person, proven.** A name + new company match is never enough: MOVED requires the
+  new profile's own `experience[]` to contain the CRM company. No such entry → "possible
+  namesake", not a move.
+- **Not a move:** advisor, board, investor, fractional or part-time roles; a second job
+  while the old one is still current (flag "dual role", keep the old record).
+- **Into another existing customer** → internal reshuffle for account management, not a
+  new-logo play. **Into a competitor** → log it, no play.
+- **Aggregate:** several movers into one company = ONE account signal listing all of them.
+  Two or more departures from one account → flag churn risk on the OLD account.
+- **Idempotent reruns:** record processed moves (a "move processed" date in the profile
+  mapping, or the run report) so a monthly run never re-announces the same move.
+
+**Movers IN, not only out:** new decision-makers at your target accounts are the same play
+from the other side — `search_sql_users {current_company_id: [<target ids>],
+months_in_role_max: 3, seniority_min: "head"}`, then the live check above (small
+`cache_max_age_days`). Widen the title family before widening the window (3 → 6 months,
+never past 9). That search result opens as a table in clients that render MCP Apps —
+`show_entity_table(cache_key, group_by="company_id")` groups the new people by account.
 
 ### 3. Classify and propose plays
 
@@ -85,7 +110,9 @@ Save `run_id`s; mention `crm_undo`.
 
 ### 5. Report
 
-Table: contact → old → new → play. Lead with movers into ICP accounts. Include suggested
-opener anchored on the shared history ("you used X at <old company>...") — personalization
-from facts, never invented familiarity. Hand the mover + the shared-history fact to
+Table: contact → old → new → start date → play. Lead with movers into ICP accounts. Timing:
+a new starter is busy in week one — the best window is roughly 2 to 6 weeks after the start
+date; past ~3 months the "new role" angle is stale. Include suggested opener anchored on
+the shared history ("you used X at <old company>...") — personalization from facts, never
+invented familiarity. Hand the mover + the shared-history fact to
 `anysite-outreach` to draft the actual re-engagement message.

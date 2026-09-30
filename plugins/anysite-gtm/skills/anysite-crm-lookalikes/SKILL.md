@@ -8,9 +8,10 @@ description: Derive the actual ICP from the CRM's closed-won/best customers and 
 Your real ICP is written in your closed-won list, not in your pitch deck. Extract the
 pattern, then search 70M+ companies for more of it.
 
-Works for PEOPLE too, not only companies: `search_sql_users` has a lookalike graph —
-`similar_to: [<best customer contact aliases>]` (tight) / `also_viewed` (loose) plus
-normal filters. Same discipline: the user confirms the seed set, candidates get scored.
+For PEOPLE lookalikes see `anysite-people-sourcing` → Lookalike: `similar_to` /
+`also_viewed` are experimental — stated by a minority of profiles, so they miss most
+matches and must be verified every time. Filters derived from the seeds' titles, seniority
+and companies are the reliable path.
 
 ## Flow
 
@@ -26,20 +27,23 @@ pick when it exists. Fewer than ~8 seeds → warn that the pattern will be weak.
 
 ### 2. Profile the seeds
 
-Resolve each seed to structured firmographics — exact verification is mandatory on every
-resolve (the `website` search is substring match and can return only look-alike domains;
-a wrong seed poisons the whole ICP pattern downstream):
+Resolve each seed to structured firmographics with the exact resolve (`anysite-mcp` →
+Domain → company) — a wrong seed poisons the whole ICP pattern downstream:
 ```
-execute linkedin/search/search_sql_companies {website: "seed1.com", count: 5}   # per seed
-# batched variant allowed, but: any seed without an exact match must be re-queried
-# individually. query_cache filters the WHOLE cached set; `limit` (default 10) caps only
-# how many rows come back — pass one when a batch should return more than 10 matches.
-query_cache {conditions: [{"field": "website", "op": "=", "value": "seed1.com"}], limit: 50}
+execute companies/resolve {website: "seed1.com", count: 3}          # per seed; pick the
+                                                                    # right candidate
+execute linkedin/search/search_sql_companies {urn: ["fsd_company:<id>", ...], count: N}
 ```
-A seed with no exact website match is NOT dropped yet — resolve it via the site itself
-(`webparser/parse {url, extract_minimal: true}` → top-level `title` + own linkedin.com/company
-URL in `links[]` → `linkedin/company`), or via crunchbase → `contacts.linkedin_url`. Only a
-seed that survives neither is excluded from profiling, and say which ones.
+A seed with no candidate is NOT dropped yet — resolve it via the site itself
+(`webparser/parse {url, extract_minimal: true}` → own linkedin.com/company URL in `links[]`
+→ `linkedin/company`), or via crunchbase → `contacts.linkedin_url`. Only a seed that
+survives neither is excluded from profiling, and say which ones.
+
+**Contrast, not only resemblance.** If the CRM also has weak customers (churned, smallest,
+lowest usage) or closed-lost accounts, profile them too and keep only the dimensions where
+the best and the worst DIFFER — a trait every customer shares says nothing. State the
+counter-pattern ("under 10 employees churns"). At most 5 criteria. Fewer than ~10 seeds →
+say the pattern is a hypothesis.
 Plus `crunchbase/company` for stage/funding on a subset (venture-relevant seeds only).
 Derive the pattern in-session and SHOW it:
 
@@ -57,6 +61,17 @@ The user confirms/edits the pattern — it's their ICP, the data only proposes i
 
 ### 3. Search for lookalikes
 
+**Wide net, then judge each row.** LinkedIn industry labels are often wrong or empty
+(auto-created pages especially), so a search on the seeds' dominant industry silently
+misses real lookalikes:
+- Search with EVERY industry that at least one seed carries, plus a keywords/description
+  query with no industry filter at all (catches the blank- and mislabelled ones).
+- Decide membership with ONE yes/no question per row, the edge cases settled inside the
+  question ("Does this company sell B2B software to finance teams? Payment processors: no.
+  Consultancies: no."), answered from the row's description — not with a weighted score.
+- **Canary first:** run the question on 50–100 rows, show the user the yes/no split with a
+  few examples of each, fix the question, then run the rest.
+
 - `execute linkedin/search/search_sql_companies` — industry_name/keywords DSL from the
   pattern, employee_count band, country filter, count up to 1000.
 - `execute crunchbase/db/db_search` — when stage matters (`last_funding_type`,
@@ -72,8 +87,9 @@ before any per-candidate enrichment.
 
 ### 4. Score and dedup
 
-Score candidates against the confirmed pattern (same rubric discipline as
-`anysite-crm-score` — weighted criteria, evidence per company, no guessed values).
+Rank the rows that passed the yes/no question against the confirmed pattern (same rubric
+discipline as `anysite-crm-score` — evidence per company, no guessed values, a missing
+value is "unknown", not a low score). Every row carries its reason in one line.
 Dedup against the CRM by domain (`crm_query_records`) — existing accounts drop out or get
 flagged "already in CRM, unworked".
 

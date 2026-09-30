@@ -50,9 +50,14 @@ in one line), including its exclusions.
 | "in the orbit of company X" | `similar_organizations: "\"fsd_company:<id>\""` | queryable filter, not just an output field — the reverse-graph expander; see below |
 | "startup / SMB / enterprise" | `employee_count_min` / `employee_count_max` | integers; ignore `employee_count_range` entirely |
 | "founded recently" | `founded_on_min` | year |
-| named company lookup | `name` or `alias` DSL + exact verification | never trust first hit; resolve by domain via the anysite-mcp resolve recipe |
+| named company lookup | `name` or `alias` DSL + exact verification | never trust first hit; a known domain → `companies/resolve` (anysite-mcp) |
 | always, every query | `is_active: true, has_website: true, min_description_length: 100` | the hygiene trio kills stubs and dead pages |
 | ranking | `sort` = `relevance` (default) or `last_modified` | relevance for sourcing; `last_modified` for "what's new since last run" (monitoring). Scoring weights a term by field: name 5× > specialities/hashtags 3× > short_description 2× > long description 1×, length-normalized; ties broken by recency. **Caveat:** the score is built only from `keywords`/`name`/`specialities`/`description` — a query filtered ONLY by non-text fields (e.g. just `industry` + `employee_count_min`) has nothing to score, so it falls back to recency order |
+
+Industry labels are often wrong or empty (auto-created LinkedIn pages especially). When
+missing a company matters more than extra noise, run a second query with the description
+terms and NO industry filter, merge the two (`merge_data` with `dedupe_by: ["urn"]`) and
+decide each row with one yes/no question — the wide-net method in `anysite-crm-lookalikes`.
 
 DSL in every text field: whitespace = AND, `|` = OR (no spaces around it),
 `"phrase"` = exact phrase / substring, `-token` = NOT. Example:
@@ -111,13 +116,19 @@ exactly the fresh-funded targets a list is built for.
 
 ## Two hard limits to state up front (TAM planning)
 
-Unlike people search, company search has **no `bucket_total` and no count-only
-mode**. That means:
+Unlike people search, company search has **no `bucket_total`**, and its `dry_run`
+count-only mode does not reach you through the MCP (the count travels in a response
+header; the call returns an empty list). That means:
 
 - **You cannot ask "how big is my ICP universe" cheaply** — there's no total
   count without pulling rows. Size the split blind, or probe representative
   sub-slices and extrapolate; tell the user the number is an estimate. (Still
   true regardless of `sort`.)
+- **Plan the universe from the target backwards** when the user asks for TAM or
+  tiers: accounts needed ≈ revenue goal ÷ deal size ÷ the win rate from contacted
+  account to closed deal (ask for theirs; say it is an assumption if they have
+  none). Then tier what you found — a few dozen 1:1 accounts, a few hundred
+  1:few, the rest 1:many — rather than handing over one flat list.
 - **A >1000 match returns only the top 1000 by rank**, so full coverage still
   needs splitting by size/country/founded into sub-queries each < 1000. With the
   relevance default the top is at least relevance-ordered rather than a pure
@@ -128,12 +139,13 @@ mode**. That means:
 
 ## Read the bonus fields — they're the handoff
 
-Every row carries, at no extra cost:
+Every row carries, at no extra cost (names as in the call's table rows; full records
+from `get_page` use `organizational_urn` / `website` / `crunchbase_link`):
 
-- `organizational_urn` (`company:<id>`) → **feeds `anysite-people-sourcing`**
-  (`current_company_id`) and `search_jobs` directly;
-- `website` → domain for CRM matching and `current_company_domain` people filters;
-- `crunchbase_link` → free crunchbase alias, skip the live 20cr search;
+- `company_id` → **feeds `anysite-people-sourcing`** (`current_company_id`) and
+  `search_jobs` directly;
+- `domain` → domain for CRM matching and `current_company_domain` people filters;
+- `crunchbase_alias` → free crunchbase alias, skip the live 20cr search;
 - `similar_organizations[]` → both an output list AND a **queryable filter** (the
   bigger lever — see below);
 - `specialities[]` → the company's own vocabulary, reuse it to widen synonyms.
@@ -160,8 +172,8 @@ one-hop version; the filter is the scalable one.
 
 - Funding stage / investors / valuation → `crunchbase/db/db_search` (dates as
   unix ts, count ≤100) or live `crunchbase/search` (`hiring`, `it_spend` filters).
-- One known company by domain → the resolve recipe in `anysite-mcp` (substring
-  trap: stripe.com → Soundstripe; verification mandatory).
+- One known company by domain → `companies/resolve` (exact domain; recipe in
+  `anysite-mcp` — several candidates can claim one domain, pick the right one).
 - Early-stage / launches → `yc/search/search_companies`, `producthunt`, `betalist`.
 - People at the sourced companies → `anysite-people-sourcing` with the URNs/domains
   from step "bonus fields". CRM push → `anysite-crm-prospect` (dedup + create rules).

@@ -25,8 +25,8 @@ installing both duplicates the skills and the connector.
 
 | Plugin | For | Skills |
 |---|---|---|
-| `anysite-gtm` | Sales, growth and RevOps teams | 16 GTM skills, starting with `/anysite-gtm-onboarding` |
-| `anysite-skills` | Everything: GTM plus research, social, investors and monitoring | all 34 skills |
+| `anysite-gtm` | Sales, growth and RevOps teams | 17 GTM skills, starting with `/anysite-gtm-onboarding` |
+| `anysite-skills` | Everything: GTM plus research, social, investors and monitoring | all 35 skills |
 
 ## MCP tools
 
@@ -70,6 +70,7 @@ Claude Desktop, ChatGPT). In Claude Code the same results are available through 
 | `anysite-crm-champions` | Detect job changes among CRM contacts, flag past champions at new accounts, propose re-engagement plays. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-champions/SKILL.md) |
 | `anysite-crm-inbound` | Instant read-only verdict on one inbound lead - identity, company reality check, ICP fit, route and talking points. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-inbound/SKILL.md) |
 | `anysite-crm-account-brief` | Pre-meeting one-pager for a CRM account: CRM context plus funding, exec changes, news, key people's recent activity. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-account-brief/SKILL.md) |
+| `anysite-buying-committee` | Map the buying committee at one account - economic buyer, champion candidates, evaluators, users, blockers - with coverage gaps, single-thread risk and an order to engage. | [SKILL.md](plugins/anysite-gtm/skills/anysite-buying-committee/SKILL.md) |
 | `anysite-crm-lookalikes` | Derive your real ICP from your best customers and find lookalike companies across 70M+ company records. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-lookalikes/SKILL.md) |
 | `anysite-crm-competitor-intel` | Displacement hunting: who uses a competitor (technographics), what their users complain about (review mining), tagged into the CRM. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-competitor-intel/SKILL.md) |
 | `anysite-crm-audit` | Read-only CRM data quality audit: field completeness, duplicate candidates, stale records, enrichability estimate. | [SKILL.md](plugins/anysite-gtm/skills/anysite-crm-audit/SKILL.md) |
@@ -202,6 +203,15 @@ Privacy policy: [app.anysite.io/docs/legal/privacy-policy](https://app.anysite.i
 3. Add its path to `.claude-plugin/plugin.json` (and to `bundles.json` for a GTM skill).
 4. Add it to the skills table in this README.
 5. Run `claude plugin validate .` and open a pull request.
+
+### OpenAI package (ChatGPT and Codex)
+
+`plugins/anysite-gtm` also carries the OpenAI manifest in `.codex-plugin/plugin.json`
+(listing, onboarding skill, review test cases) and shares `.mcp.json` with Claude. After
+changing a GTM skill or the manifest, bump `version` in both plugin manifests and run
+`npm run build:openai`: it checks the package against the OpenAI submission limits and
+writes `dist/anysite-gtm-openai-<version>.zip` for upload at
+[platform.openai.com/plugins](https://platform.openai.com/plugins).
 
 ## Support
 

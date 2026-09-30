@@ -1,6 +1,6 @@
 {
   "name": "@anysiteio/agent-skills",
-  "version": "2.7.3",
+  "version": "2.7.4",
   "description": "Official anysite agent skills + one-line setup: installs skills into Claude Code / Codex and registers the anysite remote MCP server. Includes the GTM bundle (CRM enrichment, signals, prospecting).",
   "keywords": [
     "mcp",
@@ -39,7 +39,8 @@
     ".mcp.json"
   ],
   "scripts": {
-    "prepublishOnly": "echo 'Publishing @anysiteio/agent-skills to npm'"
+    "prepublishOnly": "echo 'Publishing @anysiteio/agent-skills to npm'",
+    "build:openai": "node cli/build-openai-zip.js"
   },
   "publishConfig": {
     "access": "public"
