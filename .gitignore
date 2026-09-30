@@ -67,5 +67,6 @@ context/
 # Scripts (hooks and automation)
 scripts/hooks/
 
-# MCP configuration (managed separately)
+# MCP configuration (managed separately) - except the one shipped with a plugin
 .mcp.json
+!plugins/*/.mcp.json

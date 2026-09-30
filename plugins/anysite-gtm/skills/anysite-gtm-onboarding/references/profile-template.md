@@ -1,7 +1,8 @@
 # GTM profile template
 
-Write the profile to `~/.claude/skills/anysite-gtm-profile/SKILL.md` exactly in this
-shape. Keep the frontmatter verbatim except the company name — its description is what
+Write the profile to `~/.claude/skills/anysite-gtm-profile/SKILL.md` (Claude Code) or
+`~/.codex/skills/anysite-gtm-profile/SKILL.md` (Codex) exactly in this shape; without file
+access, give the same content as a block to paste into project or custom instructions. Keep the frontmatter verbatim except the company name — its description is what
 makes other skills load the profile. Omit a row the user left `unknown` only if it would
 be noise; otherwise keep it as `unknown` so the gap stays visible.
 
@@ -30,6 +31,8 @@ Values marked (inferred from website) were not confirmed by the user.
 - Geography: <countries / regions>
 - Stage / funding: <...>
 - Traits: <tech, model, hiring, regulation>
+- Hard criteria (a miss = no outreach): <...>
+- Soft criteria (weights): <...>
 - Disqualifiers: <...>
 
 ## Personas
@@ -44,7 +47,8 @@ Values marked (inferred from website) were not confirmed by the user.
 
 ## Tools
 - CRM: <HubSpot | Pipedrive | other | none> — field mapping lives in `anysite-crm-profile`
-- Outreach: <channels>, language <...>, tone <...>, signed by <...>
+- Outreach: <channels>, language <...>, signed by <...>
+- Voice: <greeting, sign-off, typical length, formality, never-does> | not learned yet
 - Anysite plan: <credits | unlimited> — bulk runs get <credit | time> estimates first
 
 ## Goal (next 30 days)

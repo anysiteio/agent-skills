@@ -86,8 +86,10 @@ Confirm the full mapping as ONE list for approval, then save.
 
 ### 5. Save the local profile
 
-Write the agreed profile to `~/.claude/skills/anysite-crm-profile/SKILL.md` (create the directory).
-Use exactly this structure:
+Write the agreed profile to `~/.claude/skills/anysite-crm-profile/SKILL.md` in Claude Code or
+`~/.codex/skills/anysite-crm-profile/SKILL.md` in Codex (create the directory). Without file
+access, give it as a block to paste into project or custom instructions. Use exactly this
+structure:
 
 ```markdown
 ---
@@ -126,7 +128,8 @@ that were not discussed.
 
 ## Writing rules (every session, not only setup)
 
-1. **Consult the profile first.** If `~/.claude/skills/anysite-crm-profile/SKILL.md` exists, its
+1. **Consult the profile first.** If the `anysite-crm-profile` exists (as a skill file or in the
+   conversation's instructions), its
    mapping is law: write ONLY to properties listed there, in the listed mode. If a new data type
    has no mapping, ask the user once and suggest re-running setup — do not guess.
 2. **Creating a new contact requires email.** record_id and linkedin_url only MATCH existing

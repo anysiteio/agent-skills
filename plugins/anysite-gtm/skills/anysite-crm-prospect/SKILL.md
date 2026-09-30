@@ -1,6 +1,6 @@
 ---
 name: anysite-crm-prospect
-description: Find net-new leads with anysite (LinkedIn and Crunchbase search, email finding) and push them into the CRM deduplicated - companies first, then contacts with associations. Creating records is gated by the profile's allow_create. Use when the user asks to find new leads/prospects/accounts AND add them to the CRM, build a list in HubSpot, or import prospects. For research without CRM push, prefer anysite-lead-generation. Requires an active CRM connection and profile.
+description: Find net-new leads with anysite (LinkedIn and Crunchbase search, email finding) and push them into the CRM deduplicated - companies first, then contacts with associations. Creating records is gated by the profile's allow_create. Use when the user asks to find new leads/prospects/accounts AND add them to the CRM, build a list in HubSpot, or import prospects. For research without CRM push, use anysite-company-sourcing / anysite-people-sourcing. Requires an active CRM connection and profile.
 ---
 
 # CRM Prospect
@@ -45,8 +45,9 @@ Estimate volume and confirm before running anything large.
   `bucket_total`/`bucket_index`, not repeated calls.
 - Point lookups / disambiguation: `execute linkedin/search/search_users {job_title,
   current_company: [urn] | company_keywords, location, count}` — never bare `keywords`.
-- Live-verify the outreach shortlist via `linkedin/user` before pushing — the DB is
-  fresh but not realtime.
+- Live-verify the outreach shortlist via `linkedin/user` with a small
+  `cache_max_age_days` (e.g. 7) before pushing — the DB is fresh but not realtime, and
+  without that parameter the "live" call may return a profile up to 180 days old.
 
 ### 2. Emails (cheap-first cascade)
 
@@ -56,7 +57,10 @@ Estimate volume and confirm before running anything large.
    each: estimate the cost (50cr × remainder) and confirm before running on large lists.
    Vanity URLs only (`/in/name/`, not `/in/ACoA...`). Its `valid_email`/`email_status`
    fields are the deliverability gate: only validated work addresses go into the push;
-   the rest stay "found, unverified".
+   the rest stay "found, unverified". (`emails/find {linkedin_url}` is an alternative
+   finder with `email_status` and `is_personal`.)
+2b. Step-1 addresses → `emails/verify {email}`: only `status: valid` with `is_personal:
+   false` counts as a verified work email; `risky` stays unverified, `invalid` is dropped.
 3. Still nothing → **keep the lead in the report**, but know the server requires an email
    to CREATE a contact — email-less leads can only update existing records (matched by
    `linkedin_url`). Report them as "found, pending email"; never silently drop them.
@@ -71,6 +75,16 @@ Dedup is reliable by email and domain. By `linkedin_url` it is best-effort only 
 `search`) — for a lead with no email whose search comes up empty, do NOT create; put it in
 a manual-review bucket and say why. Existing company → reuse its record; existing contact →
 update, not create. Report how many were already known — it calibrates the user's trust.
+
+**Launch gates before any create** — decide link / create / review / reject per record:
+- **Identity:** a consumer-email domain is never account identity; resolve the company by
+  its own domain. Re-run the dedup lookup right before the create, not only at the start.
+- **Context:** already a customer, an open deal, a contact touched recently (if the CRM
+  exposes it) or a competitor → not a cold prospect; flag it instead of creating.
+- **List quality** (show it before the push): verified work emails, duplicate emails,
+  people per company (> 3 at one domain → trim), titles that match the personas, company
+  fit, name quality (see `anysite-outreach` → Clean names). Grade it A–F, weighting
+  verification and fit double; below C → fix the list first, don't push.
 
 ### 4. Push — companies first, then contacts
 
@@ -105,7 +119,8 @@ Created / updated / already-known / pending-email / manual-review. Never call da
 
 - Creating records (`allow_create=true`) is permitted here and in `anysite-crm-champions`,
   in both cases only when the profile's `allow_create` agrees. If the user wants research
-  without CRM push, hand off to `anysite-lead-generation`.
+  without CRM push, stop after step 1 and hand over the table (`anysite-company-sourcing`,
+  `anysite-people-sourcing`).
 - Don't set owner, lifecycle stage, or any protected field — routing belongs to the CRM's
   own automation.
 - ICP scoring of the found leads → `anysite-crm-score`; lookalike seeding →

@@ -28,12 +28,13 @@ voice, plus your goal for the next 30 days. Re-run it any time to change the pro
 | `anysite-crm-champions` | Spot past champions who moved to new companies |
 | `anysite-crm-inbound` | Fast verdict on one inbound lead: real, fit, route, talking points |
 | `anysite-crm-account-brief` | One-page brief before a meeting |
+| `anysite-buying-committee` | Who decides at one account, who is missing, whom to engage first |
 | `anysite-crm-lookalikes` | Find companies like your best customers |
 | `anysite-crm-competitor-intel` | Find competitors' customers and what they complain about |
 | `anysite-crm-audit` | Read-only CRM data quality audit |
 | `anysite-outreach` | Cold first-touch and follow-ups grounded in a real, dated detail |
 
-Lists of companies and people open as an interactive table in Claude apps that render MCP Apps,
+Lists of companies and people open as an interactive table in apps that render MCP Apps,
 where you can filter, enrich and go through leads one by one (Yes / No / Skip).
 
 ## What the plugin connects to and stores

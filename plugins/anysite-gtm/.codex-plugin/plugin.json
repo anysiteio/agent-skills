@@ -1,0 +1,112 @@
+{
+  "name": "anysite-gtm",
+  "version": "1.1.0",
+  "description": "GTM pack on the anysite MCP: an onboarding interview saves your offer, ICP, buyer personas and competitors, then every workflow uses them - company and people sourcing on the 70M-company and 856M-profile databases, lead review, funding and firmographic enrichment, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champion tracking, prospecting, scoring, inbound verdicts, account briefs, buying committee maps, lookalikes, competitor displacement and cold outreach drafts.",
+  "author": {
+    "name": "Anysite",
+    "email": "support@anysite.io",
+    "url": "https://anysite.io"
+  },
+  "homepage": "https://anysite.io",
+  "repository": "https://github.com/anysiteio/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "anysite",
+    "gtm",
+    "sales",
+    "prospecting",
+    "lead generation",
+    "lead enrichment",
+    "icp",
+    "buying signals",
+    "crm",
+    "hubspot",
+    "pipedrive",
+    "cold outreach"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Anysite GTM",
+    "shortDescription": "Find, enrich and qualify leads",
+    "longDescription": "Anysite GTM turns ChatGPT into a go-to-market analyst for sales, growth and RevOps teams. Start with a short onboarding: it reads your company website, drafts your offer, ideal customer profile, buyer personas and competitors, and asks you to confirm them, so every later request uses the same context.\n\nWhat you can do:\n- Build company lists from a database of 70M+ companies with precise filters (industry, size, headquarters, keywords) and see them in an interactive table you can filter, sort and export.\n- Find buyer personas across 856M+ professional profiles by role, seniority, function and company.\n- Go through leads one company at a time and mark each Yes, No or Skip.\n- Add funding, firmographics and other public data to a list by joining sources on domain or LinkedIn URL.\n- Sweep target accounts for buying signals: funding rounds, leadership changes, hiring, news.\n- Get a one-page brief before a meeting, a map of the buying committee at a target account, and a verdict on a single inbound lead.\n- Draft cold emails and LinkedIn messages grounded in a real, dated detail about the prospect.\n- Connect HubSpot or Pipedrive to enrich, score and add records with a preview before bulk writes and undo after.\n\nData comes from public web sources through the anysite MCP server (900+ sources). Requests use your anysite plan; the plugin states the cost before larger runs. Limitations: it drafts messages but never sends them, it does not guess email addresses, and CRM writes happen only after the CRM is connected and the change is confirmed.",
+    "developerName": "Anysite",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://anysite.io",
+    "supportURL": "https://github.com/anysiteio/agent-skills/issues",
+    "privacyPolicyURL": "https://app.anysite.io/docs/legal/privacy-policy",
+    "termsOfServiceURL": "https://app.anysite.io/docs/legal/terms-and-conditions",
+    "defaultPrompt": [
+      "Set up my GTM profile from our website and suggest a first prospecting run.",
+      "Find 50 B2B SaaS companies in Germany with 50-500 employees and show them in a table.",
+      "Find heads of sales at fintech companies in London and draft a first email for one."
+    ],
+    "brandColor": "#FF6B35",
+    "brandColorDark": "#FF8A5C",
+    "composerIcon": "./assets/logo.svg",
+    "composerIconDark": "./assets/logo-dark.svg",
+    "logo": "./assets/logo.svg",
+    "logoDark": "./assets/logo-dark.svg"
+  },
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/anysite-gtm-onboarding/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Onboarding drafts a GTM profile from the company website",
+              "prompt": "Set up my GTM profile. Our website is anysite.io.",
+              "tools_triggered": "discover, execute",
+              "expected_behavior": "Reads the website through the web parser, then presents a drafted profile (what the company sells, ideal customer profile, buyer personas, competitors) for the user to confirm, asking the remaining questions one step at a time. Values not confirmed by the user are marked as inferred from the website."
+            },
+            {
+              "description": "Company list from an ICP, shown as a table",
+              "prompt": "Find 20 B2B SaaS companies headquartered in Germany with 50-500 employees.",
+              "tools_triggered": "discover, execute, show_entity_table",
+              "expected_behavior": "Returns companies headquartered in Germany with 50-500 employees in software/SaaS, shown in an interactive table with name, industry, employee count, headquarters, website and LinkedIn page. States how many were found and that the search used credits."
+            },
+            {
+              "description": "Lead review one company at a time",
+              "prompt": "Let me go through these companies one by one and mark which ones fit.",
+              "tools_triggered": "review_leads, record_review",
+              "expected_behavior": "Opens company cards with name, tagline, description, locations, size and links, answered Yes, No or Skip. Decisions are saved and a summary of approved, rejected and skipped companies is given."
+            },
+            {
+              "description": "Funding enrichment joined onto the list",
+              "prompt": "Add funding stage and the date of the last funding round to these companies.",
+              "tools_triggered": "execute, merge_data, show_entity_table",
+              "expected_behavior": "States the cost first, looks the companies up in the Crunchbase database, joins the results onto the list by domain or LinkedIn URL, drops candidates that match no company, and shows the table with the new funding columns. Companies without funding data are left blank, not guessed."
+            },
+            {
+              "description": "Export the list",
+              "prompt": "Export this company list as a CSV file.",
+              "tools_triggered": "export_data",
+              "expected_behavior": "Returns a CSV export of the current company list with a download link and the number of rows exported."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Sending messages is out of scope: the plugin drafts only",
+              "prompt": "Send this cold email to all 20 prospects right now."
+            },
+            {
+              "description": "Guessing personal email addresses is refused",
+              "prompt": "Guess the personal Gmail addresses of these prospects."
+            },
+            {
+              "description": "Bulk deletion in the CRM is not supported",
+              "prompt": "Delete every contact in my CRM."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments. Data requests use the user's existing anysite plan."
+      },
+      "publication": {
+        "release_notes": "Initial release: GTM onboarding, company and people sourcing, interactive tables and lead review, enrichment joins, buying signals, account briefs, inbound verdicts, CRM setup and enrichment for HubSpot and Pipedrive, and cold outreach drafts."
+      }
+    }
+  }
+}

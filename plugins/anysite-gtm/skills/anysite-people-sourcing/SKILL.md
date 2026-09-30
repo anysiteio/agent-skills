@@ -133,9 +133,14 @@ The derived fields you filter on are **not in the response**: no `seniority`,
 ## Coverage honesty
 
 Not every profile states a current employer, industry, company size or dated
-roles — those filters answer **only for people who do**. Set the matching `has_*`
-flag deliberately and tell the user the trade-off ("filtering by company size
-skips people whose company doesn't state one"). `open_to_work: false` = "no badge
+roles — those filters answer **only for people who do**. The API's own numbers:
+current title, seniority and function resolve for about a third of people;
+`current_company_id`, `current_company_domain` and `employee_range` for about one
+person in five. So a company-id or domain rung returns roughly a fifth of the
+people who really work there — say so, and for coverage run the
+`current_company_name` rung alongside it. Set the matching `has_*` flag
+deliberately and tell the user the trade-off ("filtering by company size skips
+people whose company doesn't state one"). `open_to_work: false` = "no badge
 observed", not "not looking". Follower/connection counts exist on a small share —
 gate with `has_engagement`.
 
@@ -145,8 +150,9 @@ visiting posts). "Current company" is then ambiguous, and a
 `current_company_domain`/`employee_count` filter may match on a quarter-time
 advisory role, not the day job — so verify the target company is an *operational*
 current role before anchoring an opener on it. And `urn` is occasionally `null`
-even when `alias` is present — the vanity URL still enables `user_find_email_by_url`,
-but URN-keyed handoffs (`user/posts`) need the live `linkedin/user` step first.
+even when `alias` is present — the vanity URL still enables `user_find_email_by_url`
+and `user_posts` (it accepts the alias/URL and resolves it at the cost of one extra
+lookup).
 
 ## The loop
 
@@ -192,7 +198,13 @@ scan just times out again.
   seniority:["manager","head","vp","cxo"], has_current_role:true` — every
   multi-word alternative quoted; regional focus goes in `headline`, not
   `country` (see Geo).
-- *"New decision-makers"* (best-converting timing): add `months_in_role_max:6`.
+- *"New decision-makers"* (best-converting timing): add `months_in_role_max:3`
+  (default 90 days). Too few → widen the title family first, then relax size or
+  geography, and only then the window (6 months; 9 is the ceiling).
+- *"Buying committee at one account"*: `anysite-buying-committee`.
+- *"Warm paths"*: people who used to work at your customers —
+  `past_company_id:[<customer ids>]` + your persona filters; name the shared
+  employer in the message only if the user confirms it may be mentioned.
 - *"Grew up inside the company"* (internal champion / stable ABM contact):
   `promotion_count_min:2` + `avg_tenure_months_min:24`.
 - *"Competitor alumni"*: `past_company_id:[<ids>]` (+ function/seniority) — people
@@ -218,10 +230,12 @@ scan just times out again.
   yield), then `user_find_email_by_url` (~75% yield but 50cr each — estimate
   `50cr × N` and confirm before a big run) with its `valid_email`/`email_status`
   as the deliverability gate. Personal/unverified addresses never go into a work
-  sequence. There is no built-in email verifier — for bounce-critical sends, gate
-  externally.
-- **Live-verify the outreach shortlist** via `linkedin/user` — the DB is fresh
-  but not realtime; it also yields the vanity URL. Job-change detection on CRM
+  sequence. For bounce-critical sends, run the address through `emails/verify`
+  (`status` valid / invalid / risky, `is_personal`); it may answer from a verdict
+  stored up to a year ago (`resolved_by` says which).
+- **Live-verify the outreach shortlist** via `linkedin/user` with a small
+  `cache_max_age_days` (e.g. 7) — without it the call may return a profile up to
+  180 days old, which defeats the check; it also yields the vanity URL. Job-change detection on CRM
   contacts belongs to `anysite-crm-champions` (this DB's `months_since_change_max`
   is its cheap pre-filter, not its evidence).
 - Sourcing individuals is personal-data processing: search to the stated business
