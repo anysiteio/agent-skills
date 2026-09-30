@@ -1,13 +1,14 @@
 {
   "name": "anysite-gtm",
   "displayName": "Anysite GTM",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "GTM pack on the anysite MCP: starts with an onboarding interview that saves your offer, ICP, buyer personas and competitors, then uses them in every workflow - company and people sourcing on the 70M-company and 856M-profile databases, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champion tracking, prospecting, scoring, inbound verdicts, account briefs, lookalikes, competitor displacement and cold outreach. Ships the anysite MCP connector.",
   "author": {
     "name": "Anysite Skills Contributors",
-    "email": "support@anysite.io"
+    "email": "support@anysite.io",
+    "url": "https://anysite.io"
   },
-  "homepage": "https://github.com/anysiteio/agent-skills",
+  "homepage": "https://anysite.io",
   "repository": "https://github.com/anysiteio/agent-skills",
   "privacyPolicyUrl": "https://app.anysite.io/docs/legal/privacy-policy",
   "license": "MIT",
