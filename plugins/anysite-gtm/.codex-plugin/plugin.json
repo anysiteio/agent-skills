@@ -1,6 +1,6 @@
 {
   "name": "anysite-gtm",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "GTM pack on the anysite MCP: an onboarding interview saves your offer, ICP, buyer personas and competitors, then every workflow uses them - company and people sourcing on the 70M-company and 856M-profile databases, lead review, funding and firmographic enrichment, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champion tracking, prospecting, scoring, inbound verdicts, account briefs, buying committee maps, lookalikes, competitor displacement and cold outreach drafts.",
   "author": {
     "name": "Anysite",
@@ -29,9 +29,9 @@
   "interface": {
     "displayName": "Anysite GTM",
     "shortDescription": "Find, enrich and qualify leads",
-    "longDescription": "Anysite GTM turns ChatGPT into a go-to-market analyst for sales, growth and RevOps teams. Start with a short onboarding: it reads your company website, drafts your offer, ideal customer profile, buyer personas and competitors, and asks you to confirm them, so every later request uses the same context.\n\nWhat you can do:\n- Build company lists from a database of 70M+ companies with precise filters (industry, size, headquarters, keywords) and see them in an interactive table you can filter, sort and export.\n- Find buyer personas across 856M+ professional profiles by role, seniority, function and company.\n- Go through leads one company at a time and mark each Yes, No or Skip.\n- Add funding, firmographics and other public data to a list by joining sources on domain or LinkedIn URL.\n- Sweep target accounts for buying signals: funding rounds, leadership changes, hiring, news.\n- Get a one-page brief before a meeting, a map of the buying committee at a target account, and a verdict on a single inbound lead.\n- Draft cold emails and LinkedIn messages grounded in a real, dated detail about the prospect.\n- Connect HubSpot or Pipedrive to enrich, score and add records with a preview before bulk writes and undo after.\n\nData comes from public web sources through the anysite MCP server (900+ sources). Requests use your anysite plan; the plugin states the cost before larger runs. Limitations: it drafts messages but never sends them, it does not guess email addresses, and CRM writes happen only after the CRM is connected and the change is confirmed.",
+    "longDescription": "Anysite GTM helps B2B sales, growth and RevOps teams find and qualify the companies and people to sell to. It builds target account and contact lists from public business data, adds firmographics and buying signals, maps who decides at an account, and drafts outreach, optionally syncing results with HubSpot or Pipedrive.\n\nStart with a short onboarding: it reads your company website, drafts your offer, ideal customer profile, buyer personas and competitors, and asks you to confirm them, so every later request uses the same context.\n\nWhat you can do:\n- Build company lists from a database of 70M+ companies with precise filters (industry, size, headquarters, keywords) and see them in an interactive table you can filter, sort and export.\n- Find buyer personas across 856M+ professional profiles by role, seniority, function and company.\n- Go through leads one company at a time and mark each Yes, No or Skip.\n- Add funding, firmographics and other public data to a list by joining sources on domain or LinkedIn URL.\n- Sweep target accounts for buying signals: funding rounds, leadership changes, hiring, news.\n- Get a one-page brief before a meeting, a map of the buying committee at a target account, and a verdict on a single inbound lead.\n- Draft cold emails and LinkedIn messages grounded in a real, dated detail about the prospect.\n- Connect HubSpot or Pipedrive to enrich, score and add records with a preview before bulk writes and undo after.\n\nData comes from public web sources through the anysite MCP server and requires an anysite account. Limitations: it drafts messages but never sends them, it does not guess email addresses, and CRM writes happen only after the CRM is connected and the change is confirmed.",
     "developerName": "Anysite",
-    "category": "Productivity",
+    "category": "Business & Operations",
     "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://anysite.io",
     "supportURL": "https://github.com/anysiteio/agent-skills/issues",
@@ -65,7 +65,7 @@
               "description": "Company list from an ICP, shown as a table",
               "prompt": "Find 20 B2B SaaS companies headquartered in Germany with 50-500 employees.",
               "tools_triggered": "discover, execute, show_entity_table",
-              "expected_behavior": "Returns companies headquartered in Germany with 50-500 employees in software/SaaS, shown in an interactive table with name, industry, employee count, headquarters, website and LinkedIn page. States how many were found and that the search used credits."
+              "expected_behavior": "Returns companies headquartered in Germany with 50-500 employees in software/SaaS, shown in an interactive table with name, industry, employee count, headquarters, website and LinkedIn page. States how many were found."
             },
             {
               "description": "Lead review one company at a time",
@@ -102,7 +102,7 @@
           ]
         },
         "commerce": false,
-        "commerce_description": "This plugin does not sell products or process payments. Data requests use the user's existing anysite plan."
+        "commerce_description": "This plugin does not sell products or process payments."
       },
       "publication": {
         "release_notes": "Initial release: GTM onboarding, company and people sourcing, interactive tables and lead review, enrichment joins, buying signals, account briefs, inbound verdicts, CRM setup and enrichment for HubSpot and Pipedrive, and cold outreach drafts."
