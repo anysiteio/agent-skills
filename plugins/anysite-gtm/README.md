@@ -41,7 +41,7 @@ where you can filter, enrich and go through leads one by one (Yes / No / Skip).
 
 - **MCP connector:** the plugin adds the remote anysite MCP server at
   `https://mcp.anysite.io/mcp`. You sign in with your anysite account on first use. Data
-  requests are sent to anysite and use your anysite plan (credits or Unlimited).
+  requests are sent to anysite under that account.
 - **CRM:** only when you run `anysite-crm-setup` and connect HubSpot or Pipedrive through
   anysite. Writes to the CRM are fill-blank by default, previewed as a dry run for bulk changes,
   and can be undone.

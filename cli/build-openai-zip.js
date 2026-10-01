@@ -47,6 +47,15 @@ limit("shortDescription", 30);
 limit("longDescription", 4000);
 limit("developerName", 80);
 limit("category", 200);
+const CATEGORIES = ["Productivity", "Creativity", "Developer Tools", "Business & Operations", "Data & Analytics",
+  "Communication", "Education & Research", "Security", "Finance", "Healthcare", "Travel", "Entertainment", "Other"];
+if (ui.category && !CATEGORIES.includes(ui.category)) err(`interface.category: one of ${CATEGORIES.join(", ")}`);
+const PROMO = /\b(pric(e|es|ing)|plans?|subscriptions?|free|trials?|discounts?|promo(tion)?s?|credits?|unlimited|\$\d)/i;
+for (const f of ["shortDescription", "longDescription"]) {
+  const hit = ui[f]?.match(PROMO);
+  if (hit) err(`interface.${f}: mentions "${hit[0]}" - descriptions must not advertise pricing, plans, trials or promotions`);
+}
+if (oa.review?.commerce_description?.match(PROMO)) err("review.commerce_description: no pricing or plan wording");
 for (const f of ["websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"]) if (!isHttps(ui[f])) err(`interface.${f}: HTTPS URL required for MCP review`);
 const caps = ui.capabilities ?? [];
 if (!Array.isArray(caps) || caps.length > 20 || caps.some((c) => typeof c !== "string" || c.length > 120)) err("interface.capabilities: <=20 strings of <=120");
