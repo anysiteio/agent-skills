@@ -1,5 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 567 567" width="567" height="567" role="img" aria-label="anysite">
-  <rect width="567" height="567" fill="#FFFFFF"/>
-  <path d="M212 95H282L176 438H106Z" fill="#1A1A1A"/>
-  <path d="M368 95H438L332 438H262Z" fill="#1A1A1A"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="567" height="567" viewBox="0 0 567 567">
+  <path fill="#FF6B35" d="M212 95H282L176 438H106ZM368 95H438L332 438H262Z"/>
 </svg>

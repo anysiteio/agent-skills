@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "anysite",
-  "version": "2.7.4",
+  "version": "2.7.5",
   "description": "Anysite plugins: the full skills suite, or the GTM-only pack with guided onboarding - both bundled with the anysite MCP connector",
   "owner": {
     "name": "Anysite Skills Contributors",
@@ -11,8 +11,8 @@
   "plugins": [
     {
       "name": "anysite-skills",
-      "description": "Complete suite of 35 anysite skills incl. people/company sourcing on the 856M-profile and 70M-company DBs, anysite-monitor (recurring change monitoring with a seen-ledger) incl. the GTM/CRM package (onboarding, setup, enrich, signals, champions, prospect, audit, score, inbound, account-brief, buying committee, lookalikes, competitor displacement) + research skills. Bundles the anysite MCP connector - skills and data access install together; toggle individual skills after install. Install only one of anysite-skills and anysite-gtm - the GTM pack is a subset of this suite.",
-      "version": "2.7.4",
+      "description": "Live web data for sales, research and monitoring. Find and qualify B2B companies and people, enrich and score your CRM, catch buying signals and draft outreach; research markets, competitors, investors and people across professional networks, social media, reviews and the web; and get regular reports on what changed. The full anysite skill suite, with the anysite connector.",
+      "version": "2.7.5",
       "author": {
         "name": "Anysite Skills Contributors",
         "email": "support@anysite.io",
@@ -33,7 +33,7 @@
     {
       "name": "anysite-gtm",
       "displayName": "Anysite GTM",
-      "description": "GTM-only pack (17 skills): start with /anysite-gtm-onboarding - a 5-10 minute interview, pre-filled from your website, that saves your offer, ICP, buyer personas, competitors and best customers so every GTM skill uses them. Then: company and people sourcing on the 70M-company and 856M-profile databases, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champions, prospecting, scoring, inbound verdicts, account briefs, buying committee maps, lookalikes, competitor displacement and cold outreach. Bundles the anysite MCP connector. Install instead of anysite-skills, not alongside it.",
+      "description": "Find and qualify the B2B companies and people to sell to. A short onboarding learns your offer, ideal customer profile and buyer personas from your website; then build target account and contact lists from 70M+ companies and 856M+ professional profiles, add funding and buying signals, map who decides at an account, keep HubSpot or Pipedrive enriched, and draft outreach grounded in real, dated events.",
       "author": {
         "name": "Anysite Skills Contributors",
         "email": "support@anysite.io",

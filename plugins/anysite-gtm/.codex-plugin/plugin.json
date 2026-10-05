@@ -1,7 +1,7 @@
 {
   "name": "anysite-gtm",
-  "version": "1.1.1",
-  "description": "GTM pack on the anysite MCP: an onboarding interview saves your offer, ICP, buyer personas and competitors, then every workflow uses them - company and people sourcing on the 70M-company and 856M-profile databases, lead review, funding and firmographic enrichment, CRM setup and enrichment (HubSpot, Pipedrive), buying signals, champion tracking, prospecting, scoring, inbound verdicts, account briefs, buying committee maps, lookalikes, competitor displacement and cold outreach drafts.",
+  "version": "1.1.2",
+  "description": "Find and qualify the B2B companies and people to sell to. A short onboarding learns your offer, ideal customer profile and buyer personas from your website; then build target account and contact lists from 70M+ companies and 856M+ professional profiles, add funding and buying signals, map who decides at an account, keep HubSpot or Pipedrive enriched, and draft outreach grounded in real, dated events.",
   "author": {
     "name": "Anysite",
     "email": "support@anysite.io",
