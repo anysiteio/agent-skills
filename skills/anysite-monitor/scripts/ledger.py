@@ -53,7 +53,9 @@ def normalize_url(url: str) -> str:
 def content_hash(text: str) -> str:
     """Short stable digest of meaningful content (whitespace-collapsed)."""
     norm = " ".join((text or "").split())
-    return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:8]
+    # Use 16 hex chars (64 bits) instead of 8 (32 bits) for adequate
+    # collision resistance against crafted content collisions.
+    return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
 
 
 def diff(ledger: dict, items: list, today: str, retention_days: int,
